@@ -1,0 +1,6 @@
+STICKERS (Stories):
+• Story 01: sticker de ENQUETE no espaço inferior — "Imóvel" / "Veículo" / "Empresa" (a enquete aceita até 4 opções).
+• Story 02: sticker de CAIXA DE PERGUNTAS no espaço inferior — "Ex.: R$ 300 mil para um imóvel".
+• Story 03: sem sticker.
+• Story 04: sem sticker (ou sticker de contagem regressiva, se houver campanha com prazo real).
+• Story 05: sticker de LINK no espaço inferior — "Quero simular" → WhatsApp da ERBE com a mensagem pronta de consórcio.

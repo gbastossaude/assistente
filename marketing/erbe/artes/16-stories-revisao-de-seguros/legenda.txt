@@ -1,0 +1,6 @@
+STICKERS (Stories):
+• Story 01: sticker de ENQUETE no espaço inferior — opções "Sim" e "Mais ou menos".
+• Story 02: sem sticker (ou sticker de reação/emoji deslizante "quanto isso te preocupa?").
+• Story 03: sticker de QUIZ no espaço inferior — "Para os herdeiros, pela lei" (correta) / "Para o Estado" / "Ninguém recebe".
+• Story 04: sem sticker.
+• Story 05: sticker de LINK no espaço inferior — texto "Quero revisar meus seguros" → WhatsApp da ERBE com mensagem pronta. Se o diagnóstico for sem custo, acrescente esse destaque no texto do sticker.
