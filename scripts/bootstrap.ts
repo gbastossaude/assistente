@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { pgConfig } from "../src/server/db/pg-config";
 import { CHECKLIST_CATALOG } from "../src/lib/domain/checklist-catalog";
 import { DEFAULT_TEMPLATES } from "../src/lib/domain/messages";
 import { AUTOMATION_RULES, DEFAULT_SETTINGS } from "../src/lib/domain/settings-defaults";
@@ -32,7 +33,7 @@ const INSURERS: { name: string; kind: "operadora" | "seguradora" }[] = [
 
 export async function bootstrap(url = process.env.DATABASE_URL) {
   if (!url) throw new Error("DATABASE_URL não configurada");
-  const pool = new Pool({ connectionString: url, ssl: /sslmode=require|supabase\.co/.test(url) ? { rejectUnauthorized: false } : undefined });
+  const pool = new Pool(pgConfig(url));
   const db = drizzle(pool, { schema });
 
   for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {

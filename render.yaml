@@ -1,0 +1,43 @@
+# Blueprint do Render (Dashboard → New → Blueprint → selecione este repositório).
+# Variáveis com "sync: false" são preenchidas por você no painel; segredos nunca ficam no Git.
+services:
+  - type: web
+    name: besmart-health-cockpit
+    runtime: node
+    region: virginia # mesma região do banco Supabase (East US) — latência baixa
+    plan: free # para uso diário sem "hibernação", troque para starter
+    buildCommand: npm ci --include=dev && npm run build
+    # migrations e bootstrap são idempotentes: rodam a cada inicialização sem duplicar nada
+    startCommand: npm run db:migrate && npm run db:bootstrap && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: APP_TIMEZONE
+        value: America/Sao_Paulo
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_CA_CERT
+        sync: false
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      - key: STORAGE_DRIVER
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: documentos
+      - key: UPLOAD_MAX_MB
+        value: "25"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

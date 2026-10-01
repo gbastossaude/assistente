@@ -1,51 +1,104 @@
 # Deploy, operação, backup e segurança
 
-## 1. Pré-requisitos
+## Visão geral da instalação recomendada
 
-- PostgreSQL 15+ (recomendado: Supabase ou Postgres gerenciado com backup automático e PITR).
-- Hospedagem Node.js 20+ com processo persistente **ou** plataforma serverless compatível com Next.js
-  (Vercel, Render, Railway, Fly.io, container próprio).
-- Storage privado: Supabase Storage (recomendado em serverless) ou disco persistente (driver `local`).
+| Peça | Serviço | Função |
+|---|---|---|
+| Banco de dados + arquivos | **Supabase** | PostgreSQL e bucket privado de documentos |
+| Aplicação | **Render** (Web Service Node) | Roda o sistema; configuração pronta em `render.yaml` |
+| Rotina de alertas | **GitHub Actions** | Chama a rotina de automações a cada hora (`.github/workflows/rotina-automacoes.yml`) |
 
-## 2. Banco de dados (Supabase)
+> Por que não Vercel? As funções do Vercel limitam o corpo das requisições a ~4,5 MB, o que impediria o upload
+> de bases de vidas e sinistralidades maiores. O Render roda um servidor Node normal (limite do sistema: 25 MB).
 
-1. Crie o projeto. Em *Project Settings → Database*, copie a connection string (modo *Session* para migrations;
-   *Transaction pooler* pode ser usado pela aplicação). Defina `DATABASE_URL` com `sslmode=require`.
-2. `npm run db:migrate` e depois
-   `ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run db:bootstrap` (idempotente; rode a cada deploy sem efeitos colaterais).
-3. **Nunca** rode `db:seed-dev` em produção (o script se recusa com `NODE_ENV=production`).
+> **Região e LGPD.** Coloque banco e aplicação na **mesma região** (cada tela faz várias consultas; regiões
+> distantes deixam o sistema lento). Padrão deste guia: Supabase *East US (North Virginia)* + Render *Virginia*.
+> Isso armazena dados fora do Brasil (transferência internacional — avalie com o encarregado/DPO). Para manter
+> os dados no Brasil: Supabase *South America (São Paulo)* + hospedagem com região em São Paulo (ex.: Fly.io `gru`).
 
-## 3. Storage de documentos
+## Passo 1 — Supabase (banco e arquivos)
 
-- **Supabase**: crie um bucket **privado** (ex.: `documentos`), defina `STORAGE_DRIVER=supabase`,
-  `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (somente no servidor) e `SUPABASE_STORAGE_BUCKET`.
-  Downloads geram URL assinada de 60 s após autorização e auditoria.
-- **Local**: `STORAGE_DRIVER=local`, `STORAGE_LOCAL_DIR` apontando para volume persistente fora de `public/`,
-  com permissão restrita ao usuário do processo (arquivos gravados com modo 600).
+1. Crie uma conta em https://supabase.com e clique em **New project**.
+   - Nome: `besmart-health-cockpit` · defina uma **senha do banco** forte e guarde-a · Região: *East US (North Virginia)*.
+2. Quando o projeto terminar de criar, clique em **Connect** (topo da página) → aba **Connection String** →
+   escolha **Session pooler** → copie a URL (formato
+   `postgresql://postgres.<id>:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres`) e
+   substitua `[YOUR-PASSWORD]` pela senha do banco. Essa é a sua `DATABASE_URL`.
+   *Não acrescente `?sslmode=…`* — o sistema já usa SSL com o Supabase.
+3. Menu **Storage** → **New bucket** → nome `documentos` → deixe **Public bucket desligado** (privado) → criar.
+4. Menu **Project Settings → API** (ou *API Keys*): copie a **Project URL** (`SUPABASE_URL`) e a chave
+   **service_role** / *secret* (`SUPABASE_SERVICE_ROLE_KEY`). Essa chave dá acesso total: nunca a compartilhe nem
+   a coloque no código.
+5. (Opcional, recomendado) **Project Settings → Database → SSL Configuration → Download certificate**: o conteúdo
+   do arquivo vai em `DATABASE_CA_CERT` para o sistema também verificar o certificado do servidor.
 
-## 4. Aplicação
+## Passo 2 — Código no GitHub
+
+O Render publica a partir do GitHub. Use o branch principal (`main`) — faça o merge do pull request deste
+trabalho — ou, temporariamente, selecione o branch `claude/gerar-esse-sistema-w8z8aw` no Render.
+
+## Passo 3 — Render (aplicação)
+
+1. Crie uma conta em https://render.com (entre com o GitHub) e autorize o acesso ao repositório `assistente`.
+2. **New → Blueprint** → selecione o repositório. O Render lê o `render.yaml` e mostra o serviço
+   `besmart-health-cockpit` pedindo as variáveis abaixo:
+
+   | Variável | Valor |
+   |---|---|
+   | `DATABASE_URL` | URL do Session pooler (Passo 1.2) |
+   | `DATABASE_CA_CERT` | conteúdo do certificado (Passo 1.5) — ou deixe vazio |
+   | `SUPABASE_URL` | Project URL (Passo 1.4) |
+   | `SUPABASE_SERVICE_ROLE_KEY` | chave service_role (Passo 1.4) |
+   | `ADMIN_EMAIL` | e-mail do primeiro administrador |
+   | `ADMIN_PASSWORD` | senha do administrador — **mínimo 10 caracteres** |
+   | `ADMIN_NAME` | seu nome |
+   | `ANTHROPIC_API_KEY` | opcional (assistente com Claude); vazio = modo local |
+
+   `AUTH_SECRET` e `CRON_SECRET` são gerados automaticamente pelo Render.
+3. Clique em **Apply**. O primeiro deploy leva alguns minutos: instala, compila, cria as tabelas, carrega a
+   configuração base (checklists NEW/RENEW, templates, automações, operadoras) e cria o administrador.
+4. Quando o status ficar **Live**, abra a URL `https://besmart-health-cockpit-xxxx.onrender.com` e entre com o
+   e-mail e a senha do administrador.
+5. Depois do primeiro acesso:
+   - troque a senha pelo menu do usuário → **Alterar senha**;
+   - no Render, **Environment** → apague `ADMIN_PASSWORD` (ela só é usada na criação do primeiro usuário);
+   - em **Configurações → Usuários**, crie os demais usuários com o papel adequado.
+
+**Plano gratuito do Render:** o serviço “hiberna” após ~15 min sem acesso e leva cerca de 1 minuto para acordar.
+Para uso diário, mude o plano para *Starter* (Settings → Instance Type). O Supabase gratuito pausa projetos
+sem atividade por 7 dias; a rotina horária do Passo 4 mantém o banco ativo.
+
+## Passo 4 — Rotina horária de alertas (GitHub Actions)
+
+1. No Render, copie o valor de `CRON_SECRET` (Environment → mostrar valor).
+2. No GitHub: repositório → **Settings → Secrets and variables → Actions → New repository secret**:
+   - `APP_URL` = URL do sistema no Render (sem barra no final);
+   - `CRON_SECRET` = valor copiado.
+3. Aba **Actions** → *Rotina de automações* → **Run workflow** para testar (deve terminar em verde e mostrar um
+   JSON com `quotations`, `notifications`…). Depois disso ela roda sozinha a cada hora.
+   (Agendamentos do GitHub só rodam a partir do branch padrão — por isso o merge no Passo 2.)
+
+## Passo 5 — Conferência
+
+- `https://SEU-ENDERECO/api/health` responde `{"ok":true}`.
+- Em **Configurações → Sobre / integrações** o armazenamento aparece como `supabase`.
+- Envie um PDF em uma cotação e confira o arquivo em Supabase → Storage → `documentos`.
+- Importe uma base de vidas (pode usar `templates/BASE_SINTETICA_EXEMPLO.xlsm`) e veja o resumo.
+
+### Instalação alternativa (servidor próprio / outro provedor)
 
 ```bash
-npm ci
+npm ci --include=dev
 npm run build
-NODE_ENV=production npm start   # porta 3000 (PORT para alterar)
+npm run db:migrate && ADMIN_EMAIL=... ADMIN_PASSWORD=... npm run db:bootstrap
+npm start   # porta 3000 (variável PORT para alterar); sirva atrás de HTTPS
 ```
 
-Variáveis obrigatórias em produção: `DATABASE_URL`, `AUTH_SECRET` (≥ 32 caracteres aleatórios —
-`openssl rand -base64 48`), `CRON_SECRET`, storage. Opcional: `ANTHROPIC_API_KEY`.
+Com `STORAGE_DRIVER=local`, aponte `STORAGE_LOCAL_DIR` para um volume persistente fora de `public/` (arquivos
+gravados com permissão 600). Health check: `GET /api/health`. Rotina: `POST /api/cron/sweep` com
+`Authorization: Bearer $CRON_SECRET` (ex.: cron do servidor a cada hora).
 
-Sirva **somente via HTTPS** (o cookie de sessão é `Secure` em produção e o HSTS é enviado). Health check:
-`GET /api/health`.
-
-## 5. Agendamento
-
-Configure um cron (Vercel Cron, GitHub Actions, cron do servidor, Supabase pg_cron + http) chamando:
-
-```bash
-curl -X POST https://SEU_DOMINIO/api/cron/sweep -H "Authorization: Bearer $CRON_SECRET"
-```
-
-Frequência sugerida: a cada hora (lembretes de tarefas) ou, no mínimo, diária às 6h.
+**Nunca** rode `npm run db:seed-dev` em produção (o script se recusa com `NODE_ENV=production`).
 
 ## 6. Backup e restauração
 

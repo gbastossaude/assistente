@@ -65,7 +65,8 @@ Veja [`.env.example`](.env.example). Principais:
 
 | Variável | Uso |
 |---|---|
-| `DATABASE_URL` | PostgreSQL (Supabase: connection string com `sslmode=require`) |
+| `DATABASE_URL` | PostgreSQL (Supabase: string do *Session pooler*; o SSL é ativado automaticamente) |
+| `DATABASE_CA_CERT` | (Opcional) certificado do Supabase para verificar o servidor |
 | `AUTH_SECRET` | Assinatura das sessões (JWT HS256) — mínimo 32 caracteres |
 | `SESSION_TTL_HOURS` | Duração da sessão |
 | `STORAGE_DRIVER` | `local` (pasta privada `STORAGE_LOCAL_DIR`) ou `supabase` (bucket privado) |
@@ -111,4 +112,4 @@ política de retenção.
 
 ## Deploy, backup e segurança
 
-Ver [`docs/DEPLOY.md`](docs/DEPLOY.md).
+Passo a passo completo (Supabase + Render + GitHub Actions) em [`docs/DEPLOY.md`](docs/DEPLOY.md).
