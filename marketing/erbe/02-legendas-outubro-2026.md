@@ -3,11 +3,11 @@
 Artes em JPG de alta qualidade em `artes/<nº>-<tema>/` (feed 1080×1350, Reels e Stories 1080×1920). Cada pasta tem um `legenda.txt` pronto para copiar.
 Para alterar um texto, edite `gerador/conteudo.mjs` e rode `node gerador/gerar.mjs <nº>`.
 
-## 01 · Qui 01/10 · Manifesto: proteger exige planejamento
+## 01 · Qui 01/10 · Manifesto: proteger o que continua
 
 **Reels** · Institucional · Funil: Topo · Pasta: `artes/01-manifesto/`
 
-![Manifesto: proteger exige planejamento](artes/01-manifesto/capa-reels.jpg)
+![Manifesto: proteger o que continua](artes/01-manifesto/capa-reels.jpg)
 
 **Legenda:**
 
@@ -20,11 +20,11 @@ Saúde, seguros e consórcio não são produtos soltos. São partes do mesmo pla
 
 Na ERBE, a gente começa entendendo a sua vida — ou a sua empresa. Só depois recomenda.
 
-Porque proteger exige planejamento.
+Três pilares. Uma só casa. Proteger o que continua.
 
 👉 Siga a ERBE. Todos os dias, um conteúdo para você decidir com mais segurança.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #PlanejamentoFinanceiro #PlanoDeSaude #Seguros #Consorcio
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #PlanejamentoFinanceiro #PlanoDeSaude #Seguros #Consorcio
 ```
 
 **Texto na tela (Reels):**
@@ -35,11 +35,12 @@ Porque proteger exige planejamento.
 4. Mas quase ninguém planeja o que protege tudo isso.
 5. Saúde. Seguros. Consórcio.
 6. Não são produtos soltos. São partes do mesmo plano.
-7. ERBE Proteção e Patrimônio — Proteger exige planejamento.
+7. Três pilares. Uma só casa.
+8. ERBE — Proteger o que continua.
 
 ## 02 · Sex 02/10 · Carência: os prazos máximos da lei
 
-**Carrossel** · Planos de Saúde · Funil: Topo · Pasta: `artes/02-carencia/`
+**Carrossel** · Plano de Saúde · Funil: Topo · Pasta: `artes/02-carencia/`
 
 ![Carência: os prazos máximos da lei](artes/02-carencia/slide-01.jpg)
 
@@ -62,7 +63,7 @@ O mais importante: peça por escrito quais carências valem para o seu caso — 
 
 Ficou com dúvida? Fale com a ERBE pelo link na bio. A gente explica cada detalhe.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #PlanoDeSaude #Carencia #ANS #SaudeSuplementar
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #PlanoDeSaude #Carencia #ANS #SaudeSuplementar
 ```
 
 ## 03 · Sáb 03/10 · Mitos e verdades do seguro de vida
@@ -88,12 +89,12 @@ Bônus: beneficiário desatualizado é um erro que passa despercebido. Casou, se
 Salve este post e envie para alguém que precisa ler isso.
 Quer entender qual proteção faz sentido para você? Fale com a ERBE pelo link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #SeguroDeVida #MitosEVerdades #ProtecaoFamiliar #PlanejamentoFinanceiro
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #SeguroDeVida #MitosEVerdades #ProtecaoFamiliar #PlanejamentoFinanceiro
 ```
 
 ## 04 · Dom 04/10 · Outubro Rosa
 
-**Estático** · Planos de Saúde · Funil: Topo · Pasta: `artes/04-outubro-rosa/`
+**Estático** · Plano de Saúde · Funil: Topo · Pasta: `artes/04-outubro-rosa/`
 
 ![Outubro Rosa](artes/04-outubro-rosa/arte.jpg)
 
@@ -108,12 +109,12 @@ Se você tem plano de saúde e não sabe qual rede usar ou o que está coberto, 
 
 💗 Compartilhe com uma mulher importante para você.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #OutubroRosa #Prevencao #SaudeDaMulher #CuidarDeVoce
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #OutubroRosa #Prevencao #SaudeDaMulher #CuidarDeVoce
 ```
 
 ## 05 · Seg 05/10 · Plano de saúde pelo CNPJ (Dia da Micro e Pequena Empresa)
 
-**Carrossel** · Planos de Saúde · Funil: Fundo · Pasta: `artes/05-plano-pelo-cnpj/`
+**Carrossel** · Plano de Saúde · Funil: Fundo · Pasta: `artes/05-plano-pelo-cnpj/`
 
 ![Plano de saúde pelo CNPJ (Dia da Micro e Pequena Empresa)](artes/05-plano-pelo-cnpj/slide-01.jpg)
 
@@ -130,9 +131,9 @@ Por isso, não existe resposta pronta. Existe comparação feita para o seu caso
 
 Hoje, 5 de outubro, é Dia Nacional da Micro e Pequena Empresa. Um bom dia para revisar isso.
 
-📲 Mande PME no WhatsApp (link na bio) e receba uma comparação para o seu CNPJ.
+📲 Responda com PME (aqui nos comentários ou no WhatsApp do link na bio) e receba um estudo para o seu CNPJ.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #PlanoPME #MEI #PlanoDeSaudeEmpresarial #PequenasEmpresas #Empreendedorismo
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #PlanoPME #MEI #PlanoDeSaudeEmpresarial #PequenasEmpresas #Empreendedorismo
 ```
 
 ## 06 · Ter 06/10 · Empresa parada: quem paga as contas?
@@ -152,7 +153,7 @@ A diferença está na hora de montar a proteção, não na hora do sinistro.
 
 💬 Comente EMPRESA e receba o checklist de coberturas para o seu negócio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #SeguroEmpresarial #LucrosCessantes #GestaoDeRiscos #Empresarios
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #SeguroEmpresarial #LucrosCessantes #GestaoDeRiscos #Empresarios
 ```
 
 **Texto na tela (Reels):**
@@ -185,7 +186,7 @@ Nenhum é melhor em tudo. Urgência pede uma solução. Planejamento permite out
 
 Fale com a ERBE e compare o custo total antes de decidir. Link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #Consorcio #Financiamento #CartaDeCredito #PlanejamentoFinanceiro
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #Consorcio #Financiamento #CartaDeCredito #PlanejamentoFinanceiro
 ```
 
 ## 08 · Qui 08/10 · Método ERBE
@@ -204,7 +205,7 @@ Na ERBE, a gente faz perguntas antes. Porque preço sem diagnóstico é chute.
 Nosso método:
 1. Diagnóstico
 2. Análise de mercado
-3. Recomendação
+3. Estudo escrito, com as opções lado a lado e o motivo da recomendação
 4. Implantação
 5. Acompanhamento
 
@@ -212,12 +213,12 @@ Proteção bem feita não termina na assinatura. Ela continua nas renovações, 
 
 Quer começar pelo diagnóstico? Fale com a ERBE pelo link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #Consultoria #CorretoraDeSeguros #PlanoDeSaude #Consorcio
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #Consultoria #CorretoraDeSeguros #PlanoDeSaude #Consorcio
 ```
 
 ## 09 · Sex 09/10 · 5 erros das empresas no plano de saúde
 
-**Reels** · Planos de Saúde · Funil: Meio · Pasta: `artes/09-erros-empresas-plano-de-saude/`
+**Reels** · Plano de Saúde · Funil: Meio · Pasta: `artes/09-erros-empresas-plano-de-saude/`
 
 ![5 erros das empresas no plano de saúde](artes/09-erros-empresas-plano-de-saude/capa-reels.jpg)
 
@@ -235,7 +236,7 @@ Plano de saúde empresarial não pesa só pelo preço. Pesa pelas decisões toma
 
 Se reconheceu pelo menos um, vale uma conversa antes da próxima renovação. Fale com a ERBE pelo link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #PlanoDeSaudeEmpresarial #RH #BeneficiosCorporativos #GestaoDePessoas
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #PlanoDeSaudeEmpresarial #RH #BeneficiosCorporativos #GestaoDePessoas
 ```
 
 **Texto na tela (Reels):**
@@ -265,7 +266,7 @@ Tudo depende do que foi contratado. E é justamente aí que pouca gente olha.
 
 Não sabe o que o seu cobre? Envie sua apólice para a ERBE analisar. Link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #SeguroResidencial #Casa #Assistencia24h #ProtecaoFamiliar
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #SeguroResidencial #Casa #Assistencia24h #ProtecaoFamiliar
 ```
 
 ## 11 · Dom 11/10 · Contemplação explicada em 30 segundos
@@ -287,7 +288,7 @@ Sem juros. Com planejamento.
 
 Salve para consultar depois — e, quando quiser simular, fale com a ERBE.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #Consorcio #Contemplacao #CartaDeCredito #ConsorcioImobiliario
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #Consorcio #Contemplacao #CartaDeCredito #ConsorcioImobiliario
 ```
 
 **Texto na tela (Reels):**
@@ -321,12 +322,12 @@ Feliz Dia das Crianças.
 
 Fale com a ERBE e entenda qual proteção faz sentido para a sua família. Link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #DiaDasCriancas #SeguroDeVida #Familia #ProtecaoFamiliar
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #DiaDasCriancas #SeguroDeVida #Familia #ProtecaoFamiliar
 ```
 
 ## 13 · Ter 13/10 · Coparticipação: economia ou armadilha?
 
-**Carrossel** · Planos de Saúde · Funil: Meio · Pasta: `artes/13-coparticipacao/`
+**Carrossel** · Plano de Saúde · Funil: Meio · Pasta: `artes/13-coparticipacao/`
 
 ![Coparticipação: economia ou armadilha?](artes/13-coparticipacao/slide-01.jpg)
 
@@ -346,7 +347,7 @@ A conta certa é o custo total no ano — não só a mensalidade.
 
 Quer simular os dois modelos com o seu perfil? Fale com a ERBE pelo link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #Coparticipacao #PlanoDeSaude #PlanoDeSaudeEmpresarial #RH
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #Coparticipacao #PlanoDeSaude #PlanoDeSaudeEmpresarial #RH
 ```
 
 ## 14 · Qua 14/10 · Renda protegida para profissional liberal (DIT)
@@ -366,14 +367,14 @@ Antes de contratar, olhe a franquia, o limite de diárias e como a renda é comp
 
 E combine com seguro de vida, invalidez e doenças graves para uma proteção mais completa.
 
-📲 Mande RENDA no WhatsApp (link na bio) e veja quanto da sua renda dá para proteger.
+📲 Responda com RENDA (nos comentários ou no WhatsApp do link na bio) e receba um estudo de quanto da sua renda dá para proteger.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #ProfissionalLiberal #ProtecaoDeRenda #SeguroDeVida #Autonomos
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #ProfissionalLiberal #ProtecaoDeRenda #SeguroDeVida #Autonomos
 ```
 
 ## 15 · Qui 15/10 · Plano de saúde para pais com mais de 60
 
-**Carrossel** · Planos de Saúde · Funil: Topo · Pasta: `artes/15-plano-pais-60-mais/`
+**Carrossel** · Plano de Saúde · Funil: Topo · Pasta: `artes/15-plano-pais-60-mais/`
 
 ![Plano de saúde para pais com mais de 60](artes/15-plano-pais-60-mais/slide-01.jpg)
 
@@ -392,7 +393,7 @@ Se você está pensando em um plano de saúde para eles depois dos 60, comece po
 
 Cada família tem um caminho. Fale com a ERBE e veja quais existem para os seus pais. Link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #PlanoDeSaude #Idosos #CuidarDosPais #Familia
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #PlanoDeSaude #Idosos #CuidarDosPais #Familia
 ```
 
 ## 16 · Sex 16/10 · Você sabe o que seu seguro cobre?
@@ -426,7 +427,7 @@ O consórcio transforma uma parcela planejada em carta de crédito para imóvel,
 
 Salve este post e, quando quiser simular, fale com a ERBE.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #Patrimonio #Consorcio #ConsorcioImobiliario #PlanejamentoFinanceiro
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #Patrimonio #Consorcio #ConsorcioImobiliario #PlanejamentoFinanceiro
 ```
 
 ## 18 · Dom 18/10 · Por que contratar com uma corretora?
@@ -446,7 +447,7 @@ O preço é só o começo da relação.
 
 Fale com a ERBE e veja a diferença de ter alguém do seu lado. Link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #CorretoraDeSeguros #Consultoria #PlanoDeSaude #Seguros
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #CorretoraDeSeguros #Consultoria #PlanoDeSaude #Seguros
 ```
 
 **Texto na tela (Reels):**
@@ -461,7 +462,7 @@ Fale com a ERBE e veja a diferença de ter alguém do seu lado. Link na bio.
 
 ## 19 · Seg 19/10 · Mesmo salário, duas propostas: o que decide?
 
-**Estático** · Planos de Saúde · Funil: Topo · Pasta: `artes/19-beneficios-e-retencao/`
+**Estático** · Plano de Saúde · Funil: Topo · Pasta: `artes/19-beneficios-e-retencao/`
 
 ![Mesmo salário, duas propostas: o que decide?](artes/19-beneficios-e-retencao/arte.jpg)
 
@@ -476,7 +477,7 @@ Plano de saúde, seguro de vida em grupo e outras proteções podem fazer parte 
 
 Fale com a ERBE para estruturar o pacote de benefícios da sua empresa. Link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #BeneficiosCorporativos #RH #RetencaoDeTalentos #PlanoDeSaudeEmpresarial
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #BeneficiosCorporativos #RH #RetencaoDeTalentos #PlanoDeSaudeEmpresarial
 ```
 
 ## 20 · Ter 20/10 · Seguro de vida em grupo e convenção coletiva
@@ -494,9 +495,9 @@ Algumas exigem — com coberturas e valores mínimos definidos. E não cumprir p
 
 Mais que obrigação, o seguro de vida em grupo é um benefício que protege a família de quem trabalha com você.
 
-📲 Envie a convenção e o número de colaboradores para a ERBE (link na bio). A gente verifica as exigências e apresenta opções.
+📲 Envie a convenção e o número de colaboradores para a ERBE (link na bio). A gente verifica as exigências e devolve um estudo com as opções.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #SeguroDeVidaEmGrupo #ConvencaoColetiva #RH #Contabilidade #BeneficiosCorporativos
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #SeguroDeVidaEmGrupo #ConvencaoColetiva #RH #Contabilidade #BeneficiosCorporativos
 ```
 
 ## 21 · Qua 21/10 · Frota e máquinas com consórcio
@@ -519,7 +520,7 @@ Pontos de atenção: a contemplação não tem data garantida, há análise de c
 
 Consórcio funciona melhor dentro de um plano. Fale com a ERBE e monte o seu. Link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #ConsorcioDePesados #Frota #Transportadora #Industria #Consorcio
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #ConsorcioDePesados #Frota #Transportadora #Industria #Consorcio
 ```
 
 ## 22 · Qui 22/10 · Vazou um dado: quem paga a conta?
@@ -537,7 +538,7 @@ O seguro cyber pode cobrir parte desses custos, conforme a apólice. E quando a 
 
 💬 Comente CYBER e receba os pontos que uma apólice precisa ter.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #SeguroCyber #LGPD #Tecnologia #Startups #DeO
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #SeguroCyber #LGPD #Tecnologia #Startups #DeO
 ```
 
 **Texto na tela (Reels):**
@@ -554,7 +555,7 @@ O seguro cyber pode cobrir parte desses custos, conforme a apólice. E quando a 
 
 ## 23 · Sex 23/10 · Portabilidade de carências
 
-**Reels** · Planos de Saúde · Funil: Meio · Pasta: `artes/23-portabilidade-de-carencias/`
+**Reels** · Plano de Saúde · Funil: Meio · Pasta: `artes/23-portabilidade-de-carencias/`
 
 ![Portabilidade de carências](artes/23-portabilidade-de-carencias/capa-reels.jpg)
 
@@ -569,7 +570,7 @@ Cada caso tem detalhes — e um erro no processo pode atrasar ou inviabilizar a 
 
 📲 Mande PORTABILIDADE no WhatsApp (link na bio) e a ERBE analisa o seu caso.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #PortabilidadeDeCarencias #PlanoDeSaude #ANS #Carencia
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #PortabilidadeDeCarencias #PlanoDeSaude #ANS #Carencia
 ```
 
 **Texto na tela (Reels):**
@@ -600,7 +601,7 @@ O erro não é entrar no consórcio. É entrar sem estratégia.
 
 Fale com a ERBE e monte a sua antes de escolher a cota. Link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #Consorcio #Lance #Contemplacao #PlanejamentoFinanceiro
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #Consorcio #Lance #Contemplacao #PlanejamentoFinanceiro
 ```
 
 **Texto na tela (Reels):**
@@ -633,12 +634,12 @@ A solução não foi um produto. Foi um plano de proteção, com prioridades def
 
 Sua situação é parecida? Fale com a ERBE pelo link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #Clinicas #GestaoDeRiscos #SeguroEmpresarial #Consultoria
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #Clinicas #GestaoDeRiscos #SeguroEmpresarial #Consultoria
 ```
 
 ## 26 · Seg 26/10 · O reajuste chegou: aceitar ou analisar?
 
-**Carrossel** · Planos de Saúde · Funil: Fundo · Pasta: `artes/26-reajuste-plano-empresarial/`
+**Carrossel** · Plano de Saúde · Funil: Fundo · Pasta: `artes/26-reajuste-plano-empresarial/`
 
 ![O reajuste chegou: aceitar ou analisar?](artes/26-reajuste-plano-empresarial/slide-01.jpg)
 
@@ -653,9 +654,9 @@ Antes de aceitar, entenda de onde vem o percentual:
 
 O que fazer antes da data de aniversário: pedir o relatório de utilização, comparar com o mercado e rever o desenho do plano. O ideal é começar de 60 a 90 dias antes.
 
-📲 Envie a carta de reajuste para a ERBE (link na bio). A gente analisa e mostra os caminhos possíveis.
+📲 Envie a carta de reajuste para a ERBE (link na bio) e receba um estudo com os caminhos possíveis.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #ReajustePlanoDeSaude #PlanoDeSaudeEmpresarial #RH #Financeiro #BeneficiosCorporativos
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #ReajustePlanoDeSaude #PlanoDeSaudeEmpresarial #RH #Financeiro #BeneficiosCorporativos
 ```
 
 ## 27 · Ter 27/10 · Responsabilidade civil profissional para clínicas
@@ -675,7 +676,7 @@ Na hora de contratar, olhe retroatividade, limite, franquia e período complemen
 
 Fale com a ERBE e revise a proteção da sua clínica. Link na bio.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #RCProfissional #Clinicas #Medicos #Dentistas #SeguroEmpresarial
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #RCProfissional #Clinicas #Medicos #Dentistas #SeguroEmpresarial
 ```
 
 ## 28 · Qua 28/10 · Sua apólice de carga acompanhou a operação?
@@ -695,7 +696,7 @@ E não esqueça: frota, responsabilidade civil e seguro de vida dos motoristas.
 
 📲 Mande sua apólice atual e o perfil das rotas para a ERBE (link na bio). A gente faz a revisão.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #SeguroDeCarga #Transportadora #Logistica #TransporteRodoviario
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #SeguroDeCarga #Transportadora #Logistica #TransporteRodoviario
 ```
 
 ## 29 · Qui 29/10 · Simule seu próximo passo
@@ -714,7 +715,7 @@ E não esqueça: frota, responsabilidade civil e seguro de vida dos motoristas.
 
 ## 30 · Sex 30/10 · Checklist da cotação empresarial
 
-**Carrossel** · Planos de Saúde · Funil: Fundo · Pasta: `artes/30-checklist-cotacao-empresarial/`
+**Carrossel** · Plano de Saúde · Funil: Fundo · Pasta: `artes/30-checklist-cotacao-empresarial/`
 
 ![Checklist da cotação empresarial](artes/30-checklist-cotacao-empresarial/slide-01.jpg)
 
@@ -733,7 +734,7 @@ Separe:
 
 Com isso, a ERBE monta um comparativo claro — não só uma lista de preços.
 
-💬 Comente COTAÇÃO ou chame no WhatsApp pelo link na bio. E salve este post para usar depois.
+💬 Responda com COTAÇÃO (nos comentários ou no WhatsApp do link na bio) e receba um estudo. E salve este post para usar depois.
 
-#ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento #PlanoDeSaudeEmpresarial #CotacaoPlanoDeSaude #PlanoPME #RH #Empresarios
+#ERBEProtecaoEPatrimonio #ProtegerOQueContinua #PlanoDeSaudeEmpresarial #CotacaoPlanoDeSaude #PlanoPME #RH #Empresarios
 ```

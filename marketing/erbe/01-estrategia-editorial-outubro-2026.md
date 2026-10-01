@@ -1,12 +1,11 @@
 # ERBE Proteção e Patrimônio — Estratégia Editorial para Instagram
 
 **Período do 1º calendário:** outubro de 2026 (30 publicações)
-**Pilares:** Planos de Saúde · Seguros · Consórcio · Institucional/Autoridade
+**Pilares:** 01 Seguros · 02 Plano de Saúde · 03 Consórcio · Institucional/Autoridade
 
 > **Antes de usar:** este documento não teve acesso ao manual de marca, à cidade de atuação, ao número de
 > registro SUSEP nem às operadoras, seguradoras e administradoras com que a ERBE trabalha. Tudo que depende
-> dessas informações está marcado com `[colchetes]`. Cores e fontes são uma **proposta**: se a ERBE já tem
-> identidade definida, ela prevalece.
+> dessas informações está marcado com `[colchetes]`. A identidade visual segue o material de marca da ERBE (seção 5).
 
 ---
 
@@ -25,12 +24,15 @@ O Instagram de corretoras costuma cair em três armadilhas:
 Ela não "vende plano". Ela faz diagnóstico, compara o mercado, explica em linguagem clara e acompanha depois da assinatura.
 
 ### Conceito central da marca
-> **Proteger exige planejamento.**
+> **Proteger o que continua.** (assinatura da marca)
 
-Assinatura de apoio (rotativa):
-- *Proteção pensada antes. Tranquilidade depois.*
+Frases de apoio:
+- *Três pilares. Uma só casa.*
+- *A gente estuda antes de indicar.*
 - *Preço sem diagnóstico é chute.*
-- *Patrimônio se constrói com método.*
+- *Patrimônio se constrói com plano.*
+
+Promessa concreta: o cliente recebe **um estudo escrito**, com as opções lado a lado, o que cada uma cobre e o motivo da recomendação — e continua falando com a ERBE depois de assinar.
 
 > **Insight opcional sobre o nome:** "Erbe", em alemão, significa *herança, legado*. Se isso tiver relação com a
 > origem do nome, vale um post institucional ("Por que ERBE?"). Se não tiver, **não use** — a marca não deve
@@ -96,38 +98,43 @@ Educativo · Mitos e verdades · Erros comuns · Comparativo · Quebra de objeç
 
 ---
 
-## 5. Identidade visual (proposta)
+## 5. Identidade visual (oficial da ERBE)
+
+As artes seguem o material de marca da ERBE. Valores de cor estimados a partir das peças de referência — se
+houver manual com os códigos exatos, ajuste em `gerador/template.mjs`.
 
 ### Paleta
-| Uso | Cor | HEX |
+| Uso | Cor | HEX aprox. |
 |---|---|---|
-| Base / fundos premium | Azul-noite | `#0E1B2E` |
-| Fundos claros | Off-white quente | `#F6F3EE` |
-| Destaque / assinatura | Champanhe | `#C9A96E` |
-| Texto | Grafite | `#2B2F36` |
-| Tag **Saúde** | Verde-sálvia | `#7FA99B` |
-| Tag **Seguros** | Azul-aço | `#4A6FA5` |
-| Tag **Consórcio** | Champanhe escuro | `#B08D4F` |
+| Fundo escuro / **Consórcio** | Preto esverdeado | `#0E1311` |
+| Fundo claro / **Seguros** | Off-white | `#F4F3EE` |
+| Fundo de cor / **Plano de Saúde** | Verde ERBE | `#1A6A51` |
+| Destaque em títulos (fundo escuro) | Verde-menta | `#7DCBA7` |
+| CTA e rótulos em fundo escuro | Amarelo | `#EFC862` |
+
+**Cor de cada pilar (capas):** 01 Seguros → off-white · 02 Plano de Saúde → verde · 03 Consórcio → preto.
+Slides internos em off-white; frases de impacto na cor do pilar.
 
 ### Tipografia
-- **Títulos:** serifada moderna — *Fraunces* ou *Playfair Display* (transmite solidez e patrimônio).
-- **Textos e números:** sans-serif — *Manrope* ou *Inter* (clareza e modernidade).
-- Máximo de **2 pesos** por peça. Títulos curtos, com 1 palavra-chave destacada em champanhe.
+- Sans geométrica pesada nos títulos, com espaçamento justo (nas artes: *Plus Jakarta Sans* Bold).
+- Textos em sans neutra, cinza (nas artes: *Inter*).
+- Rótulos em caixa alta e espaçados ("PILAR 02", "ENQUETE", "PRÓXIMO PASSO").
 
-### Elemento gráfico de assinatura
-**"A linha de proteção":** um arco/moldura fina em champanhe que envolve parte da foto ou do título — representa proteção sem recorrer a guarda-chuva ou escudo. Aparece em todas as capas.
+### Elementos da marca
+- **Cabeçalho fixo:** escudo com "E" vazado + ERBE à esquerda, **@erbeprotecao** à direita.
+- **Linha do pilar nas capas:** ícone em bloco arredondado + "PILAR 0X" + nome do pilar, e o escudo em faixas à direita.
+- **Rodapé:** linha fina, frase curta à esquerda ("A gente estuda antes de indicar.", "Proteger o que continua.") e bolinhas de paginação com seta.
+- **CTA:** caixa amarela com balão — "Responda com SEGUROS e receba um estudo." — ou botão amarelo "Fale com a ERBE →" + "Link na bio".
+- **Consórcio:** sempre com o aviso "Administradoras autorizadas e fiscalizadas pelo Banco Central do Brasil. A ERBE atua como representante."
+- **Stories:** título no alto e a metade de baixo livre para o sticker (enquete, caixinha, quiz, link).
 
 ### Grid e formatos
-- Feed: **1080 × 1350 px (4:5)**. Reels e Stories: **1080 × 1920 px**, respeitando margens seguras (250 px no topo e na base).
-- Capa de carrossel: gancho em até **8 palavras**, tag do pilar no topo, numeração `01/08` e seta discreta.
-- Logo pequeno no rodapé. Nunca logo grande no meio da arte.
+- Feed: **1080 × 1350 px (4:5)**. Reels e Stories: **1080 × 1920 px**.
 - Slides internos: 1 ideia por slide, até ~30 palavras.
 
-### Fotografia e ilustração
-- Pessoas brasileiras reais, diversas, em situações cotidianas (escritório, clínica, galpão, cozinha de casa).
-- Luz natural, tons quentes, profundidade de campo, aparência editorial.
-- **Proibido:** guarda-chuva, casinha de papel nas mãos, cofrinho, aperto de mão com fundo branco, ambulância, hospital dramático, pessoas acidentadas, sorriso forçado de banco de imagem.
-- Ícones lineares finos (traço 1,5 px), monocromáticos, para listas e comparativos.
+### Fotografia (quando usar)
+- Pessoas brasileiras reais, em situações cotidianas, luz natural.
+- **Evitar:** guarda-chuva, casinha de papel nas mãos, cofrinho, aperto de mão com fundo branco, hospital dramático, sorriso forçado de banco de imagem.
 
 ### Prompt-base para gerador de imagem
 Use este bloco e troque apenas a **[CENA]** indicada em cada post. Prompts em inglês costumam ter resultado melhor nas ferramentas atuais.
@@ -165,9 +172,9 @@ no text, no logos, no watermark, no umbrellas, no piggy banks
 **Bio sugerida:**
 ```
 ERBE Proteção e Patrimônio
-Planos de saúde · Seguros · Consórcio
-Consultoria para pessoas, famílias e empresas.
-Proteger exige planejamento.
+Seguros · Plano de Saúde · Consórcio
+A gente estuda antes de indicar.
+Proteger o que continua.
 📍 [cidade/UF] · SUSEP [nº]
 👇 Fale com um consultor
 ```
@@ -207,7 +214,7 @@ Proteger exige planejamento.
 
 | # | Data | Pilar | Tema | Formato | Funil | Público |
 |---|---|---|---|---|---|---|
-| 01 | Qui 01/10 | Institucional | Manifesto: proteger exige planejamento | Reels | Topo | Todos |
+| 01 | Qui 01/10 | Institucional | Manifesto: proteger o que continua | Reels | Topo | Todos |
 | 02 | Sex 02/10 | Saúde | Carência: os prazos máximos da lei | Carrossel | Topo | PF e famílias |
 | 03 | Sáb 03/10 | Seguros | Mitos e verdades do seguro de vida | Carrossel | Topo | Famílias, PF |
 | 04 | Dom 04/10 | Saúde | Outubro Rosa: cuidar também é se lembrar de você | Estático | Topo | Mulheres, famílias |
@@ -259,7 +266,7 @@ Proteger exige planejamento.
   2. Empresário abrindo a loja/galpão → *"Planeja a expansão, a contratação, o próximo trimestre."*
   3. Pausa, plano fechado em rosto pensativo → *"Mas quase ninguém planeja o que protege tudo isso."*
   4. Consultora conversando com cliente → *"Saúde, seguros e consórcio não são produtos soltos. São partes do mesmo plano."*
-  5. Logo → *"ERBE Proteção e Patrimônio. Proteger exige planejamento."*
+  5. Logo → *"Três pilares. Uma só casa. ERBE — Proteger o que continua."*
 - **CTA:** "Siga a ERBE. Todo dia, um conteúdo para você decidir com mais segurança."
 - **Visual / IA [CENA]:** *a Brazilian family having breakfast in a sunlit kitchen, parents and a child, candid moment.*
 
@@ -292,7 +299,7 @@ Proteger exige planejamento.
   6. Bônus: revisar beneficiários é tão importante quanto contratar.
   7. CTA.
 - **CTA:** "Salve este post e mande para alguém que precisa ler isso."
-- **Visual / IA [CENA]:** *a couple in their late thirties talking on a sofa with a notebook, relaxed, evening light.* Slides em formato "MITO" (tachado, grafite) × "VERDADE" (champanhe).
+- **Visual / IA [CENA]:** *a couple in their late thirties talking on a sofa with a notebook, relaxed, evening light.* Slides em formato "MITO" (tachado, cinza) × "VERDADE" (verde).
 
 ### 04 · Dom 04/10 · Saúde — Outubro Rosa
 - **Formato:** Estático · **Funil:** Topo · **Público:** mulheres e famílias
@@ -539,7 +546,7 @@ Proteger exige planejamento.
 - **Regras:** autorização do cliente, dados anonimizados, nenhum número que não possa ser demonstrado.
 - **Se ainda não houver case autorizado:** publique como **"Situação que analisamos com frequência"**, deixando claro que é um exemplo ilustrativo (ex.: empresa que recebeu carta de reajuste e não sabia que podia negociar com dados de utilização).
 - **CTA:** "Sua situação é parecida? Fale com a ERBE."
-- **Visual:** layout editorial tipo "estudo de caso", com rótulos em champanhe para cada etapa.
+- **Visual:** layout editorial tipo "estudo de caso", com rótulos em verde para cada etapa.
 
 ### 26 · Seg 26/10 · Saúde — O reajuste chegou
 - **Formato:** Carrossel (8 slides) · **Funil:** Fundo · **Público:** RH, financeiro, empresários
@@ -598,7 +605,7 @@ Proteger exige planejamento.
   4. "Responda e receba uma simulação personalizada."
   5. Sticker de link → WhatsApp com mensagem pré-preenchida de consórcio.
 - **CTA:** link no sticker.
-- **Visual:** fundo off-white, ícones lineares de casa, carro e prédio; destaque champanhe.
+- **Visual:** fundo off-white, ícones lineares de casa, carro e prédio; destaque verde-menta.
 
 ### 30 · Sex 30/10 · Saúde — Checklist da cotação empresarial
 - **Formato:** Carrossel (8 slides) · **Funil:** Fundo · **Público:** empresários, RH, MEIs
@@ -614,7 +621,7 @@ Proteger exige planejamento.
   7. Preferências: acomodação, coparticipação, abrangência.
   8. "Com isso, a ERBE apresenta um comparativo claro, não uma lista de preços." `[Se houver prazo real de entrega da cotação, incluir aqui.]`
 - **CTA:** "Comente **COTAÇÃO** ou chame no WhatsApp. Salve este post para usar depois."
-- **Visual:** checklist com ícones lineares; cada slide com um item marcado em champanhe.
+- **Visual:** checklist com ícones lineares; cada slide com um item marcado em verde.
 - **Anúncio:** sim (ver seção 11).
 
 ---
@@ -663,7 +670,7 @@ Proteger exige planejamento.
 
 Use **5 a 8 por post**: 2 de marca + 3 a 6 do tema. Evite hashtags genéricas gigantes (#love, #instagood).
 
-- **Marca:** #ERBEProtecaoEPatrimonio #ProtegerExigePlanejamento
+- **Marca:** #ERBEProtecaoEPatrimonio #ProtegerOQueContinua
 - **Saúde:** #PlanoDeSaude #PlanoDeSaudeEmpresarial #PlanoPME #BeneficiosCorporativos #SaudeCorporativa #CorretoraDeSaude
 - **Seguros:** #SeguroDeVida #SeguroEmpresarial #SeguroResidencial #RCProfissional #SeguroDeCarga #SeguroCyber #CorretoraDeSeguros
 - **Consórcio:** #Consorcio #ConsorcioImobiliario #ConsorcioDeVeiculos #CartaDeCredito #PlanejamentoFinanceiro

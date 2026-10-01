@@ -53,7 +53,7 @@ for (const post of alvo) {
       const fit = document.querySelector('.fit');
       let z = 1;
       const cabe = () =>
-        fit.getBoundingClientRect().height <= main.clientHeight + 1 && fit.scrollWidth <= main.clientWidth / z + 1;
+        fit.getBoundingClientRect().height <= main.clientHeight - parseFloat(getComputedStyle(main).paddingTop) + 1 && fit.scrollWidth <= main.clientWidth / z + 1;
       while (!cabe() && z > 0.6) {
         z -= 0.02;
         fit.style.zoom = z;

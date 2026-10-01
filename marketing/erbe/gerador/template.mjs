@@ -1,221 +1,247 @@
-// Template visual das artes da ERBE: cada slide vira um HTML de 1080 px de largura,
-// renderizado em PNG pelo gerar.mjs.
+// Template visual das artes da ERBE (identidade oficial): cada slide vira um HTML de
+// 1080 px de largura, renderizado em JPG pelo gerar.mjs.
 
+export const HANDLE = '@erbeprotecao';
+
+// Cada pilar tem sua cor de "capa" (hero), como no material da marca:
+// Seguros → off-white, Plano de Saúde → verde, Consórcio → preto.
 export const PILARES = {
-  saude: { label: 'Planos de Saúde', cor: '#7FA99B' },
-  seguros: { label: 'Seguros', cor: '#6F93C9' },
-  consorcio: { label: 'Consórcio', cor: '#C9A96E' },
-  inst: { label: 'ERBE', cor: '#C9A96E' },
+  seguros: { num: '01', label: 'Seguros', icone: 'shield', hero: 'light', stmt: 'dark', cta: 'light' },
+  saude: { num: '02', label: 'Plano de Saúde', icone: 'pulse', hero: 'green', stmt: 'green', cta: 'green' },
+  consorcio: { num: '03', label: 'Consórcio', icone: 'key', hero: 'dark', stmt: 'dark', cta: 'dark' },
+  inst: { num: '', label: 'ERBE', icone: 'logo', hero: 'dark', stmt: 'dark', cta: 'light' },
 };
+
+const AVISO_CONSORCIO =
+  'Administradoras autorizadas e fiscalizadas pelo Banco Central do Brasil. A ERBE atua como representante.';
 
 const I = {
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   x: '<path d="M7 7l10 10M17 7L7 17"/>',
+  shield: '<path d="M12 3l7 3v5.5c0 4.5-3 7.8-7 9.5-4-1.7-7-5-7-9.5V6z"/><path d="M9 12l2.2 2.2L15.5 10"/>',
+  pulse: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/><path d="M6.5 12.5h3l1.3-2.3 2 4 1.3-1.7h3.4"/>',
+  key: '<circle cx="15.5" cy="8.5" r="4.5"/><path d="M12.3 11.7L4 20M6.5 17.5l2 2M8.5 15.5l2 2"/>',
   house: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
   car: '<path d="M3 16v-4l2.2-5h13.6L21 12v4"/><path d="M3 12h18"/><path d="M3 16h18"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/>',
   building: '<path d="M5 21V3h10v18"/><path d="M15 9h4v12"/><path d="M3 21h18"/><path d="M8 7h4M8 11h4M8 15h4"/>',
   truck: '<path d="M2 6h11v10H2z"/><path d="M13 9h5l3 3v4h-8"/><circle cx="6" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
-  drop: '<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>',
-  key: '<circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M21 12v2"/>',
-  bolt: '<path d="M13 2L5 13h6l-1 9 8-11h-6l1-9z"/>',
-  chat: '<path d="M4 5h16v11H9l-5 4z"/>',
-  arrow: '<path d="M4 12h15M13 6l6 6-6 6"/>',
   heart: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/>',
-  ribbon: '<path d="M12 3.5c-2 0-3.4 1.5-3.4 3.4 0 2.3 3.4 6.6 3.4 6.6s3.4-4.3 3.4-6.6c0-1.9-1.4-3.4-3.4-3.4z"/><path d="M10 10.5L6 21l3-1.6 1.7 2.6 2.3-7.6"/><path d="M14 10.5l4 10.5-3-1.6-1.7 2.6-2.3-7.6"/>',
+  drop: '<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>',
+  bolt: '<path d="M13 2L5 13h6l-1 9 8-11h-6l1-9z"/>',
   fire: '<path d="M12 21c-4 0-6.5-2.7-6.5-6.2 0-3.6 3-5.6 3.6-9.3 2.6 1.5 3.6 3.6 3.6 5.6 1-.6 1.6-1.8 1.8-3 2.3 2 4 4.3 4 6.7 0 3.5-2.5 6.2-6.5 6.2z"/>',
-  lock: '<rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  chat: '<path d="M20 11.5a8 8 0 0 1-11.7 7.1L4 20l1.4-4.1A8 8 0 1 1 20 11.5z"/>',
+  arrow: '<path d="M4 12h15M13 6l6 6-6 6"/>',
   doc: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h7M9 16h7"/>',
   people: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.2c3 .2 5.5 2.4 5.5 5.8"/>',
-  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
 };
 
-export const icon = (n, size = 44) =>
-  `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${I[n]}</svg>`;
+export const icon = (n, size = 40, sw = 1.7) =>
+  `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${I[n]}</svg>`;
 
-const esc = (s = '') => String(s); // os textos do conteudo.mjs já vêm com o HTML desejado (<em>, <br>)
+// Escudo da marca com o "E" vazado (recriação; trocar pelo arquivo oficial quando houver).
+const ESCUDO = 'M6 4H94V52C94 80 74 98 50 106C26 98 6 80 6 52Z';
+let uid = 0;
+export function logoMark(cor, h = 46) {
+  const id = `m${uid++}`;
+  return `<svg width="${Math.round((h * 100) / 110)}" height="${h}" viewBox="0 0 100 110"><defs><mask id="${id}">
+    <rect width="100" height="110" fill="#fff"/><rect x="40" y="33" width="64" height="13" fill="#000"/><rect x="40" y="60" width="64" height="13" fill="#000"/></mask></defs>
+    <path d="${ESCUDO}" fill="${cor}" mask="url(#${id})"/></svg>`;
+}
+
+// Escudo decorativo em faixas, usado nas capas de cada pilar.
+const FAIXAS = {
+  light: ['#1A6A51', '#8CC7AE', '#E2E1DA'],
+  green: ['#2F8066', '#FFFFFF', '#3F8D73'],
+  dark: ['#2A302D', '#F4F3EE', '#7DCBA7'],
+};
+const FUNDO = { light: '#F4F3EE', green: '#1A6A51', dark: '#0E1311' };
+function escudoFaixas(tema, h = 150) {
+  const [a, b, c] = FAIXAS[tema];
+  const id = `c${uid++}`;
+  return `<svg width="${Math.round((h * 100) / 110)}" height="${h}" viewBox="0 0 100 110"><defs><clipPath id="${id}"><path d="${ESCUDO}"/></clipPath></defs>
+    <g clip-path="url(#${id})"><rect width="100" height="110" fill="${c}"/><rect width="100" height="36" fill="${a}"/>
+    <rect y="36" width="100" height="22" fill="${b}"/><rect x="58" y="44" width="50" height="8" fill="${FUNDO[tema]}"/></g></svg>`;
+}
 
 function css(fontsCss, w, h) {
   return `${fontsCss}
-:root{--navy:#0E1B2E;--navy2:#16294A;--off:#F6F3EE;--gold:#C9A96E;--gold-d:#9C7A3F;--ink:#2B2F36;--muted:#5A5F68}
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#000}
+html,body{margin:0;padding:0}
 .s{width:${w}px;height:${h}px;position:relative;overflow:hidden;display:flex;flex-direction:column;
-  padding:84px 92px 76px;font-family:Manrope,sans-serif;-webkit-font-smoothing:antialiased}
-.s.tall{padding:230px 96px 250px}
-.dark{background:radial-gradient(120% 85% at 88% 6%,#1B3157 0%,#0E1B2E 52%,#091321 100%);color:var(--off);--acc:var(--gold);--sub:rgba(246,243,238,.74);--line:rgba(246,243,238,.14);--card:rgba(255,255,255,.05)}
-.light{background:var(--off);color:var(--ink);--acc:var(--gold-d);--sub:var(--muted);--line:rgba(14,27,46,.12);--card:#fff}
-.light h1,.light h2,.light h3{color:var(--navy)}
-.pink{--acc:#E7A3B8}
-em{font-style:normal;color:var(--acc)}
-.arc{position:absolute;pointer-events:none;z-index:0}
-.top,.main,.foot{position:relative;z-index:1}
-.top{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:21px;letter-spacing:.16em;text-transform:uppercase}
-.tag{display:flex;align-items:center;gap:14px}
-.tag i{width:14px;height:14px;border-radius:50%;background:var(--pc)}
-.count{color:var(--sub);font-variant-numeric:tabular-nums;margin-left:10px;padding-left:24px;border-left:1.5px solid var(--line)}
-.main{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center}
-.fit{transform-origin:left center}
-.foot{display:flex;justify-content:space-between;align-items:flex-end}
-.brand{font-family:Fraunces,serif;font-weight:600;font-size:32px;letter-spacing:.2em;line-height:1}
-.brand small{display:block;font-family:Manrope;font-size:13px;letter-spacing:.3em;font-weight:700;color:var(--sub);margin-top:9px}
-.swipe{display:flex;align-items:center;gap:12px;font-weight:700;font-size:20px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
-h1{font-family:Fraunces,serif;font-weight:600;font-size:98px;line-height:1.04;letter-spacing:-.02em;margin:0}
-h2{font-family:Fraunces,serif;font-weight:600;font-size:70px;line-height:1.08;letter-spacing:-.015em;margin:0}
-h3{font-family:Fraunces,serif;font-weight:600;font-size:46px;line-height:1.15;margin:0}
-.sub{font-size:34px;line-height:1.4;font-weight:500;color:var(--sub);margin-top:40px;max-width:820px}
-.kicker{display:flex;align-items:center;gap:18px;font-weight:800;font-size:21px;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);margin-bottom:34px}
-.kicker:before{content:"";width:52px;height:2px;background:var(--acc)}
-.body{font-size:38px;line-height:1.46;font-weight:500;color:var(--sub);margin:36px 0 0}
-.note{font-size:26px;line-height:1.4;color:var(--sub);margin-top:30px;font-weight:500}
-ul.items{list-style:none;padding:0;margin:44px 0 0;display:flex;flex-direction:column;gap:20px}
-ul.items li{display:flex;gap:26px;align-items:center;font-weight:600;font-size:36px;line-height:1.3;padding:28px 32px;background:var(--card);border:1px solid var(--line);border-radius:22px}
-ul.items.cols{display:grid;grid-template-columns:1fr 1fr}
-ul.items.cols li{font-size:32px}
-.mk{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--navy);color:var(--gold);font-family:Fraunces;font-weight:600;font-size:26px}
-.dark .mk{background:var(--gold);color:var(--navy)}
-.mk.x{background:#E9E2D6;color:#8A5A44}
-.mk .ic{width:30px;height:30px;stroke-width:2.2}
-.facts{margin-top:40px;display:flex;flex-direction:column}
-.fact{display:flex;align-items:baseline;gap:36px;padding:30px 0;border-top:1px solid var(--line)}
-.fact:last-child{border-bottom:1px solid var(--line)}
-.fact b{font-family:Fraunces;font-weight:600;font-size:96px;line-height:1;color:var(--acc);min-width:330px;letter-spacing:-.02em}
-.fact span{font-size:34px;font-weight:600;line-height:1.3}
-.lbl{display:inline-block;font-weight:800;font-size:21px;letter-spacing:.2em;text-transform:uppercase;padding:12px 22px;border-radius:999px;margin-bottom:26px}
-.lbl.m{background:rgba(14,27,46,.08);color:var(--muted)}
-.lbl.v{background:var(--navy);color:var(--gold)}
-.dark .lbl.m{background:rgba(255,255,255,.08);color:var(--sub)}
-.dark .lbl.v{background:var(--gold);color:var(--navy)}
-.myth{font-family:Fraunces;font-weight:600;font-size:60px;line-height:1.14;color:#8C9098;text-decoration:line-through;text-decoration-thickness:3px;text-decoration-color:rgba(140,144,152,.7)}
-.sep{height:1px;background:var(--line);margin:52px 0}
-.truth{font-size:40px;line-height:1.42;font-weight:600;color:var(--navy)}
-table.cmp{width:100%;border-collapse:collapse;margin-top:44px;font-size:30px}
-.cmp th{text-align:left;padding:0 22px 22px 0;font-weight:800;font-size:21px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
-.cmp td{padding:30px 22px 30px 0;border-top:1px solid var(--line);vertical-align:top;font-weight:600;line-height:1.3}
-.cmp td:first-child{color:var(--sub);font-weight:500;width:28%}
-.cmp td.hl{color:var(--navy)}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:44px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:34px}
-.card h3{font-size:40px;margin-bottom:14px}
-.card p{margin:0;font-size:30px;line-height:1.4;color:var(--sub);font-weight:500}
-.card.on{border:2px solid var(--acc)}
-.bignum{font-family:Fraunces;font-weight:600;font-size:230px;line-height:.9;color:transparent;-webkit-text-stroke:2px var(--acc);margin-bottom:40px;letter-spacing:-.03em}
-.dots{display:flex;gap:12px;margin-top:56px}
-.dots i{width:44px;height:6px;border-radius:3px;background:var(--line)}
-.dots i.on{background:var(--acc)}
-.btn{display:inline-flex;align-items:center;gap:20px;align-self:flex-start;margin-top:56px;background:var(--gold);color:var(--navy);font-weight:800;font-size:34px;padding:30px 46px;border-radius:999px}
-.btn .ic{width:40px;height:40px;stroke-width:2}
-.icons{display:flex;gap:22px;margin-top:52px}
-.icons span{width:104px;height:104px;border-radius:50%;border:1.5px solid var(--acc);display:grid;place-items:center;color:var(--acc)}
-.icons .ic{width:50px;height:50px}
-.line{margin-top:48px;padding-top:34px;border-top:1px solid var(--line);font-size:30px;font-weight:700;color:var(--acc);display:flex;align-items:center;gap:16px}
-.offer{flex:1;border-radius:26px;padding:38px 34px;border:1px solid var(--line);background:var(--card)}
-.offer .lbl{margin-bottom:28px}
-.offer p{margin:0 0 14px;font-size:30px;font-weight:600;line-height:1.35}
-.offer p span{color:var(--sub);font-weight:500}
-.offer.on{border:2px solid var(--gold);background:rgba(201,169,110,.08)}
+  padding:84px 96px 72px;font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased}
+.s.tall{padding:150px 96px 200px}
+.light{background:#F4F3EE;color:#111513;--k:#1A6A51;--em:#1A6A51;--sub:#5E6460;--line:rgba(17,21,19,.13);--logo:#1A6A51;--dot:#111513;--tile:#DCEEE5;--tileic:#1A6A51;--btn:#EFC862;--btntx:#111513}
+.dark{background:#0E1311;color:#F4F3EE;--k:#EFC862;--em:#7DCBA7;--sub:#A3AAA6;--line:rgba(244,243,238,.14);--logo:#F4F3EE;--dot:#EFC862;--tile:rgba(244,243,238,.07);--tileic:#7DCBA7;--btn:#EFC862;--btntx:#111513}
+.green{background:#1A6A51;color:#FFFFFF;--k:#BFE6D3;--em:#BFE6D3;--sub:rgba(255,255,255,.8);--line:rgba(255,255,255,.2);--logo:#FFFFFF;--dot:#FFFFFF;--tile:rgba(255,255,255,.12);--tileic:#FFFFFF;--btn:#FFFFFF;--btntx:#111513}
+.pink{--k:#C46A8A;--em:#C46A8A}
+em{font-style:normal;color:var(--em)}
+.hd{display:flex;justify-content:space-between;align-items:center}
+.lg{display:flex;align-items:center;gap:16px;font-family:'Plus Jakarta Sans';font-weight:800;font-size:31px;letter-spacing:.2em}
+.handle{font-size:25px;color:var(--sub);font-weight:500}
+.main{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:70px}
+.main.center{justify-content:center;padding-top:0}
+.fit{transform-origin:left top}
+.ft{display:flex;justify-content:space-between;align-items:center;border-top:1.5px solid var(--line);padding-top:30px;font-size:24px;color:var(--sub);font-weight:500}
+.dots{display:flex;align-items:center;gap:10px}
+.dots i{width:9px;height:9px;border-radius:50%;background:var(--sub);opacity:.45}
+.dots i.on{background:var(--dot);opacity:1}
+.dots .ic{margin-left:22px;color:currentColor}
+.pil{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:60px}
+.pil .l{display:flex;align-items:center;gap:26px}
+.tile{width:104px;height:104px;border-radius:24px;background:var(--tile);color:var(--tileic);display:grid;place-items:center}
+.tile .ic{width:54px;height:54px}
+.pil small{display:block;font-weight:700;font-size:22px;letter-spacing:.2em;color:var(--k);margin-bottom:6px}
+.pil b{font-family:'Plus Jakarta Sans';font-weight:700;font-size:44px;letter-spacing:-.01em}
+.k{font-weight:700;font-size:23px;letter-spacing:.2em;text-transform:uppercase;color:var(--k);margin-bottom:26px}
+h1,h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;letter-spacing:-.035em;margin:0}
+h1{font-size:100px;line-height:1.02}
+h2{font-size:80px;line-height:1.06}
+.body{font-size:39px;line-height:1.45;color:var(--sub);margin:34px 0 0;font-weight:400}
+.note{font-size:24px;line-height:1.45;color:var(--sub);margin-top:30px}
+.items{margin-top:50px;display:grid;grid-template-columns:1fr;column-gap:36px;border-top:1.5px solid var(--line)}
+.items.cols{grid-template-columns:1fr 1fr}
+.items div{display:flex;align-items:center;gap:20px;padding:26px 0;border-bottom:1.5px solid var(--line);font-size:34px;font-weight:500;line-height:1.3}
+.items .ic{flex:none;color:var(--em);width:34px;height:34px}
+.items .n{flex:none;font-family:'Plus Jakarta Sans';font-weight:700;color:var(--em);font-size:30px;width:44px}
+.items .ic.x{color:#C0573E}
+.dark .items .ic.x,.green .items .ic.x{color:#F09A82}
+.facts{margin-top:46px;border-top:1.5px solid var(--line)}
+.fact{display:flex;align-items:baseline;gap:30px;padding:30px 0;border-bottom:1.5px solid var(--line)}
+.fact b{font-family:'Plus Jakarta Sans';font-weight:800;font-size:92px;line-height:1;color:var(--em);min-width:350px;letter-spacing:-.04em}
+.fact span{font-size:34px;font-weight:500}
+.myth{font-family:'Plus Jakarta Sans';font-weight:700;font-size:62px;line-height:1.1;letter-spacing:-.03em;color:var(--sub);opacity:.75;text-decoration:line-through;text-decoration-thickness:4px}
+.tag{display:inline-block;font-weight:700;font-size:21px;letter-spacing:.2em;padding:12px 22px;border-radius:999px;background:var(--k);color:#fff;margin:56px 0 26px}
+.dark .tag{color:#111513}
+.truth{font-size:42px;line-height:1.4;font-weight:500}
+table.cmp{width:100%;border-collapse:collapse;margin-top:46px;font-size:30px}
+.cmp th{text-align:left;padding:0 20px 20px 0;font-weight:700;font-size:21px;letter-spacing:.18em;text-transform:uppercase;color:var(--k)}
+.cmp td{padding:28px 20px 28px 0;border-top:1.5px solid var(--line);vertical-align:top;font-weight:600;line-height:1.3}
+.cmp td:first-child{color:var(--sub);font-weight:400;width:30%}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:46px}
+.card{border:1.5px solid var(--line);border-radius:24px;padding:34px}
+.card.on{border-color:var(--em);border-width:2.5px}
+.card b{display:block;font-family:'Plus Jakarta Sans';font-weight:700;font-size:38px;margin-bottom:12px}
+.card p{margin:0;font-size:29px;line-height:1.4;color:var(--sub)}
+.big{font-family:'Plus Jakarta Sans';font-weight:800;font-size:200px;line-height:.9;letter-spacing:-.05em;color:var(--em);margin-bottom:46px}
+.steps{display:flex;gap:10px;margin-top:56px}
+.steps i{height:6px;flex:1;border-radius:3px;background:var(--line)}
+.steps i.on{background:var(--em)}
+.box{display:flex;align-items:center;gap:22px;background:var(--btn);color:var(--btntx);border-radius:22px;padding:34px 38px;font-weight:700;font-size:34px;line-height:1.3;margin-top:56px}
+.box .ic{flex:none;width:42px;height:42px}
+.pill{display:flex;align-items:center;gap:30px;margin-top:56px}
+.pill span{display:inline-flex;align-items:center;gap:16px;background:#EFC862;color:#111513;font-weight:700;font-size:33px;padding:26px 38px;border-radius:16px}
+.pill small{font-size:27px;color:var(--sub);font-weight:500}
+.pill .ic{width:34px;height:34px}
+.aviso{font-size:21px;line-height:1.45;color:var(--sub);margin-top:30px;max-width:900px}
+.icons{display:flex;gap:20px;margin-top:50px}
+.icons span{width:96px;height:96px;border-radius:22px;background:var(--tile);color:var(--tileic);display:grid;place-items:center}
+.icons .ic{width:48px;height:48px}
+.line{margin-top:46px;padding-top:32px;border-top:1.5px solid var(--line);font-size:30px;font-weight:600;color:var(--em);display:flex;align-items:center;gap:16px}
 .offers{display:flex;gap:24px;margin-top:52px}
-.center{text-align:left}
+.offer{flex:1;border-radius:24px;padding:36px 34px;border:1.5px solid var(--line)}
+.offer.on{border:2.5px solid #EFC862}
+.offer small{display:block;font-weight:700;font-size:21px;letter-spacing:.2em;color:var(--k);margin-bottom:24px;text-transform:uppercase}
+.offer p{margin:0 0 12px;font-size:30px;font-weight:600}
+.offer p span{color:var(--sub);font-weight:400}
+.hero-shield{margin:10px 0 56px}
+.wm{position:absolute;right:-110px;bottom:-70px;pointer-events:none;z-index:0}
+.hd,.main,.ft{position:relative;z-index:1}
 .tall h1{font-size:104px}
 .tall .body{font-size:40px}
-.gap{flex:none}
 `;
 }
 
-function arcs(kind, w, h, tall) {
-  // O arco fica sempre no canto superior direito, onde não há texto; em Reels/Stories
-  // um segundo arco ocupa o canto inferior direito, livre na área segura.
-  const g = 'var(--acc)';
-  const big = kind !== 'soft';
-  const r = big ? 420 : 250;
-  let svg = `<circle cx="${w + 60}" cy="-60" r="${r}" fill="none" stroke="${g}" stroke-width="${big ? 2.2 : 1.6}" opacity="${big ? 0.85 : 0.45}"/>`;
-  if (big) svg += `<circle cx="${w + 60}" cy="-60" r="${r + 50}" fill="none" stroke="${g}" stroke-width="1.2" opacity=".3"/>`;
-  if (tall) svg += `<circle cx="${w + 80}" cy="${h + 80}" r="400" fill="none" stroke="${g}" stroke-width="1.6" opacity="${big ? 0.6 : 0.4}"/>`;
-  return `<svg class="arc" width="${w}" height="${h}" style="left:0;top:0">${svg}</svg>`;
+const itens = (s) => {
+  if (!s.items) return '';
+  const mk = (i) =>
+    s.marker === 'num' ? `<span class="n">${String(i + 1).padStart(2, '0')}</span>`
+    : s.marker === 'x' ? icon('x', 34, 2.2).replace('class="ic"', 'class="ic x"')
+    : icon(s.marker && I[s.marker] ? s.marker : 'check', 34, 2);
+  return `<div class="items${s.cols ? ' cols' : ''}">${s.items.map((t, i) => `<div>${mk(i)}<span>${t}</span></div>`).join('')}</div>`;
+};
+const k = (t) => (t ? `<div class="k">${t}</div>` : '');
+const p = (t, c = 'body') => (t ? `<p class="${c}">${t}</p>` : '');
+
+function chamada(s) {
+  if (s.box) return `<div class="box">${icon('chat', 42, 2)}<span>${s.box}</span></div>`;
+  return `<div class="pill"><span>${s.button || 'Fale com a ERBE'} ${icon('arrow', 34, 2.2)}</span><small>${s.note ?? 'Link na bio'}</small></div>`;
 }
 
-const marker = (m, i) => {
-  if (m === 'num') return `<span class="mk">${i + 1}</span>`;
-  if (m === 'x') return `<span class="mk x">${icon('x')}</span>`;
-  if (m && I[m]) return `<span class="mk">${icon(m)}</span>`;
-  return `<span class="mk">${icon('check')}</span>`;
-};
+function linhaPilar(post, tema) {
+  const pil = PILARES[post.pilar];
+  if (post.pilar === 'inst') return '';
+  return `<div class="pil"><div class="l"><div class="tile">${icon(pil.icone, 54, 1.6)}</div><div><small>PILAR ${pil.num}</small><b>${pil.label}</b></div></div>${escudoFaixas(tema, 150)}</div>`;
+}
 
-const items = (s) =>
-  s.items
-    ? `<ul class="items${s.cols ? ' cols' : ''}">${s.items.map((t, i) => `<li>${marker(s.marker, i)}<span>${esc(t)}</span></li>`).join('')}</ul>`
-    : '';
-
-const kicker = (k) => (k ? `<div class="kicker">${esc(k)}</div>` : '');
-const p = (t, cls = 'body') => (t ? `<p class="${cls}">${esc(t)}</p>` : '');
-
-function corpo(s) {
+function corpo(post, s, tema) {
+  const aviso = post.pilar === 'consorcio' && ['cta', 'poster', 'reel'].includes(s.t) ? p(AVISO_CONSORCIO, 'aviso') : '';
   switch (s.t) {
     case 'cover':
+      return `${post.pilar === 'inst' ? `<div class="hero-shield">${logoMark(tema === 'light' ? '#1A6A51' : '#F4F3EE', 170)}</div>` : linhaPilar(post, tema)}${k(s.kicker)}<h1>${s.title}</h1>${p(s.sub)}`;
     case 'reel':
-      return `${kicker(s.kicker)}<h1>${esc(s.title)}</h1>${p(s.sub, 'sub')}`;
+      return `<div class="hero-shield">${post.pilar === 'inst' ? logoMark('#F4F3EE', 200) : escudoFaixas(tema, 190)}</div>
+        ${k(s.kicker || (post.pilar === 'inst' ? 'ERBE' : `Pilar ${PILARES[post.pilar].num} · ${PILARES[post.pilar].label}`))}<h1>${s.title}</h1>${p(s.sub)}${aviso}`;
     case 'text':
-      return `${kicker(s.kicker)}<h2>${esc(s.title)}</h2>${p(s.body)}${items(s)}${p(s.note, 'note')}`;
     case 'list':
-      return `${kicker(s.kicker)}<h2>${esc(s.title)}</h2>${p(s.body)}${items(s)}${p(s.note, 'note')}`;
+      return `${k(s.kicker)}<h2>${s.title}</h2>${p(s.body)}${itens(s)}${p(s.note, 'note')}`;
     case 'facts':
-      return `${kicker(s.kicker)}<h2>${esc(s.title)}</h2><div class="facts">${s.facts
-        .map(([n, l]) => `<div class="fact"><b>${n}</b><span>${l}</span></div>`)
-        .join('')}</div>${p(s.note, 'note')}`;
+      return `${k(s.kicker)}<h2>${s.title}</h2><div class="facts">${s.facts.map(([n, l]) => `<div class="fact"><b>${n}</b><span>${l}</span></div>`).join('')}</div>${p(s.note, 'note')}`;
     case 'myth':
-      return `${kicker(s.kicker)}<div class="myth">${esc(s.myth)}</div>
-        <div class="sep"></div><div><span class="lbl v">Verdade</span></div><div class="truth">${esc(s.truth)}</div>`;
+      return `${k(s.kicker)}<div class="myth">${s.myth}</div><div><span class="tag">VERDADE</span></div><div class="truth">${s.truth}</div>`;
     case 'compare':
-      return `${kicker(s.kicker)}<h2>${esc(s.title)}</h2><table class="cmp"><tr><th></th><th>${s.heads[0]}</th><th>${s.heads[1]}</th></tr>${s.rows
-        .map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="hl">${r[2]}</td></tr>`)
-        .join('')}</table>${p(s.note, 'note')}`;
+      return `${k(s.kicker)}<h2>${s.title}</h2><table class="cmp"><tr><th></th><th>${s.heads[0]}</th><th>${s.heads[1]}</th></tr>${s.rows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>${p(s.note, 'note')}`;
     case 'cards':
-      return `${kicker(s.kicker)}<h2>${esc(s.title)}</h2><div class="cards">${s.cards
-        .map((c, i) => `<div class="card${i === 1 ? ' on' : ''}"><h3>${c[0]}</h3><p>${c[1]}</p></div>`)
-        .join('')}</div>${p(s.note, 'note')}`;
+      return `${k(s.kicker)}<h2>${s.title}</h2><div class="cards">${s.cards.map((c, i) => `<div class="card${i === 1 ? ' on' : ''}"><b>${c[0]}</b><p>${c[1]}</p></div>`).join('')}</div>${p(s.note, 'note')}`;
     case 'step':
-      return `<div class="bignum">${String(s.n).padStart(2, '0')}</div>${kicker(s.kicker)}<h2>${esc(s.title)}</h2>${p(s.body)}
-        <div class="dots">${Array.from({ length: s.total }, (_, i) => `<i class="${i < s.n ? 'on' : ''}"></i>`).join('')}</div>`;
+      return `<div class="big">${String(s.n).padStart(2, '0')}</div>${k(s.kicker)}<h2>${s.title}</h2>${p(s.body)}<div class="steps">${Array.from({ length: s.total }, (_, i) => `<i class="${i < s.n ? 'on' : ''}"></i>`).join('')}</div>`;
     case 'statement':
-      return `${kicker(s.kicker)}<h2 style="font-size:${s.big ? 84 : 76}px">${esc(s.title)}</h2>${p(s.body)}`;
+      return `${k(s.kicker)}<h1 style="font-size:${s.big ? 96 : 86}px">${s.title}</h1>${p(s.body)}`;
     case 'cta':
-      return `${kicker(s.kicker || 'Próximo passo')}<h2 style="font-size:80px">${esc(s.title)}</h2>${p(s.body)}
-        <div class="btn">${icon('chat')}<span>${esc(s.button)}</span></div>${p(s.note, 'note')}`;
+      return `${k(s.kicker || 'Próximo passo')}<h1 style="font-size:90px">${s.title}</h1>${p(s.body)}${chamada(s)}${aviso}`;
     case 'poster':
-      return `${kicker(s.kicker)}<h1 style="font-size:${s.size || 92}px">${esc(s.title)}</h1>${p(s.body)}
-        ${s.icons ? `<div class="icons">${s.icons.map((n) => `<span>${icon(n)}</span>`).join('')}</div>` : ''}
-        ${s.line ? `<div class="line">${icon('arrow', 34)}<span>${esc(s.line)}</span></div>` : ''}`;
+      return `${linhaPilar(post, tema)}${k(s.kicker)}<h1 style="font-size:${s.size || 92}px">${s.title}</h1>${p(s.body)}
+        ${s.icons ? `<div class="icons">${s.icons.map((n) => `<span>${icon(n, 48, 1.6)}</span>`).join('')}</div>` : ''}
+        ${s.line ? `<div class="line">${icon('arrow', 32, 2)}<span>${s.line}</span></div>` : ''}${aviso}`;
     case 'offers':
-      return `${kicker(s.kicker)}<h1 style="font-size:88px">${esc(s.title)}</h1>
-        <div class="offers">${s.offers
-          .map((o, i) => `<div class="offer${i === 1 ? ' on' : ''}"><span class="lbl ${i === 1 ? 'v' : 'm'}">${o.h}</span>${o.l
-            .map((x) => `<p>${x}</p>`)
-            .join('')}</div>`)
-          .join('')}</div>${p(s.body)}
-        ${s.line ? `<div class="line">${icon('arrow', 34)}<span>${esc(s.line)}</span></div>` : ''}`;
+      return `${linhaPilar(post, tema)}${k(s.kicker)}<h1 style="font-size:84px">${s.title}</h1>
+        <div class="offers">${s.offers.map((o, i) => `<div class="offer${i === 1 ? ' on' : ''}"><small>${o.h}</small>${o.l.map((x) => `<p>${x}</p>`).join('')}</div>`).join('')}</div>${p(s.body)}
+        ${s.line ? `<div class="line">${icon('arrow', 32, 2)}<span>${s.line}</span></div>` : ''}`;
     case 'story':
-      return `${kicker(s.kicker)}<h1 style="font-size:${s.size || 92}px">${esc(s.title)}</h1>${p(s.body)}${items(s)}
-        ${s.icons ? `<div class="icons">${s.icons.map((n) => `<span>${icon(n)}</span>`).join('')}</div>` : ''}
-        ${s.sticker ? `<div class="gap" style="height:${s.sticker}px"></div>` : ''}`;
+      return `${k(s.kicker)}<h1 style="font-size:${s.size || 100}px">${s.title}</h1>${p(s.body)}${itens(s)}
+        ${s.icons ? `<div class="icons">${s.icons.map((n) => `<span>${icon(n, 48, 1.6)}</span>`).join('')}</div>` : ''}`;
     default:
       throw new Error('tipo de slide desconhecido: ' + s.t);
   }
+}
+
+function temaDo(post, s) {
+  if (s.theme) return s.theme;
+  const pil = PILARES[post.pilar];
+  if (['cover', 'reel', 'poster', 'offers'].includes(s.t)) return pil.hero;
+  if (s.t === 'statement') return pil.stmt;
+  if (s.t === 'cta') return pil.cta;
+  return 'light';
 }
 
 export function html(post, s, idx, total, fontsCss) {
   const tall = post.formato === 'Reels' || post.formato === 'Story';
   const w = 1080;
   const h = tall ? 1920 : 1350;
-  const dark = s.theme ? s.theme === 'dark' : ['cover', 'reel', 'cta', 'statement', 'poster', 'offers'].includes(s.t);
-  const pil = PILARES[post.pilar];
-  const arcKind = dark ? 'big' : 'soft';
-  const showCount = total > 1;
-  const swipe = s.t === 'cover' && post.formato === 'Carrossel';
-  const tagLabel = s.tag || pil.label;
+  const tema = temaDo(post, s);
+  const ultimo = idx === total - 1;
+  const frase = s.rodape || (total === 1 || ultimo ? 'Proteger o que continua.' : idx === 0 ? 'Arraste para continuar' : 'A gente estuda antes de indicar.');
+  const pontos = total > 1
+    ? `<div class="dots">${Array.from({ length: total }, (_, i) => `<i class="${i === idx ? 'on' : ''}"></i>`).join('')}${ultimo ? '' : icon('arrow', 30, 2)}</div>`
+    : '';
+  const centro = !tall && !['cover', 'poster', 'offers'].includes(s.t);
+  const wmCor = tema === 'light' ? '#1A6A51' : tema === 'green' ? '#FFFFFF' : '#F4F3EE';
+  const wmOp = tema === 'light' ? 0.035 : tema === 'green' ? 0.07 : 0.045;
+  const marca = `<div class="wm" style="opacity:${wmOp}">${logoMark(wmCor, tall ? 820 : 640)}</div>`;
   return `<!doctype html><html><head><meta charset="utf-8"><style>${css(fontsCss, w, h)}</style></head><body>
-<div class="s ${dark ? 'dark' : 'light'} ${tall ? 'tall' : ''} ${s.pink ? 'pink' : ''}" style="--pc:${pil.cor}">
-${arcs(arcKind, w, h, tall)}
-<div class="top"><div class="tag"><i></i>${tagLabel}${showCount ? `<span class="count">${String(idx + 1).padStart(2, '0')}/${String(total).padStart(2, '0')}</span>` : ''}</div></div>
-<div class="main"><div class="fit">${corpo(s)}</div></div>
-<div class="foot"><div class="brand">ERBE<small>PROTEÇÃO E PATRIMÔNIO</small></div>${swipe ? `<div class="swipe">Arraste ${icon('arrow', 30)}</div>` : ''}</div>
+<div class="s ${tema} ${tall ? 'tall' : ''} ${s.pink ? 'pink' : ''}">
+${s.t === 'story' ? '' : marca}
+<div class="hd"><div class="lg">${logoMark(tema === 'light' ? '#1A6A51' : tema === 'green' ? '#FFFFFF' : '#F4F3EE', 46)}ERBE</div><div class="handle">${HANDLE}</div></div>
+<div class="main${centro ? ' center' : ''}"><div class="fit">${corpo(post, s, tema)}</div></div>
+${tall ? '' : `<div class="ft"><span>${frase}</span>${pontos}</div>`}
 </div></body></html>`;
 }

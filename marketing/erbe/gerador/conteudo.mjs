@@ -1,20 +1,21 @@
 // Conteúdo das 30 publicações de outubro/2026: textos das artes e legendas.
 // Tipos de slide e campos aceitos: ver corpo() em template.mjs.
-// <em>…</em> destaca a palavra em champanhe.
+// <em>…</em> destaca a palavra na cor de destaque (verde ou menta).
 
-const NOMES = { saude: 'Planos de Saúde', seguros: 'Seguros', consorcio: 'Consórcio', inst: 'Institucional' };
+const NOMES = { saude: 'Plano de Saúde', seguros: 'Seguros', consorcio: 'Consórcio', inst: 'Institucional' };
 const H = {
-  marca: ['#ERBEProtecaoEPatrimonio', '#ProtegerExigePlanejamento'],
+  marca: ['#ERBEProtecaoEPatrimonio', '#ProtegerOQueContinua'],
 };
 const cta = (title, button = 'Fale com a ERBE', body, note = 'Link na bio') => ({ t: 'cta', title, button, body, note });
+const ctaBox = (title, box, body) => ({ t: 'cta', title, box, body });
 
 const lista = [
   // ───────────────────────────── 01
   {
-    n: '01', slug: 'manifesto', data: 'Qui 01/10', titulo: 'Manifesto: proteger exige planejamento',
+    n: '01', slug: 'manifesto', data: 'Qui 01/10', titulo: 'Manifesto: proteger o que continua',
     pilar: 'inst', formato: 'Reels', funil: 'Topo',
     slides: [
-      { t: 'reel', kicker: 'Manifesto', title: 'Ninguém planeja o imprevisto. <em>Mas dá para planejar o que vem depois.</em>', sub: 'Proteger exige planejamento.' },
+      { t: 'reel', kicker: 'Manifesto', title: 'Ninguém planeja o imprevisto. <em>Mas dá para proteger o que continua.</em>', sub: 'Seguros, plano de saúde e consórcio. Uma só casa.' },
     ],
     telas: [
       'Ninguém planeja o imprevisto.',
@@ -23,7 +24,8 @@ const lista = [
       'Mas quase ninguém planeja o que protege tudo isso.',
       'Saúde. Seguros. Consórcio.',
       'Não são produtos soltos. São partes do mesmo plano.',
-      'ERBE Proteção e Patrimônio — Proteger exige planejamento.',
+      'Três pilares. Uma só casa.',
+      'ERBE — Proteger o que continua.',
     ],
     legenda: `A gente planeja a escola dos filhos, a viagem das férias, a expansão da empresa.
 
@@ -33,7 +35,7 @@ Saúde, seguros e consórcio não são produtos soltos. São partes do mesmo pla
 
 Na ERBE, a gente começa entendendo a sua vida — ou a sua empresa. Só depois recomenda.
 
-Porque proteger exige planejamento.
+Três pilares. Uma só casa. Proteger o que continua.
 
 👉 Siga a ERBE. Todos os dias, um conteúdo para você decidir com mais segurança.`,
     hashtags: [...H.marca, '#PlanejamentoFinanceiro', '#PlanoDeSaude', '#Seguros', '#Consorcio'],
@@ -102,7 +104,7 @@ Quer entender qual proteção faz sentido para você? Fale com a ERBE pelo link 
     n: '04', slug: 'outubro-rosa', data: 'Dom 04/10', titulo: 'Outubro Rosa',
     pilar: 'saude', formato: 'Estático', funil: 'Topo',
     slides: [
-      { t: 'poster', pink: true, kicker: 'Outubro Rosa', title: 'Cuidar também é <em>se lembrar de você.</em>', body: 'Converse com seu médico sobre os exames indicados para você.', line: 'A ERBE apoia a prevenção.' },
+      { t: 'poster', theme: 'light', pink: true, kicker: 'Outubro Rosa', title: 'Cuidar também é <em>se lembrar de você.</em>', body: 'Converse com seu médico sobre os exames indicados para você.', line: 'A ERBE apoia a prevenção.' },
     ],
     legenda: `A gente lembra da consulta dos filhos, dos pais, de todo mundo. E, muitas vezes, esquece da nossa.
 
@@ -124,7 +126,7 @@ Se você tem plano de saúde e não sabe qual rede usar ou o que está coberto, 
       { t: 'list', title: 'Mas atenção às exigências', body: 'Cada operadora define as suas, como:', marker: 'doc', items: ['Tempo mínimo de CNPJ ativo', 'Número mínimo de vidas', 'Vínculo dos beneficiários com a empresa'] },
       { t: 'text', kicker: 'Reajuste', title: 'PME e individual seguem regras diferentes.', body: 'Entender como o reajuste funciona em cada modalidade faz parte da decisão — não só o preço de entrada.' },
       { t: 'statement', title: 'Não existe resposta pronta. <em>Existe comparação feita para o seu caso.</em>', big: true },
-      cta('Mande <em>PME</em> no WhatsApp.', 'Link na bio', 'A ERBE compara as opções para o seu CNPJ e explica cada detalhe.', ''),
+      ctaBox('Seu CNPJ pode abrir <em>outras opções.</em>', 'Responda com PME e receba um estudo para o seu CNPJ.', 'A gente compara e explica cada detalhe antes de você decidir.'),
     ],
     legenda: `Você tem CNPJ, mas o plano de saúde ainda está no seu CPF?
 
@@ -136,7 +138,7 @@ Por isso, não existe resposta pronta. Existe comparação feita para o seu caso
 
 Hoje, 5 de outubro, é Dia Nacional da Micro e Pequena Empresa. Um bom dia para revisar isso.
 
-📲 Mande PME no WhatsApp (link na bio) e receba uma comparação para o seu CNPJ.`,
+📲 Responda com PME (aqui nos comentários ou no WhatsApp do link na bio) e receba um estudo para o seu CNPJ.`,
     hashtags: [...H.marca, '#PlanoPME', '#MEI', '#PlanoDeSaudeEmpresarial', '#PequenasEmpresas', '#Empreendedorismo'],
   },
   // ───────────────────────────── 06
@@ -197,9 +199,9 @@ Fale com a ERBE e compare o custo total antes de decidir. Link na bio.`,
       { t: 'cover', kicker: 'Método ERBE', title: 'Preço sem diagnóstico <em>é chute.</em>', sub: 'Por que a gente faz perguntas antes de mandar preço.' },
       { t: 'step', n: 1, total: 5, kicker: 'Etapa 1', title: 'Diagnóstico', body: 'Entendemos quem você protege, o que já tem e onde está exposto.' },
       { t: 'step', n: 2, total: 5, kicker: 'Etapa 2', title: 'Análise de mercado', body: 'Comparamos operadoras, seguradoras e administradoras.' },
-      { t: 'step', n: 3, total: 5, kicker: 'Etapa 3', title: 'Recomendação', body: 'Explicamos prós e contras em linguagem clara.' },
+      { t: 'step', n: 3, total: 5, kicker: 'Etapa 3', title: 'Estudo escrito', body: 'As opções lado a lado, o que cada uma cobre e o motivo da recomendação.' },
       { t: 'step', n: 4, total: 5, kicker: 'Etapa 4', title: 'Implantação', body: 'Cuidamos da documentação e dos prazos.' },
-      { t: 'step', n: 5, total: 5, kicker: 'Etapa 5', title: 'Acompanhamento', body: 'Reajustes, renovações, sinistros e revisões: seguimos com você.' },
+      { t: 'step', n: 5, total: 5, kicker: 'Etapa 5', title: 'Acompanhamento', body: 'Você continua falando com a gente depois de assinar: reajustes, renovações e sinistros.' },
       cta('Quer começar <em>pelo diagnóstico?</em>'),
     ],
     legenda: `Já pediu uma cotação e recebeu só uma tabela de preços?
@@ -209,7 +211,7 @@ Na ERBE, a gente faz perguntas antes. Porque preço sem diagnóstico é chute.
 Nosso método:
 1. Diagnóstico
 2. Análise de mercado
-3. Recomendação
+3. Estudo escrito, com as opções lado a lado e o motivo da recomendação
 4. Implantação
 5. Acompanhamento
 
@@ -347,7 +349,7 @@ Quer simular os dois modelos com o seu perfil? Fale com a ERBE pelo link na bio.
       { t: 'list', title: 'Pontos de atenção', marker: 'doc', items: ['Franquia: os dias iniciais sem pagamento', 'Limite de diárias por evento', 'Comprovação de renda'] },
       { t: 'list', title: 'Combina com', items: ['Seguro de vida', 'Cobertura de invalidez', 'Cobertura para doenças graves'] },
       { t: 'list', title: 'Para quem vive da própria agenda', cols: true, marker: 'people', items: ['Médicos', 'Dentistas', 'Fisioterapeutas', 'Psicólogos', 'Advogados', 'Arquitetos', 'Consultores', 'Autônomos'] },
-      cta('Mande <em>RENDA</em> no WhatsApp.', 'Link na bio', 'Veja quanto da sua renda dá para proteger.', ''),
+      ctaBox('Quanto da sua renda <em>dá para proteger?</em>', 'Responda com RENDA e receba um estudo.'),
     ],
     legenda: `Médico, dentista, advogado, arquiteto, consultor: quando a agenda para, a renda para junto.
 
@@ -357,7 +359,7 @@ Antes de contratar, olhe a franquia, o limite de diárias e como a renda é comp
 
 E combine com seguro de vida, invalidez e doenças graves para uma proteção mais completa.
 
-📲 Mande RENDA no WhatsApp (link na bio) e veja quanto da sua renda dá para proteger.`,
+📲 Responda com RENDA (nos comentários ou no WhatsApp do link na bio) e receba um estudo de quanto da sua renda dá para proteger.`,
     hashtags: [...H.marca, '#ProfissionalLiberal', '#ProtecaoDeRenda', '#SeguroDeVida', '#Autonomos'],
   },
   // ───────────────────────────── 15
@@ -393,7 +395,7 @@ Cada família tem um caminho. Fale com a ERBE e veja quais existem para os seus 
     slides: [
       { t: 'story', theme: 'dark', kicker: 'Pergunta rápida', title: 'Você sabe exatamente o que <em>seu seguro cobre?</em>', sticker: 340 },
       { t: 'story', theme: 'light', kicker: 'Na hora do sinistro', title: 'O que mais surpreende:', size: 84, items: ['Franquia', 'Exclusões', 'Limites de cobertura', 'Beneficiários desatualizados'], marker: 'x' },
-      { t: 'story', theme: 'dark', kicker: 'Quiz', title: 'Seguro de vida sem beneficiário indicado: <em>para quem vai?</em>', sticker: 380 },
+      { t: 'story', theme: 'green', kicker: 'Quiz', title: 'Seguro de vida sem beneficiário indicado: <em>para quem vai?</em>', sticker: 380 },
       { t: 'story', theme: 'light', kicker: 'Resposta', title: 'Segue a regra do Código Civil.', size: 84, body: 'Metade vai ao cônjuge não separado judicialmente e o restante aos herdeiros, na ordem da lei. Por isso, indicar e revisar beneficiários faz diferença.' },
       { t: 'story', theme: 'dark', kicker: 'Revisão de apólices', title: 'A ERBE mostra onde você está protegido <em>— e onde não está.</em>', sticker: 300 },
     ],
@@ -481,7 +483,7 @@ Fale com a ERBE para estruturar o pacote de benefícios da sua empresa. Link na 
       { t: 'list', title: 'Coberturas comuns', items: ['Morte', 'Invalidez', 'Assistência funeral'], note: 'Conforme a apólice contratada.' },
       { t: 'statement', title: 'Mais que obrigação: <em>um benefício que protege a família do colaborador.</em>' },
       { t: 'text', kicker: 'Para contadores', title: 'Um ponto para checar com seus clientes.', body: 'A ERBE pode ser a parceira que resolve essa parte para a sua carteira.' },
-      cta('Envie a convenção e <em>o número de colaboradores.</em>', 'Fale com a ERBE', 'A ERBE verifica as exigências e apresenta opções.'),
+      ctaBox('Sua empresa está <em>em dia?</em>', 'Envie a convenção e o número de colaboradores. A gente devolve um estudo.'),
     ],
     legenda: `Empresário, RH, contador: já conferiu se a convenção coletiva da categoria exige seguro de vida para os colaboradores?
 
@@ -489,7 +491,7 @@ Algumas exigem — com coberturas e valores mínimos definidos. E não cumprir p
 
 Mais que obrigação, o seguro de vida em grupo é um benefício que protege a família de quem trabalha com você.
 
-📲 Envie a convenção e o número de colaboradores para a ERBE (link na bio). A gente verifica as exigências e apresenta opções.`,
+📲 Envie a convenção e o número de colaboradores para a ERBE (link na bio). A gente verifica as exigências e devolve um estudo com as opções.`,
     hashtags: [...H.marca, '#SeguroDeVidaEmGrupo', '#ConvencaoColetiva', '#RH', '#Contabilidade', '#BeneficiosCorporativos'],
   },
   // ───────────────────────────── 21
@@ -630,7 +632,7 @@ Sua situação é parecida? Fale com a ERBE pelo link na bio.`,
       { t: 'list', title: 'Antes da data de aniversário', marker: 'num', items: ['Peça o relatório de utilização', 'Compare com o mercado', 'Reveja rede, coparticipação e acomodação'] },
       { t: 'statement', theme: 'light', kicker: 'Prazo', title: 'Comece de <em>60 a 90 dias</em> antes.', body: 'Tempo é o que permite negociar com calma — ou migrar sem pressa.', big: true },
       { t: 'list', title: 'O que evitar', marker: 'x', items: ['Aceitar sem ler', 'Trocar de plano só pelo preço', 'Decidir em cima do prazo'] },
-      cta('Envie a carta de reajuste <em>para a ERBE.</em>', 'Fale com a ERBE', 'A gente analisa e mostra os caminhos possíveis.'),
+      ctaBox('Antes de aceitar, <em>analise.</em>', 'Envie a carta de reajuste e receba um estudo.', 'A gente mostra os caminhos possíveis.'),
     ],
     legenda: `A carta de reajuste chegou. E agora?
 
@@ -640,7 +642,7 @@ Antes de aceitar, entenda de onde vem o percentual:
 
 O que fazer antes da data de aniversário: pedir o relatório de utilização, comparar com o mercado e rever o desenho do plano. O ideal é começar de 60 a 90 dias antes.
 
-📲 Envie a carta de reajuste para a ERBE (link na bio). A gente analisa e mostra os caminhos possíveis.`,
+📲 Envie a carta de reajuste para a ERBE (link na bio) e receba um estudo com os caminhos possíveis.`,
     hashtags: [...H.marca, '#ReajustePlanoDeSaude', '#PlanoDeSaudeEmpresarial', '#RH', '#Financeiro', '#BeneficiosCorporativos'],
   },
   // ───────────────────────────── 27
@@ -676,7 +678,7 @@ Fale com a ERBE e revise a proteção da sua clínica. Link na bio.`,
       { t: 'list', title: 'Onde mais surgem problemas', marker: 'doc', items: ['Averbação de todos os embarques', 'Limite por embarque', 'Exigências do gerenciamento de risco', 'Mercadorias excluídas'] },
       { t: 'list', title: 'Além da carga', items: ['Frota', 'Responsabilidade civil', 'Seguro de vida dos motoristas'] },
       { t: 'statement', title: 'Revisar não é burocracia. <em>É evitar surpresa quando mais se precisa.</em>' },
-      cta('Mande sua apólice e <em>o perfil das rotas.</em>', 'Fale com a ERBE', 'A ERBE faz a revisão.'),
+      ctaBox('Vamos olhar <em>a sua apólice?</em>', 'Envie a apólice e o perfil das rotas. A gente faz a revisão.'),
     ],
     legenda: `Novas rotas. Novos clientes. Novos tipos de carga. Sua apólice acompanhou?
 
@@ -695,7 +697,7 @@ E não esqueça: frota, responsabilidade civil e seguro de vida dos motoristas.
       { t: 'story', theme: 'dark', kicker: 'Consórcio', title: 'Qual é o seu <em>próximo passo?</em>', icons: ['house', 'car', 'building'], sticker: 340 },
       { t: 'story', theme: 'light', kicker: 'Conta pra gente', title: 'Qual valor você quer <em>conquistar?</em>', sticker: 420 },
       { t: 'story', theme: 'light', kicker: 'Simulação', title: 'Para simular, precisamos de 3 respostas:', size: 80, items: ['Valor do crédito', 'Parcela confortável', 'Prazo ideal'], marker: 'num' },
-      { t: 'story', theme: 'dark', kicker: 'Sem compromisso', title: 'Responda e receba uma <em>simulação personalizada.</em>', body: 'Sem juros. Com taxa de administração e planejamento.' },
+      { t: 'story', theme: 'green', kicker: 'Sem compromisso', title: 'Responda e receba uma <em>simulação personalizada.</em>', body: 'Sem juros. Com taxa de administração e planejamento.' },
       { t: 'story', theme: 'dark', kicker: 'Fale com a ERBE', title: 'Seu próximo passo <em>começa aqui.</em>', sticker: 300 },
     ],
     stickers: [
@@ -719,7 +721,7 @@ E não esqueça: frota, responsabilidade civil e seguro de vida dos motoristas.
       { t: 'text', kicker: 'Item 4 de 6', title: 'Hospitais e laboratórios essenciais.', body: 'Os que não podem faltar na rede.' },
       { t: 'text', kicker: 'Item 5 de 6', title: 'Plano atual, se houver.', body: 'A última fatura e a carta de reajuste ajudam a comparar.' },
       { t: 'text', kicker: 'Item 6 de 6', title: 'Suas preferências.', body: 'Acomodação, coparticipação e abrangência.' },
-      cta('Com isso, a ERBE monta um <em>comparativo claro.</em>', 'Comente COTAÇÃO', 'Não uma lista de preços.', 'Ou chame no WhatsApp pelo link na bio.'),
+      ctaBox('Com isso, a ERBE monta um <em>comparativo claro.</em>', 'Responda com COTAÇÃO e receba um estudo.', 'Não uma lista de preços.'),
     ],
     legenda: `Cotação de plano de saúde empresarial costuma virar um vai e volta de mensagens. Dá para evitar.
 
@@ -733,7 +735,7 @@ Separe:
 
 Com isso, a ERBE monta um comparativo claro — não só uma lista de preços.
 
-💬 Comente COTAÇÃO ou chame no WhatsApp pelo link na bio. E salve este post para usar depois.`,
+💬 Responda com COTAÇÃO (nos comentários ou no WhatsApp do link na bio) e receba um estudo. E salve este post para usar depois.`,
     hashtags: [...H.marca, '#PlanoDeSaudeEmpresarial', '#CotacaoPlanoDeSaude', '#PlanoPME', '#RH', '#Empresarios'],
   },
 ];
