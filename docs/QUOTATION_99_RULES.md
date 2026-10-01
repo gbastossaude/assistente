@@ -43,8 +43,13 @@ checklist e as pendências são reavaliados.
      campos), `special:declared` (todos os 9 tipos declarados).
    - Status definido manualmente nunca é sobrescrito. Preenchimento automático que deixa de ser atendido volta a
      `pendente`.
-3. Itens novos adicionados ao modelo **não** são injetados em cotações existentes automaticamente (ação explícita
-   "Aplicar modelo atualizado" na aba Checklist).
+3. Itens incluídos a partir do Playbook PJ +99 (Be Smart): **Carta de nomeação** e **Contrato social / cartão CNPJ**
+   (obrigatórios em NEW, opcionais em RENEW), **Relatório analítico de utilização** (obrigatório em RENEW, opcional em
+   NEW; documento sensível) e **Perfil de utilização** (opcional). "Maiores usuários" passou a "10 maiores
+   utilizadores do plano"; sinistralidade = últimos 12 meses; base de vidas pede sexo, município/UF, afastados (CID),
+   aposentados e gestantes. A obrigatoriedade continua configurável em Configurações → Checklists.
+4. Itens novos adicionados ao modelo **não** são injetados em cotações existentes automaticamente (ação explícita
+   "Reaplicar modelo" na aba Checklist).
 
 ## 4. Completude e "Pronta para mercado"
 
@@ -103,6 +108,7 @@ existir:
 | `ready_suggests_sending` | status → pronta para mercado | notificação sugerindo envio |
 | `followup_after_send` | envio à operadora | follow-up em X dias |
 | `proposal_cancels_followup` | proposta recebida | cancela cobranças daquela operadora |
+| `client_followup_cadence` | status → apresentação ao cliente | tarefas D1 check-in, D3 objeção silenciosa, D5 urgência, D7 despedida (dias configuráveis; modelos de WhatsApp "Cadência D0–D7"). Canceladas quando a cotação vai para negociação/finalista ou é encerrada |
 | `proposal_expiring` | rotina diária | alerta + pendência X dias antes da validade |
 | `stale_process` | rotina diária | alerta de cotação sem movimentação há X dias |
 | `insurer_no_response` | rotina diária | pendência quando passa da data prevista |

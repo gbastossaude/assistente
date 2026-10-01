@@ -42,6 +42,17 @@ function monthRef(text: string, today: string): string | null {
   return `${year}-${String(idx + 1).padStart(2, "0")}`;
 }
 
+const PLAYBOOK_TOPIC =
+  /(carencia|reajuste|vigencia|coparticipa|copart|enfermaria|apartamento|acomodacao|adesao|\bpme\b|\bmei\b|\bspin\b|gancho|objecao|cadencia|qualifica|script|roteiro|playbook|segmentacao|ambulatorial|obstetric|plano referencia|capital global|\bcpt\b|pre-?existen|portabilidade|\bd[0-7]\b|despedida|check-?in|plano individual|pessoa fisica)/;
+const PLAYBOOK_ASK = /(como funciona|o que e|qual (e )?a regra|quais (sao )?as regras|regras? d|explique|explica|me ajude|como (abordar|responder|vender|contornar|fazer|qualificar)|dica|frase|playbook|script|roteiro|gancho|spin|cadencia|exemplo)/;
+
+/** Dúvida de produto/abordagem comercial → Playbook (não confundir com consulta a dados de uma cotação). */
+export function isPlaybookQuestion(text: string): boolean {
+  const t = norm(text);
+  if (/COT-\d{4}-\d{1,4}/i.test(text)) return false;
+  return PLAYBOOK_TOPIC.test(t) && (PLAYBOOK_ASK.test(t) || !extractEntity(text));
+}
+
 export function routeIntent(text: string, today: string): RoutedIntent | { clarify: string } {
   const t = norm(text);
   const entity = extractEntity(text);
@@ -56,6 +67,8 @@ export function routeIntent(text: string, today: string): RoutedIntent | { clari
     if (/whatsapp/.test(t)) modelo = /cordial|lembrete/.test(t) ? "cliente_followup_cordial" : "cliente_cobranca_whatsapp";
     else if (/urgente/.test(t)) modelo = "cliente_followup_urgente";
     else if (/inicial|solicitar informa|abertura/.test(t)) modelo = "cliente_solicitacao_inicial_email";
+    const cad = t.match(/\bd([01357])\b/);
+    if (cad) modelo = `cliente_cadencia_d${cad[1]}`;
     const op = text.match(/operadora\s+([^?.,]+)/i);
     if (op && /(cobran|retorno|protocolo|complemento|revis)/.test(t)) {
       modelo = /protocolo/.test(t) ? "operadora_cobranca_protocolo" : /complemento/.test(t) ? "operadora_envio_complemento" : /revis/.test(t) ? "operadora_revisao_comercial" : "operadora_cobranca_retorno";
@@ -65,6 +78,9 @@ export function routeIntent(text: string, today: string): RoutedIntent | { clari
   }
   if (/(nao responderam|sem resposta|sem retorno|nao retornaram)/.test(t)) {
     return { tool: "operadoras_sem_resposta", input: { dias: days ?? 0, cotacao: /\boperadoras\b/.test(t) && entity ? entity : "" } };
+  }
+  if (isPlaybookQuestion(text)) {
+    return { tool: "consultar_playbook", input: { pergunta: text.slice(0, 300) } };
   }
   if (/(renov|aniversario|vencem|vence)/.test(t)) {
     const mes = monthRef(text, today);

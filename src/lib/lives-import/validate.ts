@@ -7,7 +7,7 @@ import { canonicalCnpj, normalizeCnpj } from "@/lib/domain/cnpj";
 import { UFS } from "@/lib/domain/constants";
 import { diffDays } from "@/lib/domain/dates";
 import { KNOWN_SITUATIONS, LIFE_FIELD_LABELS, type ColumnMapping, type LifeField } from "./fields";
-import { cellToISODate, cellToString, fieldValue, normalizeHolderType, normalizeText } from "./normalize";
+import { cellToISODate, cellToString, fieldValue, normalizeHolderType, normalizeSex, normalizeText } from "./normalize";
 
 export interface LifeIssue {
   field: LifeField | "linha";
@@ -30,6 +30,7 @@ export interface NormalizedLife {
   uf: string | null;
   insurer: string | null;
   plan: string | null;
+  sex: "M" | "F" | null;
   issues: LifeIssue[];
 }
 
@@ -156,6 +157,11 @@ export function validateLifeRows(rows: unknown[][], mapping: ColumnMapping, opts
     const plan = str(row, mapping, "plano_atual");
     if (!plan) err("plano_atual", "Plano atual não preenchido");
 
+    // Sexo (opcional; recomendado para grupos +99)
+    const sexRaw = str(row, mapping, "sexo");
+    const sex = sexRaw ? normalizeSex(sexRaw) : null;
+    if (sexRaw && !sex) warn("sexo", `Sexo não reconhecido (${sexRaw}) — use M ou F`);
+
     // Duplicidade (linha idêntica em todos os campos mapeados)
     const dupKey = Object.values(mapping)
       .map((idx) => (idx === null ? "" : normalizeText(cellToString(row[idx]))))
@@ -179,6 +185,7 @@ export function validateLifeRows(rows: unknown[][], mapping: ColumnMapping, opts
       uf,
       insurer,
       plan,
+      sex,
       issues,
     });
   });

@@ -52,9 +52,13 @@ Matriz detalhada em `src/lib/auth/permissions.ts` (RBAC granular por permissão,
 10. **Tarefas**: completo, com recorrência, lembretes, checklist interno, anexos e "próxima ação" ao concluir.
 11. **Documentos**: todos os documentos com status, tipo, referência, filtros e download controlado.
 12. **Renovações**: janelas 30/60/90/120 dias, marcos automáticos configuráveis.
-13. **Relatórios**: indicadores com filtros por período, empresa, operadora e status.
-14. **Assistente IA**: chat ligado aos dados por ferramentas controladas, com confirmação para ações.
-15. **Configurações**: usuários, modelos de checklist, prazos de automação, faixas ANS, pesos do score,
+13. **Playbook**: o "Playbook Estratégico / Arsenal Be Smart" (fonte: planosaude26-rgb.github.io/besmart) dentro do
+    sistema — regras de PME, Adesão, Individual (PF) e PJ +99 vidas; segmentação, acomodação e coparticipação;
+    qualificação avançada, script SPIN, ganchos de venda e cadência de follow-up D0–D7. Busca sem acento, botão de
+    copiar por frase/roteiro e edição (com "Restaurar original") para quem tem `settings:manage`.
+14. **Relatórios**: indicadores com filtros por período, empresa, operadora e status.
+15. **Assistente IA**: chat ligado aos dados por ferramentas controladas, com confirmação para ações.
+16. **Configurações**: usuários, modelos de checklist, prazos de automação, faixas ANS, pesos do score,
     limite de coparticipação, templates de mensagens, política de retenção e auditoria.
 
 Busca global no cabeçalho (empresa, CNPJ, contato, cotação, operadora, protocolo, plano, documento, tarefa) e atalhos
@@ -100,6 +104,8 @@ Motor de automações com regras configuráveis (ver `QUOTATION_99_RULES.md` §8
 - Ações em lote (ex.: criar tarefas para operadoras sem resposta) são **propostas**, listando exatamente os registros
   afetados, e só executadas após confirmação explícita.
 - Nunca envia e-mail/WhatsApp externamente: gera o texto para o usuário copiar/enviar.
+- Responde dúvidas de produto e abordagem comercial a partir do Playbook (ferramenta `consultar_playbook`), sempre
+  citando a fonte e lembrando de confirmar regras com a operadora.
 - Histórico de conversas e ações persistido.
 - Funciona em dois modos: com `ANTHROPIC_API_KEY` (Claude com tool use) ou sem chave (roteador de intenções
   determinístico em português, cobrindo as perguntas da especificação).

@@ -3,7 +3,8 @@
 Cockpit operacional + assistente de grandes contas para o **Head de Planos de Saúde da BeSmart** — cotações
 empresariais (foco em +99 vidas), checklist automático NEW/RENEW, importação e validação da base de vidas,
 documentos com storage privado, operadoras e propostas, comparativo, tarefas, agenda, pendências, renovações,
-relatórios, auditoria e assistente inteligente.
+relatórios, auditoria, **Playbook Estratégico Be Smart** (regras das modalidades, SPIN, ganchos e cadência de
+follow-up D0–D7, integrados de planosaude26-rgb.github.io/besmart) e assistente inteligente.
 
 > Especificação e decisões: [`docs/`](docs) — comece por [`PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) e
 > [`REQUIREMENTS_MATRIX.md`](docs/REQUIREMENTS_MATRIX.md).

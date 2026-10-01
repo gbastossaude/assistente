@@ -122,4 +122,14 @@ test.describe.serial("Critérios de aceite da primeira versão utilizável", () 
     await page.getByRole("button", { name: "Enviar" }).click();
     await expect(page.getByText(/não informado|não enviado|Nenhuma pendência/).first()).toBeVisible({ timeout: 90_000 });
   });
+
+  test("playbook: consultar modalidades, buscar e copiar roteiros", async ({ page }) => {
+    await go(page, "/playbook");
+    await expect(page.getByRole("heading", { name: "Plano PJ (+99 vidas)" })).toBeVisible();
+    await page.getByRole("button", { name: "Estratégia de follow-up" }).click();
+    await expect(page.getByText("Despedida elegante", { exact: false }).first()).toBeVisible();
+    await page.getByLabel("Buscar no playbook").fill("carência");
+    await expect(page.getByText(/resultado\(s\) para “carência”/)).toBeVisible();
+    await expect(page.getByTestId("playbook-entry").first()).toBeVisible();
+  });
 });

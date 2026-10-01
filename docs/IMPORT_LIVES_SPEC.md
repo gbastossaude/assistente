@@ -22,6 +22,7 @@ Arquivo `EXEMPLO BASE 1.xlsm`, aba **BASE SAÚDE**, 13 colunas:
 | 11 | UF | `uf` | **sim** (UF válida) |
 | 12 | SEGURADORA ATUAL | `seguradora_atual` | **sim** |
 | 13 | PLANO ATUAL | `plano_atual` | **sim** |
+| + | SEXO | `sexo` | não — **recomendada** (Playbook PJ +99: "relação de vidas com sexo"). Aceita M/F, Masculino/Feminino, Homem/Mulher; valor desconhecido gera aviso. Se a coluna não for mapeada, o preview mostra um aviso. |
 
 > O arquivo real `EXEMPLO BASE 1.xlsm` deve ser colocado em `templates/`. O repositório traz apenas um gerador de
 > planilha sintética no mesmo layout (`npm run sample:base`) para testes e demonstração.
@@ -65,6 +66,8 @@ Arquivo `EXEMPLO BASE 1.xlsm`, aba **BASE SAÚDE**, 13 colunas:
 Data de referência para idade: data da importação (fuso America/Sao_Paulo).
 
 ## Resumo gerado
+
+Inclui também a distribuição **por sexo** (Feminino / Masculino / não informado).
 
 Total de vidas, titulares, dependentes, agregados, idade média, vidas por faixa etária (ordem das faixas ANS), por
 plano, CNPJ, UF, cidade, operadora, situação; quantidade de situações especiais, de registros com CID e de

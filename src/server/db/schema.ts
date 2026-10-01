@@ -446,6 +446,7 @@ export const lives = pgTable(
     uf: text("uf"),
     insurer: text("insurer"),
     plan: text("plan"),
+    sex: text("sex"),
     issues: jsonb("issues").$type<{ field: string; level: "error" | "warning"; message: string }[]>().notNull().default([]),
     createdAt: createdAt(),
   },
@@ -833,3 +834,24 @@ export const assistantActions = pgTable("assistant_actions", {
   createdAt: createdAt(),
 });
 
+
+/** Playbook Estratégico (base técnica e roteiros comerciais) — editável por quem tem settings:manage. */
+export const playbookEntries = pgTable(
+  "playbook_entries",
+  {
+    id: id(),
+    section: text("section").notNull(),
+    key: text("key").notNull(),
+    title: text("title").notNull(),
+    subtitle: text("subtitle"),
+    objective: text("objective"),
+    kind: text("kind").notNull().default("texto"),
+    body: text("body").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    updatedBy: uuid("updated_by").references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("playbook_entries_uq").on(t.section, t.key)],
+);

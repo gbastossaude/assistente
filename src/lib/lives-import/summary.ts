@@ -12,6 +12,7 @@ export interface LifeLike {
   uf: string | null;
   insurer: string | null;
   plan: string | null;
+  sex?: string | null;
   issues: { level: string }[];
 }
 
@@ -33,6 +34,7 @@ export interface LivesSummary {
   byCity: Bucket[];
   byInsurer: Bucket[];
   bySituation: Bucket[];
+  bySex: Bucket[];
   specialSituations: number;
   withCid: number;
   incomplete: number;
@@ -70,6 +72,10 @@ export function summarizeLives(lives: (LifeLike & { age?: number | null })[], ba
     byCity: bucket(lives.map((l) => (l.city ? `${l.city}${l.uf ? `/${l.uf}` : ""}` : null))),
     byInsurer: bucket(lives.map((l) => l.insurer)),
     bySituation: bucket(lives.filter((l) => l.situation && l.situation !== "ATIVO").map((l) => l.situation)),
+    bySex: bucket(
+      lives.map((l) => (l.sex === "M" ? "Masculino" : l.sex === "F" ? "Feminino" : null)),
+      ["Feminino", "Masculino", "(não informado)"],
+    ),
     specialSituations: lives.filter((l) => l.situation && l.situation !== "ATIVO").length,
     withCid: lives.filter((l) => !!l.cid).length,
     incomplete: lives.filter(hasErrors).length,

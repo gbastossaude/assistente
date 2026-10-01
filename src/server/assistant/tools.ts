@@ -22,7 +22,9 @@ import { listTimeline } from "../services/interactions";
 import { clientRequestItems, generateMessage } from "../services/messages";
 import { listPendencies } from "../services/pendencies";
 import { getQuotationDetail } from "../services/quotations";
+import { findPlaybook } from "../services/playbook";
 import { globalSearch } from "../services/search";
+import { PLAYBOOK_SECTIONS } from "@/lib/playbook/content";
 
 export interface ToolResult {
   /** Texto pronto para exibir (modo local) — também enviado ao modelo. */
@@ -292,7 +294,7 @@ const agendaHoje: ToolDef<z.ZodObject<Record<string, never>>> = {
 const gerarMensagem: ToolDef<z.ZodObject<{ cotacao: z.ZodString; modelo: z.ZodString; operadora: z.ZodString }>> = {
   name: "gerar_mensagem",
   description:
-    "Gera texto de e-mail ou WhatsApp a partir das pendências reais (não envia). Modelos: cliente_solicitacao_inicial_email, cliente_solicitacao_inicial_whatsapp, cliente_cobranca_formal_email, cliente_cobranca_whatsapp, cliente_followup_cordial, cliente_followup_urgente, operadora_envio_inicial, operadora_cobranca_protocolo, operadora_cobranca_retorno, operadora_envio_complemento, operadora_revisao_comercial, operadora_agradecimento.",
+    "Gera texto de e-mail ou WhatsApp a partir das pendências reais (não envia). Modelos: cliente_solicitacao_inicial_email, cliente_solicitacao_inicial_whatsapp, cliente_cobranca_formal_email, cliente_cobranca_whatsapp, cliente_followup_cordial, cliente_followup_urgente, cliente_cadencia_d0, cliente_cadencia_d1, cliente_cadencia_d3, cliente_cadencia_d5, cliente_cadencia_d7 (cadência pós-apresentação do Playbook), operadora_envio_inicial, operadora_cobranca_protocolo, operadora_cobranca_retorno, operadora_envio_complemento, operadora_revisao_comercial, operadora_agradecimento.",
   schema: z.object({ cotacao: z.string().min(2), modelo: z.string(), operadora: z.string() }),
   jsonSchema: obj({ cotacao: str("Código ou empresa"), modelo: str("Chave do modelo"), operadora: str("Nome da operadora (para modelos de operadora) ou vazio") }),
   async run({ cotacao, modelo, operadora }, user) {
@@ -343,7 +345,25 @@ const proporTarefasOperadoras: ToolDef<z.ZodObject<{ dias: z.ZodNumber; prazo_di
   },
 };
 
-export const TOOLS = [buscar, resumoCotacao, pendenciasTool, listarCotacoes, renovacoesTool, operadorasSemResposta, historico, agendaHoje, gerarMensagem, proporTarefasOperadoras] as ToolDef<z.ZodTypeAny>[];
+const consultarPlaybook: ToolDef<z.ZodObject<{ pergunta: z.ZodString }>> = {
+  name: "consultar_playbook",
+  description:
+    "Consulta o Playbook Estratégico Be Smart: regras das modalidades (PME, Adesão, Individual/PF, PJ +99 vidas), segmentação, acomodação, coparticipação, carências, vigência, reajuste, documentação, qualificação do cliente, script SPIN, ganchos de venda e cadência de follow-up D0–D7.",
+  schema: z.object({ pergunta: z.string().min(2) }),
+  jsonSchema: obj({ pergunta: str("Dúvida ou tema (ex.: carência PME, objeção de preço, follow-up D3, SPIN implicação)") }),
+  async run({ pergunta }) {
+    const found = await findPlaybook(pergunta, 3);
+    if (!found.length) return { text: `Não encontrei esse tema no Playbook. Consulte /playbook ou reformule (ex.: “carência no PME”, “gancho de economia”, “follow-up D3”).`, data: [] };
+    const parts = found.map((e) => {
+      const sec = PLAYBOOK_SECTIONS[e.section]?.title ?? e.section;
+      const body = e.body.length > 1500 ? `${e.body.slice(0, 1500)}…` : e.body;
+      return `📘 ${sec} — ${e.title}${e.objective ? `\nObjetivo: ${e.objective}` : ""}\n${body}\n(ver em /playbook?secao=${e.section})`;
+    });
+    return { text: `${parts.join("\n\n")}\n\nFonte: Playbook Be Smart. Confirme regras de carência, reajuste e documentação com a operadora antes de citar ao cliente.`, data: found.map((e) => ({ section: e.section, key: e.key, title: e.title })) };
+  },
+};
+
+export const TOOLS = [buscar, resumoCotacao, pendenciasTool, listarCotacoes, renovacoesTool, operadorasSemResposta, historico, agendaHoje, gerarMensagem, proporTarefasOperadoras, consultarPlaybook] as ToolDef<z.ZodTypeAny>[];
 
 export async function runTool(name: string, input: unknown, user: CurrentUser): Promise<ToolResult> {
   const t = TOOLS.find((x) => x.name === name);

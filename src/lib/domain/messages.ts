@@ -85,6 +85,47 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     body:
       "Prezado(a) {{contato}},\n\nO prazo do estudo da {{empresa}} ({{data_limite}}) está próximo e os itens abaixo ainda impedem o envio às operadoras:\n\n{{pendencias}}\n\nPrecisamos dessas informações com urgência para não comprometer o cronograma{{data_renovacao_frase}}.\n\nAtenciosamente,\n{{responsavel}}\nBeSmart",
   },
+  // Cadência de follow-up D0 → D7 (Playbook Be Smart — Estratégia de follow-up)
+  {
+    key: "cliente_cadencia_d0",
+    name: "Cadência D0 — envio da proposta (WhatsApp)",
+    audience: "cliente",
+    channel: "whatsapp",
+    tone: "cadencia",
+    body: "Fala, {{contato}}! Conforme conversamos, te enviei as opções de plano de saúde com melhor custo-benefício. Separei pensando no que você me falou. Dá uma olhada com calma e qualquer dúvida me chama 👍",
+  },
+  {
+    key: "cliente_cadencia_d1",
+    name: "Cadência D1 — check-in (WhatsApp)",
+    audience: "cliente",
+    channel: "whatsapp",
+    tone: "cadencia",
+    body: "Oi, {{contato}}! Conseguiu dar uma olhada nas opções que te mandei? Se quiser, posso te indicar direto a melhor escolha pra você baseado no que você precisa.",
+  },
+  {
+    key: "cliente_cadencia_d3",
+    name: "Cadência D3 — objeção silenciosa (WhatsApp)",
+    audience: "cliente",
+    channel: "whatsapp",
+    tone: "cadencia",
+    body: "{{contato}}, muitos clientes meus ficam na dúvida nessa etapa entre preço e qualidade. Se for o seu caso, me fala o que tá pesando mais aí que eu te ajudo a ajustar.",
+  },
+  {
+    key: "cliente_cadencia_d5",
+    name: "Cadência D5 — urgência (WhatsApp)",
+    audience: "cliente",
+    channel: "whatsapp",
+    tone: "cadencia",
+    body: "{{contato}}, só um ponto importante: alguns planos podem sofrer reajuste nos próximos dias. Vale a pena já garantir nessas condições. Posso te ajudar com isso agora?",
+  },
+  {
+    key: "cliente_cadencia_d7",
+    name: "Cadência D7 — despedida elegante (WhatsApp)",
+    audience: "cliente",
+    channel: "whatsapp",
+    tone: "cadencia",
+    body: "{{contato}}, não sei se você já resolveu a questão do plano de saúde. Se ainda estiver vendo isso, posso te ajudar. Se já resolveu, me avisa também 👍",
+  },
   {
     key: "operadora_envio_inicial",
     name: "Operadora — envio inicial de estudo",

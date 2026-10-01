@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Field, Select } from "@/components/ui/inputs";
-import { LIFE_FIELDS, LIFE_FIELD_LABELS, REQUIRED_LIFE_FIELDS, type ColumnMapping, type LifeField } from "@/lib/lives-import/fields";
+import { LIFE_FIELDS, LIFE_FIELD_LABELS, RECOMMENDED_LIFE_FIELDS, REQUIRED_LIFE_FIELDS, type ColumnMapping, type LifeField } from "@/lib/lives-import/fields";
 import type { ImportPreview } from "@/server/services/lives";
 import { cn, formatNumber } from "@/lib/utils";
 import { LivesSummaryView } from "./summary-view";
@@ -151,6 +151,11 @@ export function LivesImporter({ quotationId, maxMb, showCid, hasActive }: { quot
                 <XCircle className="size-4" /> Mapeie as colunas obrigatórias: {preview.missingRequired.map((f) => LIFE_FIELD_LABELS[f]).join(", ")}
               </p>
             )}
+            {mapping && RECOMMENDED_LIFE_FIELDS.some((f) => mapping[f] === null) && (
+              <p className="mb-2 flex items-center gap-1.5 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                <AlertTriangle className="size-4" /> Coluna recomendada não encontrada: {RECOMMENDED_LIFE_FIELDS.filter((f) => mapping[f] === null).map((f) => LIFE_FIELD_LABELS[f]).join(", ")} — as operadoras pedem sexo na relação de vidas de grupos +99.
+              </p>
+            )}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {LIFE_FIELDS.map((f) => (
                 <Field key={f} label={`${LIFE_FIELD_LABELS[f]}${REQUIRED_LIFE_FIELDS.includes(f) ? " *" : ""}`}>
@@ -224,7 +229,7 @@ export function LivesImporter({ quotationId, maxMb, showCid, hasActive }: { quot
           <table className="w-full text-xs">
             <thead className="bg-surface-2">
               <tr className="text-left text-muted">
-                {["Linha", "CNPJ", "Nascimento", "Idade", "Faixa", "Titularidade", "Parentesco", "Situação", "CID", "Cidade/UF", "Operadora", "Plano"].map((h) => (
+                {["Linha", "CNPJ", "Nascimento", "Idade", "Sexo", "Faixa", "Titularidade", "Parentesco", "Situação", "CID", "Cidade/UF", "Operadora", "Plano"].map((h) => (
                   <th key={h} className="whitespace-nowrap px-2 py-1.5">
                     {h}
                   </th>
@@ -238,6 +243,7 @@ export function LivesImporter({ quotationId, maxMb, showCid, hasActive }: { quot
                   <td className="px-2 py-1 tabular-nums">{l.cnpj ?? "—"}</td>
                   <td className="px-2 py-1">{l.birthDate?.split("-").reverse().join("/") ?? "—"}</td>
                   <td className="px-2 py-1">{l.age ?? "—"}</td>
+                  <td className="px-2 py-1">{l.sex ?? "—"}</td>
                   <td className="px-2 py-1">{l.ageBand ?? "—"}</td>
                   <td className="px-2 py-1">{l.holderType ?? "—"}</td>
                   <td className="px-2 py-1">{l.kinship ?? "—"}</td>

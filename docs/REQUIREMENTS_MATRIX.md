@@ -65,10 +65,11 @@ Testes: **U** = unitário (`tests/unit`), **I** = integração com PostgreSQL (`
 | 26 | Auditoria de todos os eventos listados + tela administrativa | ✅ | `activity_logs`, Configurações → Auditoria | I |
 | 27 | Central da Cotação: cabeçalho fixo + 12 abas | ✅ | `/cotacoes/[id]` | E |
 | 28 | Score de prontidão com componentes e pesos configuráveis | ✅ | `readiness.ts` | U, I |
-| 29 | Validação de schemas, erros centralizados, loading/empty states, toasts, testes, seed só dev | ✅ | `action-utils.ts`, `api-utils.ts`, `loading.tsx`, `error.tsx` | 79 U/I + 10 E2E |
+| 29 | Validação de schemas, erros centralizados, loading/empty states, toasts, testes, seed só dev | ✅ | `action-utils.ts`, `api-utils.ts`, `loading.tsx`, `error.tsx` | 94 U/I + 11 E2E |
 | 31 | 15 critérios de aceite | ✅ | `tests/e2e/acceptance.spec.ts` | E |
 | 32 | Sem telas falsas/botões sem ação, sem `alert()`, migrations versionadas, README, confirmação em ações destrutivas, preview em importação, filtros nas listas, timeline em mudanças | ✅ | — | — |
 | 34 | Pedido de informações ao cliente omitindo itens recebidos/validados | ✅ | `clientRequestItems` | I |
+| — | Conteúdo do site Be Smart (Playbook/Arsenal): módulo Playbook, checklist PJ +99, coluna SEXO, cadência D0–D7, assistente | ✅ | `/playbook`, `lib/playbook/*`, `client_followup_cadence`, `consultar_playbook` | U, I, E |
 
 ## Débitos técnicos explícitos
 

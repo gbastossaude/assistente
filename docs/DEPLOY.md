@@ -80,6 +80,11 @@ sem atividade por 7 dias; a rotina horária do Passo 4 mantém o banco ativo.
 
 ## Passo 5 — Conferência
 
+> **Instalação já existente?** A cada atualização rode `npm run db:migrate && npm run db:bootstrap` (no Render isso já
+> acontece a cada inicialização). O bootstrap só **acrescenta** o que falta — conteúdo do Playbook, novos itens de checklist, modelos
+> de mensagem e regras de automação — sem sobrescrever o que foi editado. Cotações abertas recebem os novos itens de
+> checklist pelo botão "Reaplicar modelo" na aba Checklist.
+
 - `https://SEU-ENDERECO/api/health` responde `{"ok":true}`.
 - Em **Configurações → Sobre / integrações** o armazenamento aparece como `supabase`.
 - Envie um PDF em uma cotação e confira o arquivo em Supabase → Storage → `documentos`.

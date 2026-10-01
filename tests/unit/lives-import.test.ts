@@ -19,9 +19,15 @@ const valid = [
 describe("mapeamento de colunas", () => {
   it("reconhece as 13 colunas do layout BASE SAÚDE", () => {
     const m = autoMapColumns(HEADER);
-    expect(Object.values(m).every((v) => v !== null)).toBe(true);
+    const { sexo, ...core } = m;
+    expect(Object.values(core).every((v) => v !== null)).toBe(true);
+    expect(sexo).toBe(null); // coluna recomendada, opcional no layout original
     expect(m.cnpj).toBe(1);
     expect(m.plano_atual).toBe(12);
+  });
+  it("reconhece a coluna SEXO (recomendada pelo Playbook PJ +99)", () => {
+    expect(autoMapColumns([...HEADER, "SEXO"]).sexo).toBe(13);
+    expect(autoMapColumns(["Gênero", "CNPJ"]).sexo).toBe(0);
   });
   it("aceita sinônimos e ordem diferente", () => {
     const m = autoMapColumns(["Plano", "Operadora", "UF", "Município", "Data Nasc", "Tipo Beneficiário", "Parentesco", "CNPJ"]);
@@ -118,5 +124,18 @@ describe("resumo da população", () => {
     expect(s.byAgeBand.map((b) => b.key)).toEqual(["00 a 18", "39 a 43", "59 ou mais"]);
     expect(s.byUf).toEqual([{ key: "SP", count: 3 }]);
     expect(s.byCity[0]).toEqual({ key: "São Paulo/SP", count: 2 });
+  });
+  it("normaliza a coluna SEXO, avisa valores desconhecidos e totaliza por sexo", () => {
+    const header = [...HEADER, "SEXO"];
+    const rows = [
+      [...valid[0], "masculino"],
+      [...valid[1], "F"],
+      [...valid[2], "X"],
+    ];
+    const r = validateLifeRows(rows, autoMapColumns(header), opts);
+    expect(r.lives.map((l) => l.sex)).toEqual(["M", "F", null]);
+    expect(r.lives[2].issues).toContainEqual(expect.objectContaining({ field: "sexo", level: "warning" }));
+    const s = summarizeLives(r.lives, DEFAULT_ANS_AGE_BANDS);
+    expect(s.bySex).toEqual(expect.arrayContaining([{ key: "Masculino", count: 1 }, { key: "Feminino", count: 1 }, { key: "(não informado)", count: 1 }]));
   });
 });

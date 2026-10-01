@@ -59,6 +59,13 @@ export const AUTOMATION_RULES: AutomationRuleDef[] = [
   { key: "ready_suggests_sending", name: "Sugerir envio ao mercado", description: "Cotação pronta para mercado gera notificação sugerindo o envio às operadoras.", params: {} },
   { key: "followup_after_send", name: "Follow-up após envio", description: "Envio a operadora cria follow-up automático em X dias.", params: { dias: 5 }, paramLabels: { dias: "Dias após o envio" } },
   { key: "proposal_cancels_followup", name: "Proposta cancela cobrança", description: "Proposta recebida cancela as tarefas de follow-up de cobrança daquela operadora.", params: {} },
+  {
+    key: "client_followup_cadence",
+    name: "Cadência de follow-up com o cliente (D1/D3/D5/D7)",
+    description: "Quando a cotação vai para “Apresentação ao cliente”, cria as tarefas de follow-up da cadência do Playbook (check-in, objeção, urgência e despedida). São canceladas se o cliente avançar para negociação ou a cotação for encerrada.",
+    params: { d1: 1, d3: 3, d5: 5, d7: 7 },
+    paramLabels: { d1: "Check-in (dias após)", d3: "Objeção silenciosa (dias após)", d5: "Urgência (dias após)", d7: "Despedida (dias após)" },
+  },
   { key: "proposal_expiring", name: "Proposta próxima de vencer", description: "Alerta e pendência quando a validade da proposta estiver a X dias.", params: { dias: 7 }, paramLabels: { dias: "Dias de antecedência" } },
   { key: "stale_process", name: "Processo sem movimentação", description: "Alerta quando a cotação fica X dias sem movimentação.", params: { dias: 7 }, paramLabels: { dias: "Dias sem movimentação" } },
   { key: "insurer_no_response", name: "Operadora sem resposta", description: "Cria pendência quando a operadora passa X dias da data prevista de retorno sem resposta.", params: { dias: 0 }, paramLabels: { dias: "Tolerância após data prevista (dias)" } },

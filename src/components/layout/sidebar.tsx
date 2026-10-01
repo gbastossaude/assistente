@@ -2,6 +2,7 @@
 import {
   AlertTriangle,
   BarChart3,
+  BookOpen,
   Building2,
   CalendarDays,
   CheckSquare,
@@ -39,6 +40,7 @@ const ICONS = {
   chart: BarChart3,
   sparkles: Sparkles,
   settings: Settings,
+  book: BookOpen,
 } as const;
 
 export function Sidebar({ items, badges }: { items: { href: string; label: string; icon: string }[]; badges: Record<string, number> }) {

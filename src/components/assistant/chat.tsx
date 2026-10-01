@@ -34,6 +34,8 @@ const SUGGESTIONS = [
   "Gere uma mensagem de WhatsApp para a empresa Sol Nascente pedindo as pendências",
   "Crie tarefas para todas as operadoras que não responderam",
   "Prepare um resumo executivo para minha reunião de hoje",
+  "Como funciona a carência no plano PME?",
+  "Me dê um gancho para objeção de preço",
 ];
 
 /** Renderização segura de texto simples com **negrito** e marcadores (sem HTML arbitrário). */

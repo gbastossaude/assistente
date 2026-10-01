@@ -153,6 +153,9 @@ export const DOCUMENT_TYPES = [
   "contrato_atual",
   "proposta_atual",
   "proposta_operadora",
+  "carta_nomeacao",
+  "contrato_social",
+  "relatorio_analitico",
   "outros",
 ] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
@@ -170,6 +173,9 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   contrato_atual: "Contrato atual",
   proposta_atual: "Proposta atual",
   proposta_operadora: "Proposta de operadora",
+  carta_nomeacao: "Carta de nomeação (operadoras/seguradoras)",
+  contrato_social: "Contrato social / cartão CNPJ",
+  relatorio_analitico: "Relatório analítico de utilização",
   outros: "Outros documentos",
 };
 /** Documentos que contêm dado de saúde — acesso restrito e auditado. */
@@ -182,6 +188,7 @@ export const SENSITIVE_DOCUMENT_TYPES: DocumentType[] = [
   "liminar",
   "relatorio_home_care",
   "protocolo_medico",
+  "relatorio_analitico",
 ];
 
 export const TASK_STATUSES = ["a_fazer", "em_andamento", "aguardando_terceiro", "concluida", "cancelada"] as const;

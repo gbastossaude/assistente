@@ -444,3 +444,12 @@ export const checklistTemplateSchema = z.object({
   sortOrder: optNum({ int: true, label: "Ordem" }).transform((v) => v ?? 0),
   active: optBool().transform((v) => v ?? true),
 });
+
+export const playbookEntrySchema = z.object({
+  id: uuid(),
+  title: reqStr("Título", 200),
+  subtitle: optStr(300),
+  objective: optStr(1000),
+  body: reqStr("Conteúdo", 20000),
+  active: optBool().transform((v) => v ?? true),
+});

@@ -55,7 +55,7 @@ settings, message_templates, automation_rules, checklist_templates (configuraç�
 | `quotation_checklist_items` | Checklist da cotação | cópia do modelo + `applicable`, `status`, `auto_filled`, solicitante, remetente, datas, documento |
 | `quotation_documents` | Documentos | tipo, nome original, `storage_key` privado, mime, tamanho, sha256, data de referência, remetente, status, `sensitive` |
 | `life_imports` | Importações de base | arquivo/aba, mapeamento usado, totais (válidas/erro/aviso/ignoradas), resumo `jsonb`, `active` (a mais recente é a vigente) |
-| `lives` | Vidas importadas | 13 campos normalizados + `issues jsonb` (erros/avisos por campo) |
+| `lives` | Vidas importadas | 13 campos normalizados + `sex` (M/F, opcional) + `issues jsonb` (erros/avisos por campo) |
 | `special_cases` | Resumo por tipo de situação especial | `has` (null = não declarado), quantidade, `details jsonb` |
 | `special_case_entries` | Registros individuais | `kind`, `data jsonb` validado pela definição em `special-cases.ts` |
 | `quotation_insurers` | Distribuição por operadora | status individual, envio, protocolo, contato, retorno previsto, pendências, último/próximo follow-up, arquivos enviados, comissão, taxa adm., condições |
@@ -71,6 +71,7 @@ settings, message_templates, automation_rules, checklist_templates (configuraç�
 | `activity_logs` | Auditoria | ação, entidade, resumo, `changes jsonb` (sem dados de saúde), `sensitive` |
 | `message_templates` | Templates de mensagens | público, canal, tom, assunto, corpo com placeholders |
 | `automation_rules` | Regras de automação | `enabled`, `params jsonb` (prazos em dias) |
+| `playbook_entries` | Playbook Estratégico (conteúdo editável) | `section` + `key` únicos, título, subtítulo, objetivo, `kind` (`texto`/`roteiro`), corpo, ordem, `active`, `updated_by`. Semeado pelo bootstrap a partir de `src/lib/playbook/content.ts` sem sobrescrever edições |
 | `assistant_messages` / `assistant_actions` | Histórico do assistente | mensagens; ações propostas → confirmadas/recusadas com resultado |
 
 ### Views

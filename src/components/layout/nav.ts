@@ -13,6 +13,7 @@ export const NAV_ITEMS: { href: string; label: string; icon: string; permission?
   { href: "/tarefas", label: "Tarefas", icon: "check" },
   { href: "/documentos", label: "Documentos", icon: "file" },
   { href: "/renovacoes", label: "Renovações", icon: "refresh" },
+  { href: "/playbook", label: "Playbook", icon: "book" },
   { href: "/relatorios", label: "Relatórios", icon: "chart", permission: "reports:read" },
   { href: "/assistente", label: "Assistente IA", icon: "sparkles", permission: "assistant:use" },
   { href: "/configuracoes", label: "Configurações", icon: "settings" },

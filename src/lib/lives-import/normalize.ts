@@ -103,6 +103,13 @@ export function normalizeHolderType(v: string): "TITULAR" | "DEPENDENTE" | "AGRE
   return null;
 }
 
+export function normalizeSex(v: string): "M" | "F" | null {
+  const s = normalizeText(v);
+  if (["M", "MASC", "MASCULINO", "H", "HOMEM"].includes(s)) return "M";
+  if (["F", "FEM", "FEMININO", "MULHER"].includes(s)) return "F";
+  return null;
+}
+
 export function fieldValue(row: unknown[], mapping: ColumnMapping, field: LifeField): unknown {
   const idx = mapping[field];
   return idx === null || idx === undefined ? undefined : row[idx];

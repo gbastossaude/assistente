@@ -222,7 +222,7 @@ describe.skipIf(!hasTestDb)("fluxo Grandes Contas +99 (integração com PostgreS
 
   it("mensagem ao cliente lista só pendências reais e não inventa dados", async () => {
     const m = await generateMessage({ quotationId, templateKey: "cliente_solicitacao_inicial_email" }, "Head Teste");
-    expect(m.items).toContain("Sinistralidade completa e atualizada");
+    expect(m.items).toContain("Relatório de sinistralidade completo dos últimos 12 meses");
     expect(m.items).not.toContain("Fatura do plano atual"); // validada
     expect(m.body).toContain("[informar nome do contato do cliente]");
     expect(m.missing).toContain("contato");
@@ -242,6 +242,20 @@ describe.skipIf(!hasTestDb)("fluxo Grandes Contas +99 (integração com PostgreS
     expect(rep.insurerResponse.find((r) => r.insurer === "Amil")?.responded).toBe(1);
     const list = await listQuotations({ minLives: 100 });
     expect(list[0].insurersTotal).toBe(2);
+  });
+
+  it("apresentação ao cliente agenda a cadência D1/D3/D5/D7 do Playbook; negociação encerra a cadência", async () => {
+    await changeQuotationStatus({ quotationId, toStatus: "apresentacao_cliente", note: null, overrideReason: null, lostReason: null }, head);
+    const cad = (await db.select().from(tasks).where(eq(tasks.quotationId, quotationId))).filter((t) => t.automationKey?.startsWith(`cad:${quotationId}:`));
+    expect(cad.map((t) => t.dueDate).sort()).toEqual([1, 3, 5, 7].map((d) => addDays(todayISO(), d)));
+    expect(cad.every((t) => t.category === "follow_up" && t.status === "a_fazer")).toBe(true);
+    expect(cad.find((t) => t.automationKey!.endsWith(":d3"))!.title).toMatch(/^D3 Objeção silenciosa/);
+    const msg = await generateMessage({ quotationId, templateKey: "cliente_cadencia_d3" }, "Head Teste");
+    expect(msg.body).toMatch(/preço e qualidade/);
+
+    await changeQuotationStatus({ quotationId, toStatus: "negociacao", note: null, overrideReason: null, lostReason: null }, head);
+    const after = (await db.select().from(tasks).where(eq(tasks.quotationId, quotationId))).filter((t) => t.automationKey?.startsWith(`cad:${quotationId}:`));
+    expect(after.every((t) => t.status === "cancelada")).toBe(true);
   });
 
   it("fechar como perdida exige motivo e cancela automações", async () => {

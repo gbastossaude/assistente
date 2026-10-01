@@ -1,4 +1,7 @@
-/** Layout padrão da aba "BASE SAÚDE" (EXEMPLO BASE 1.xlsm) — 13 colunas. */
+/**
+ * Layout padrão da aba "BASE SAÚDE" (EXEMPLO BASE 1.xlsm) — 13 colunas — mais a coluna opcional SEXO,
+ * exigida pelas operadoras na relação de vidas de grupos +99 (Playbook Be Smart, PJ +99 → Documentação).
+ */
 export const LIFE_FIELDS = [
   "empresa",
   "cnpj",
@@ -13,6 +16,7 @@ export const LIFE_FIELDS = [
   "uf",
   "seguradora_atual",
   "plano_atual",
+  "sexo",
 ] as const;
 export type LifeField = (typeof LIFE_FIELDS)[number];
 
@@ -30,6 +34,7 @@ export const LIFE_FIELD_LABELS: Record<LifeField, string> = {
   uf: "UF",
   seguradora_atual: "SEGURADORA ATUAL",
   plano_atual: "PLANO ATUAL",
+  sexo: "SEXO",
 };
 
 /** Sinônimos aceitos no cabeçalho (comparados após normalização: sem acento, maiúsculas, espaços simples). */
@@ -47,7 +52,11 @@ export const HEADER_SYNONYMS: Record<LifeField, string[]> = {
   uf: ["UF", "ESTADO"],
   seguradora_atual: ["SEGURADORA ATUAL", "OPERADORA ATUAL", "SEGURADORA", "OPERADORA"],
   plano_atual: ["PLANO ATUAL", "PLANO", "PRODUTO"],
+  sexo: ["SEXO", "GENERO", "SEXO (M/F)", "SEXO M/F"],
 };
+
+/** Colunas não obrigatórias, mas recomendadas (o preview avisa quando não estão mapeadas). */
+export const RECOMMENDED_LIFE_FIELDS: LifeField[] = ["sexo"];
 
 /** Campos sem os quais a vida é considerada incompleta (erro). */
 export const REQUIRED_LIFE_FIELDS: LifeField[] = ["cnpj", "titularidade", "cidade", "uf", "seguradora_atual", "plano_atual"];

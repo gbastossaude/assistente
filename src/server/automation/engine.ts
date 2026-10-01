@@ -54,6 +54,16 @@ export async function onQuotationStatusChanged(quotationId: string, from: Quotat
       );
     }
   }
+  if (to === "apresentacao_cliente" && from !== "apresentacao_cliente") {
+    await scheduleClientCadence(q, actorId, tx);
+  }
+  if (["negociacao", "finalista"].includes(to) || CLOSED_STATUSES.includes(to)) {
+    // Cliente avançou (ou cotação encerrada): a cadência D1–D7 deixa de fazer sentido.
+    await tx
+      .update(tasks)
+      .set({ status: "cancelada", notes: sql`coalesce(${tasks.notes} || E'\n', '') || ${`Cadência encerrada: cotação em ${QUOTATION_STATUS_LABELS[to]}`}` })
+      .where(and(eq(tasks.quotationId, quotationId), sql`${tasks.automationKey} like ${`cad:${quotationId}:%`}`, inArray(tasks.status, [...OPEN_TASK])));
+  }
   if (CLOSED_STATUSES.includes(to) && !CLOSED_STATUSES.includes(from)) {
     // Encerramento: cancela follow-ups automáticos pendentes da cotação.
     await tx
@@ -62,6 +72,46 @@ export async function onQuotationStatusChanged(quotationId: string, from: Quotat
       .where(and(eq(tasks.quotationId, quotationId), eq(tasks.source, "automacao"), inArray(tasks.status, [...OPEN_TASK])));
   }
   void actorId;
+}
+
+/** Etapas da cadência de follow-up com o cliente (Playbook Be Smart → Follow-up). */
+export const CLIENT_CADENCE_STEPS = [
+  { step: "d1", title: "Check-in", template: "cliente_cadencia_d1", hint: "Perguntar se conseguiu analisar a proposta." },
+  { step: "d3", title: "Objeção silenciosa", template: "cliente_cadencia_d3", hint: "Tratar a objeção silenciosa: perguntar o que está pesando (preço × qualidade) e ajustar a proposta." },
+  { step: "d5", title: "Urgência", template: "cliente_cadencia_d5", hint: "Avisar sobre reajuste/condição com prazo e pedir retorno." },
+  { step: "d7", title: "Despedida", template: "cliente_cadencia_d7", hint: "Encerrar com elegância e deixar a porta aberta." },
+] as const;
+
+async function scheduleClientCadence(q: typeof quotations.$inferSelect, actorId: string, tx: DbOrTx) {
+  const rule = await getRule("client_followup_cadence", tx);
+  if (!rule.enabled) return;
+  const [company] = await tx
+    .select({ name: sql<string>`coalesce(${companies.tradeName}, ${companies.legalName})` })
+    .from(companies)
+    .where(eq(companies.id, q.companyId));
+  const base = todayISO();
+  for (const s of CLIENT_CADENCE_STEPS) {
+    const days = rule.params[s.step];
+    if (days == null || days < 0) continue;
+    const due = addDays(base, days);
+    await tx
+      .insert(tasks)
+      .values({
+        title: `${s.step.toUpperCase()} ${s.title} — ${q.code} (${company?.name ?? "cliente"})`,
+        description: `Cadência de follow-up com o cliente após a apresentação. ${s.hint} Modelo sugerido: “Cadência ${s.step.toUpperCase()}” (aba Mensagens da cotação).`,
+        companyId: q.companyId,
+        quotationId: q.id,
+        ownerId: q.ownerId ?? actorId,
+        priority: q.priority,
+        dueDate: due,
+        scheduledDate: due,
+        category: "follow_up",
+        source: "automacao",
+        automationKey: `cad:${q.id}:${s.step}`,
+        createdBy: actorId,
+      })
+      .onConflictDoUpdate({ target: tasks.automationKey, set: { status: "a_fazer", completedAt: null, dueDate: due, scheduledDate: due } });
+  }
 }
 
 async function quotationContext(tx: DbOrTx, qiId: string) {

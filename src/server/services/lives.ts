@@ -181,6 +181,7 @@ export async function confirmImport(
           uf: l.uf,
           insurer: l.insurer,
           plan: l.plan,
+          sex: l.sex,
           issues: l.issues.map((x) => ({ field: x.field, level: x.level, message: x.message })),
         })),
       );
@@ -241,7 +242,7 @@ export async function listLives(
   if (opts.onlyIssues) conds.push(sql`jsonb_array_length(${lives.issues}) > 0`);
   if (opts.q) {
     const like = `%${opts.q}%`;
-    conds.push(sql`(${lives.plan} ilike ${like} or ${lives.city} ilike ${like} or ${lives.cnpj} ilike ${like} or ${lives.situation} ilike ${like} or ${lives.kinship} ilike ${like})`);
+    conds.push(sql`(${lives.sex} ilike ${like} or ${lives.plan} ilike ${like} or ${lives.city} ilike ${like} or ${lives.cnpj} ilike ${like} or ${lives.situation} ilike ${like} or ${lives.kinship} ilike ${like})`);
   }
   const [rows, [{ n }]] = await Promise.all([
     db

@@ -43,3 +43,22 @@ describe("roteador local do assistente (perguntas da especificação)", () => {
     expect(extractEntity("status da COT-2026-0001")).toBe("COT-2026-0001");
   });
 });
+
+describe("roteador — Playbook Be Smart", () => {
+  const tool = (q: string) => ("tool" in r(q) ? (r(q) as { tool: string }).tool : "clarify");
+  it("dúvidas de produto e abordagem comercial vão para o playbook", () => {
+    expect(r("Como funciona a carência no plano PME?")).toEqual({ tool: "consultar_playbook", input: { pergunta: "Como funciona a carência no plano PME?" } });
+    expect(tool("Me dê um gancho para objeção de preço")).toBe("consultar_playbook");
+    expect(tool("Qual a regra de reajuste do plano por adesão?")).toBe("consultar_playbook");
+    expect(tool("script SPIN de implicação")).toBe("consultar_playbook");
+    expect(tool("o que é coparticipação parcial")).toBe("consultar_playbook");
+  });
+  it("perguntas sobre dados de cotações continuam nas ferramentas operacionais", () => {
+    expect(tool("O que está pendente na cotação da Empresa Horizonte?")).toBe("pendencias");
+    expect(tool("Quais renovações vencem nos próximos 60 dias?")).toBe("renovacoes");
+    expect(tool("Resuma a COT-2026-0001")).toBe("resumo_cotacao");
+  });
+  it("WhatsApp da cadência D3 usa o modelo do playbook", () => {
+    expect(r("Gere o WhatsApp de follow-up D3 para a empresa Horizonte")).toEqual({ tool: "gerar_mensagem", input: { cotacao: "Horizonte", modelo: "cliente_cadencia_d3", operadora: "" } });
+  });
+});

@@ -26,7 +26,7 @@ export function LivesTable({ data, baseHref, onlyIssues }: { data: Data; baseHre
         <table className="w-full text-xs">
           <thead className="bg-surface-2/60">
             <tr className="text-left text-muted">
-              {["Linha", "Empresa", "CNPJ", "Nascimento", "Idade", "Faixa", "Titularidade", "Parentesco", "Situação", "CID", "Cidade/UF", "Operadora", "Plano", "Problemas"].map((h) => (
+              {["Linha", "Empresa", "CNPJ", "Nascimento", "Idade", "Sexo", "Faixa", "Titularidade", "Parentesco", "Situação", "CID", "Cidade/UF", "Operadora", "Plano", "Problemas"].map((h) => (
                 <th key={h} className="whitespace-nowrap px-2 py-1.5 font-medium">
                   {h}
                 </th>
@@ -43,6 +43,7 @@ export function LivesTable({ data, baseHref, onlyIssues }: { data: Data; baseHre
                   <td className="whitespace-nowrap px-2 py-1 tabular-nums">{l.cnpj ? formatCnpj(l.cnpj) : "—"}</td>
                   <td className="px-2 py-1">{formatDateBR(l.birthDate)}</td>
                   <td className="px-2 py-1">{l.age ?? "—"}</td>
+                  <td className="px-2 py-1">{l.sex ?? "—"}</td>
                   <td className="whitespace-nowrap px-2 py-1">{l.ageBand ?? "—"}</td>
                   <td className="px-2 py-1">{l.holderType ?? "—"}</td>
                   <td className="px-2 py-1">{l.kinship ?? "—"}</td>

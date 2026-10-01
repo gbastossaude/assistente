@@ -11,6 +11,7 @@ import { Pool } from "pg";
 import { pgConfig } from "../src/server/db/pg-config";
 import { CHECKLIST_CATALOG } from "../src/lib/domain/checklist-catalog";
 import { DEFAULT_TEMPLATES } from "../src/lib/domain/messages";
+import { PLAYBOOK_DEFAULTS } from "../src/lib/playbook/content";
 import { AUTOMATION_RULES, DEFAULT_SETTINGS } from "../src/lib/domain/settings-defaults";
 import * as schema from "../src/server/db/schema";
 
@@ -76,6 +77,9 @@ export async function bootstrap(url = process.env.DATABASE_URL) {
   }
 
   for (const i of INSURERS) await db.insert(schema.insurers).values(i).onConflictDoNothing();
+
+  // Playbook Estratégico (conteúdo padrão; não sobrescreve edições feitas no sistema)
+  for (const p of PLAYBOOK_DEFAULTS) await db.insert(schema.playbookEntries).values(p).onConflictDoNothing();
 
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.users);
   if (n === 0) {

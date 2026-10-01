@@ -24,6 +24,7 @@ export function LivesSummaryView({ s, showCid }: { s: LivesSummary; showCid: boo
         <BucketBarChart title="Vidas por cidade" data={s.byCity} horizontal max={10} />
         <BucketBarChart title="Vidas por CNPJ" data={s.byCnpj.map((b) => ({ ...b, key: b.key.length === 14 ? formatCnpj(b.key) : b.key }))} horizontal max={10} />
         <BucketBarChart title="Situações especiais" data={s.bySituation} horizontal />
+        {s.bySex && <BucketBarChart title="Vidas por sexo" data={s.bySex} horizontal />}
       </div>
     </div>
   );
