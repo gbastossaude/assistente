@@ -1,5 +1,5 @@
 "use client";
-import { CalendarClock, CheckCircle2, Paperclip, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
+import { CalendarClock, CheckCircle2, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -222,5 +222,3 @@ export function TaskList({ tasks, options, canWrite, defaults, openId, autoNew, 
   );
 }
 
-// Anexos de tarefas: usam o upload de documentos com task_id (ver /documentos).
-export const TaskAttachmentIcon = Paperclip;

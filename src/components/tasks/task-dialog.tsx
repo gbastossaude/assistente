@@ -8,6 +8,7 @@ import { useAction } from "@/components/ui/use-action";
 import { PRIORITIES, PRIORITY_LABELS, RECURRENCES, RECURRENCE_LABELS, TASK_CATEGORIES, TASK_CATEGORY_LABELS, TASK_STATUSES, TASK_STATUS_LABELS } from "@/lib/domain/constants";
 import { todayISO } from "@/lib/domain/dates";
 import { saveTaskAction } from "@/server/actions/tasks";
+import { UploadZone } from "@/components/documents/documents-panel";
 
 export interface TaskFormValue {
   id?: string;
@@ -209,6 +210,17 @@ export function TaskDialog({ open, onOpenChange, value, options }: { open: boole
           <Field label="Observações" className="md:col-span-3">
             <Textarea value={v.notes} onChange={(e) => set("notes", e.target.value)} rows={2} />
           </Field>
+          {v.id && (
+            <div className="md:col-span-3">
+              <p className="mb-1 flex items-center justify-between text-xs font-medium text-muted">
+                Anexos
+                <a className="text-primary hover:underline" href={`/documentos?tarefa=${v.id}`}>
+                  Ver anexos desta tarefa
+                </a>
+              </p>
+              <UploadZone compact taskId={v.id} quotationId={v.quotationId || null} companyId={v.companyId || null} maxMb={25} />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

@@ -42,9 +42,7 @@ export interface SampleOpts {
 export function sampleLivesRows(o: SampleOpts): unknown[][] {
   const r = rng(o.seed ?? 42);
   const out: unknown[][] = [];
-  let i = 0;
   while (out.length < o.rows) {
-    i++;
     const cnpj = o.cnpjs[Math.floor(r() * o.cnpjs.length)];
     const [city, uf] = CITIES[Math.floor(r() * CITIES.length)];
     const plan = o.plans[Math.floor(r() * o.plans.length)];

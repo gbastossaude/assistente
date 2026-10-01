@@ -43,14 +43,30 @@ export function Field({
   htmlFor?: string;
 }) {
   const msg = Array.isArray(error) ? error[0] : error;
+  // Associa rótulo e campo (acessibilidade): usa o id do filho ou gera um.
+  const autoId = React.useId();
+  const child = React.isValidElement<{ id?: string; "aria-describedby"?: string }>(children) ? children : null;
+  const id = htmlFor ?? child?.props.id ?? autoId;
+  const describedBy = msg || hint ? `${id}-desc` : undefined;
+  const control = child && !child.props.id && !htmlFor ? React.cloneElement(child, { id, "aria-describedby": describedBy }) : children;
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <Label htmlFor={htmlFor}>
-        {label}
-        {required && <span className="ml-0.5 text-red-600">*</span>}
-      </Label>
-      {children}
-      {msg ? <p className="text-xs text-red-600">{msg}</p> : hint ? <p className="text-xs text-muted">{hint}</p> : null}
+      {label ? (
+        <Label htmlFor={id}>
+          {label}
+          {required && <span className="ml-0.5 text-red-600">*</span>}
+        </Label>
+      ) : null}
+      {control}
+      {msg ? (
+        <p id={describedBy} className="text-xs text-red-600">
+          {msg}
+        </p>
+      ) : hint ? (
+        <p id={describedBy} className="text-xs text-muted">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }

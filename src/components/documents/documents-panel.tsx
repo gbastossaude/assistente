@@ -36,7 +36,7 @@ export interface DocRow {
 
 const ACCEPT = ".pdf,.xlsx,.xlsm,.xls,.csv,.docx,.doc,.png,.jpg,.jpeg,.txt,.zip,.eml,.msg";
 
-export function UploadZone({ quotationId, companyId, defaultType = "outros", compact, onUploaded, maxMb }: { quotationId?: string | null; companyId?: string | null; defaultType?: DocumentType; compact?: boolean; onUploaded?: (d: { id: string; fileName: string }) => void; maxMb: number }) {
+export function UploadZone({ quotationId, companyId, taskId, defaultType = "outros", compact, onUploaded, maxMb }: { quotationId?: string | null; companyId?: string | null; taskId?: string | null; defaultType?: DocumentType; compact?: boolean; onUploaded?: (d: { id: string; fileName: string }) => void; maxMb: number }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
@@ -52,7 +52,7 @@ export function UploadZone({ quotationId, companyId, defaultType = "outros", com
         toast.error(`${f.name}: excede ${maxMb} MB`);
         continue;
       }
-      const r = await uploadFile(f, { ...meta, quotationId, companyId });
+      const r = await uploadFile(f, { ...meta, quotationId, companyId, taskId });
       if (r.ok) {
         ok++;
         onUploaded?.(r);

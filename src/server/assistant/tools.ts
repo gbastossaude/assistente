@@ -3,7 +3,6 @@ import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm
 import { z } from "zod";
 import { can } from "@/lib/auth/permissions";
 import {
-  CHECKLIST_STATUS_LABELS,
   CLOSED_STATUSES,
   EVENT_TYPE_LABELS,
   INSURER_QUOTE_STATUS_LABELS,

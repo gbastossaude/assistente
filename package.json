@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -15,7 +15,8 @@
     "db:bootstrap": "tsx scripts/bootstrap.ts",
     "db:seed-dev": "NODE_OPTIONS=--conditions=react-server tsx scripts/seed-dev.ts",
     "sample:base": "tsx scripts/generate-sample-base.ts",
-    "setup": "npm run db:migrate && npm run db:bootstrap"
+    "setup": "npm run db:migrate && npm run db:bootstrap",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

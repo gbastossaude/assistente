@@ -48,23 +48,22 @@ export async function generateChecklist(quotationId: string, processType: Proces
 export async function buildChecklistContext(quotationId: string, tx: DbOrTx = db): Promise<ChecklistContext> {
   const [q] = await tx.select().from(quotations).where(eq(quotations.id, quotationId));
   if (!q) throw new NotFoundError("Cotação");
-  const [cnpjs, contracts, docs, imports, summaries, entries] = await Promise.all([
-    tx.select({ id: quotationCnpjs.id }).from(quotationCnpjs).where(eq(quotationCnpjs.quotationId, quotationId)),
-    tx
-      .select()
-      .from(currentContracts)
-      .where(and(eq(currentContracts.companyId, q.companyId), isNull(currentContracts.deletedAt), eq(currentContracts.active, true))),
-    tx
-      .select({ docType: quotationDocuments.docType, status: quotationDocuments.status })
-      .from(quotationDocuments)
-      .where(and(eq(quotationDocuments.quotationId, quotationId), isNull(quotationDocuments.deletedAt))),
-    tx
-      .select({ id: lifeImports.id })
-      .from(lifeImports)
-      .where(and(eq(lifeImports.quotationId, quotationId), eq(lifeImports.active, true))),
-    tx.select().from(specialCases).where(eq(specialCases.quotationId, quotationId)),
-    tx.select().from(specialCaseEntries).where(eq(specialCaseEntries.quotationId, quotationId)),
-  ]);
+  // Sequencial: consultas concorrentes na mesma conexão/transação não são suportadas pelo pg@9.
+  const cnpjs = await tx.select({ id: quotationCnpjs.id }).from(quotationCnpjs).where(eq(quotationCnpjs.quotationId, quotationId));
+  const contracts = await tx
+    .select()
+    .from(currentContracts)
+    .where(and(eq(currentContracts.companyId, q.companyId), isNull(currentContracts.deletedAt), eq(currentContracts.active, true)));
+  const docs = await tx
+    .select({ docType: quotationDocuments.docType, status: quotationDocuments.status })
+    .from(quotationDocuments)
+    .where(and(eq(quotationDocuments.quotationId, quotationId), isNull(quotationDocuments.deletedAt)));
+  const imports = await tx
+    .select({ id: lifeImports.id })
+    .from(lifeImports)
+    .where(and(eq(lifeImports.quotationId, quotationId), eq(lifeImports.active, true)));
+  const summaries = await tx.select().from(specialCases).where(eq(specialCases.quotationId, quotationId));
+  const entries = await tx.select().from(specialCaseEntries).where(eq(specialCaseEntries.quotationId, quotationId));
   const plans = contracts.length
     ? await tx
         .select()

@@ -17,10 +17,10 @@ export const metadata = { title: "Documentos" };
 export default async function DocumentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireUser();
   const s = await searchParams;
-  const [rows, opts] = await Promise.all([listDocuments({ q: sp(s.q), docType: sp(s.tipo), status: sp(s.status) }), taskOptions()]);
+  const [rows, opts] = await Promise.all([listDocuments({ q: sp(s.q), docType: sp(s.tipo), status: sp(s.status), taskId: sp(s.tarefa) }), taskOptions()]);
   return (
     <>
-      <PageHeader title="Documentos" description="Armazenamento privado — downloads de documentos sensíveis são auditados" />
+      <PageHeader title="Documentos" description={s.tarefa ? "Anexos da tarefa selecionada" : "Armazenamento privado — downloads de documentos sensíveis são auditados"} />
       {can(user.role, "document:write") && (
         <Card className="mb-4">
           <CardHeader>

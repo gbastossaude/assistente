@@ -49,24 +49,23 @@ export async function syncPendencies(quotationId: string, tx: DbOrTx = db, today
   const closed = CLOSED_STATUSES.includes(q.status) || !!q.deletedAt;
 
   if (!closed) {
-    const [items, summaries, entries, docs, imports, qis] = await Promise.all([
-      tx.select().from(quotationChecklistItems).where(eq(quotationChecklistItems.quotationId, quotationId)),
-      tx.select().from(specialCases).where(eq(specialCases.quotationId, quotationId)),
-      tx.select().from(specialCaseEntries).where(eq(specialCaseEntries.quotationId, quotationId)),
-      tx
-        .select()
-        .from(quotationDocuments)
-        .where(and(eq(quotationDocuments.quotationId, quotationId), isNull(quotationDocuments.deletedAt))),
-      tx
-        .select()
-        .from(lifeImports)
-        .where(and(eq(lifeImports.quotationId, quotationId), eq(lifeImports.active, true))),
-      tx
-        .select({ qi: quotationInsurers, insurerName: insurers.name })
-        .from(quotationInsurers)
-        .innerJoin(insurers, eq(insurers.id, quotationInsurers.insurerId))
-        .where(eq(quotationInsurers.quotationId, quotationId)),
-    ]);
+    // Sequencial: consultas concorrentes na mesma conexão/transação não são suportadas pelo pg@9.
+    const items = await tx.select().from(quotationChecklistItems).where(eq(quotationChecklistItems.quotationId, quotationId));
+    const summaries = await tx.select().from(specialCases).where(eq(specialCases.quotationId, quotationId));
+    const entries = await tx.select().from(specialCaseEntries).where(eq(specialCaseEntries.quotationId, quotationId));
+    const docs = await tx
+      .select()
+      .from(quotationDocuments)
+      .where(and(eq(quotationDocuments.quotationId, quotationId), isNull(quotationDocuments.deletedAt)));
+    const imports = await tx
+      .select()
+      .from(lifeImports)
+      .where(and(eq(lifeImports.quotationId, quotationId), eq(lifeImports.active, true)));
+    const qis = await tx
+      .select({ qi: quotationInsurers, insurerName: insurers.name })
+      .from(quotationInsurers)
+      .innerJoin(insurers, eq(insurers.id, quotationInsurers.insurerId))
+      .where(eq(quotationInsurers.quotationId, quotationId));
 
     // Checklist obrigatório pendente (situações especiais são detalhadas pelas regras próprias abaixo)
     for (const it of items) {

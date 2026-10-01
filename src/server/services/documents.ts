@@ -199,6 +199,7 @@ export interface DocumentFilters {
   status?: string | null;
   quotationId?: string | null;
   companyId?: string | null;
+  taskId?: string | null;
 }
 
 export async function listDocuments(f: DocumentFilters = {}) {
@@ -207,6 +208,7 @@ export async function listDocuments(f: DocumentFilters = {}) {
   if (f.status) conds.push(eq(quotationDocuments.status, f.status as never));
   if (f.quotationId) conds.push(eq(quotationDocuments.quotationId, f.quotationId));
   if (f.companyId) conds.push(eq(quotationDocuments.companyId, f.companyId));
+  if (f.taskId) conds.push(eq(quotationDocuments.taskId, f.taskId));
   if (f.q) {
     const like = `%${f.q}%`;
     conds.push(sql`(${quotationDocuments.fileName} ilike ${like} or ${companies.legalName} ilike ${like} or ${companies.tradeName} ilike ${like} or ${quotations.code} ilike ${like})`);

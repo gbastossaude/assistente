@@ -26,7 +26,10 @@ export default async function QuotationsPage({ searchParams }: { searchParams: P
   const data = toPipelineRows(rows);
   const qs = (patch: Record<string, string | null>) => {
     const p = new URLSearchParams(Object.entries(s).filter(([, v]) => v) as [string, string][]);
-    for (const [k, v] of Object.entries(patch)) (v ? p.set(k, v) : p.delete(k));
+    for (const [k, v] of Object.entries(patch)) {
+      if (v) p.set(k, v);
+      else p.delete(k);
+    }
     return `/cotacoes?${p.toString()}`;
   };
   return (

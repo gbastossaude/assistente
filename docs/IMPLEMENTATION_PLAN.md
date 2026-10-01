@@ -83,6 +83,11 @@
 
 Ao final de cada fase: `npm run lint`, `npm run typecheck`, `npm test`.
 
+## Status
+
+Todas as fases (1 a 8) foram implementadas. Verificação: `npm run lint`, `npm run typecheck`, `npm test`
+(79 testes unitários e de integração) e `npm run test:e2e` (10 cenários cobrindo os 15 critérios de aceite).
+
 ## Débitos técnicos explícitos
 
-Mantidos atualizados em `docs/REQUIREMENTS_MATRIX.md` (matriz requisito × implementação).
+Mantidos em `docs/REQUIREMENTS_MATRIX.md` (matriz requisito × implementação), seção “Débitos técnicos explícitos”.
