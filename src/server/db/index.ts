@@ -12,10 +12,25 @@ function createPool() {
   return new Pool(pgConfig(process.env.DATABASE_URL, { max: Number(process.env.DB_POOL_MAX ?? 10) }));
 }
 
-const pool = globalForDb.__pgPool ?? createPool();
-if (process.env.NODE_ENV !== "production") globalForDb.__pgPool = pool;
+let instance: DB | undefined;
 
-export const db: DB = drizzle(pool, { schema });
+/** Conecta só no primeiro uso: o `next build` não precisa de DATABASE_URL. */
+function getDb(): DB {
+  if (!instance) {
+    const pool = globalForDb.__pgPool ?? createPool();
+    if (process.env.NODE_ENV !== "production") globalForDb.__pgPool = pool;
+    instance = drizzle(pool, { schema });
+  }
+  return instance;
+}
+
+export const db: DB = new Proxy({} as DB, {
+  get(_, prop) {
+    const real = getDb();
+    const value = Reflect.get(real, prop, real);
+    return typeof value === "function" ? value.bind(real) : value;
+  },
+});
 export { schema };
 
 /** Transação tipada. */
