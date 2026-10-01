@@ -1,4 +1,5 @@
 import "server-only";
+import { Q_ID } from "../db/qualified";
 import { and, asc, desc, eq, inArray, isNull, lte, sql } from "drizzle-orm";
 import {
   CLIENT_PENDING_STATUSES,
@@ -37,10 +38,10 @@ export async function getMyDay(ownerId: string | null) {
       .select({
         q: quotations,
         companyName,
-        reqTotal: sql<number>`(select count(*)::int from quotation_checklist_items ci where ci.quotation_id = ${quotations.id} and ci.required and ci.applicable)`,
-        reqDone: sql<number>`(select count(*)::int from quotation_checklist_items ci where ci.quotation_id = ${quotations.id} and ci.required and ci.applicable and ci.status <> 'pendente')`,
-        proposalsToReview: sql<number>`(select count(*)::int from quotation_insurers qi where qi.quotation_id = ${quotations.id} and qi.status = 'cotacao_recebida')`,
-        criticalPendencies: sql<number>`(select count(*)::int from pendencies p where p.quotation_id = ${quotations.id} and p.status in ('aberta','em_andamento') and p.priority in ('alta','critica'))`,
+        reqTotal: sql<number>`(select count(*)::int from quotation_checklist_items ci where ci.quotation_id = ${Q_ID} and ci.required and ci.applicable)`,
+        reqDone: sql<number>`(select count(*)::int from quotation_checklist_items ci where ci.quotation_id = ${Q_ID} and ci.required and ci.applicable and ci.status <> 'pendente')`,
+        proposalsToReview: sql<number>`(select count(*)::int from quotation_insurers qi where qi.quotation_id = ${Q_ID} and qi.status = 'cotacao_recebida')`,
+        criticalPendencies: sql<number>`(select count(*)::int from pendencies p where p.quotation_id = ${Q_ID} and p.status in ('aberta','em_andamento') and p.priority in ('alta','critica'))`,
       })
       .from(quotations)
       .innerJoin(companies, eq(companies.id, quotations.companyId))
@@ -107,7 +108,8 @@ export async function getMyDay(ownerId: string | null) {
         priority: r.t.priority,
         lives: r.lives,
       })),
-    ...followupRows.map((r) => ({
+    // follow-ups já representados por tarefa automática não se repetem
+    ...followupRows.filter((r) => !taskRows.some((t) => t.t.quotationInsurerId === r.qi.id && (t.t.dueDate ?? "9999") <= today)).map((r) => ({
       id: `f-${r.qi.id}`,
       kind: "followup" as const,
       title: `Follow-up ${r.insurerName}`,

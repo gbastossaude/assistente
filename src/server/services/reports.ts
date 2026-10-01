@@ -1,4 +1,5 @@
 import "server-only";
+import { Q_ID } from "../db/qualified";
 import { and, eq, gte, isNull, lte, sql, type SQL } from "drizzle-orm";
 import { addDays, todayISO } from "@/lib/domain/dates";
 import { db } from "../db";
@@ -19,7 +20,7 @@ export async function getReports(f: ReportFilters) {
   const qConds: SQL[] = [isNull(quotations.deletedAt), gte(quotations.openedAt, from), lte(quotations.openedAt, to)];
   if (f.companyId) qConds.push(eq(quotations.companyId, f.companyId));
   if (f.status) qConds.push(eq(quotations.status, f.status as never));
-  if (f.insurerId) qConds.push(sql`exists (select 1 from quotation_insurers qi where qi.quotation_id = ${quotations.id} and qi.insurer_id = ${f.insurerId})`);
+  if (f.insurerId) qConds.push(sql`exists (select 1 from quotation_insurers qi where qi.quotation_id = ${Q_ID} and qi.insurer_id = ${f.insurerId})`);
   const where = and(...qConds);
   const open = sql`${quotations.status} not in ('fechada_ganha','fechada_perdida','concluida','cancelada')`;
 
@@ -31,7 +32,7 @@ export async function getReports(f: ReportFilters) {
       lives: sql<number>`coalesce(sum(${quotations.estimatedLives}), 0)::int`,
       won: sql<number>`count(*) filter (where ${quotations.status} in ('fechada_ganha','implantacao','concluida'))::int`,
       lost: sql<number>`count(*) filter (where ${quotations.status} = 'fechada_perdida')::int`,
-      avgCompleteness: sql<number | null>`round(avg((select case when count(*) filter (where ci.required and ci.applicable) = 0 then 100 else 100.0 * count(*) filter (where ci.required and ci.applicable and ci.status <> 'pendente') / count(*) filter (where ci.required and ci.applicable) end from quotation_checklist_items ci where ci.quotation_id = ${quotations.id})) filter (where ${open}), 1)::float`,
+      avgCompleteness: sql<number | null>`round(avg((select case when count(*) filter (where ci.required and ci.applicable) = 0 then 100 else 100.0 * count(*) filter (where ci.required and ci.applicable and ci.status <> 'pendente') / count(*) filter (where ci.required and ci.applicable) end from quotation_checklist_items ci where ci.quotation_id = ${Q_ID})) filter (where ${open}), 1)::float`,
     })
     .from(quotations)
     .where(where);

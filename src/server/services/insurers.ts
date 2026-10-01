@@ -1,4 +1,5 @@
 import "server-only";
+import { QI_ID } from "../db/qualified";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { INSURER_QUOTE_STATUS_LABELS, type InsurerQuoteStatus } from "@/lib/domain/constants";
@@ -45,15 +46,18 @@ export async function softDeleteInsurer(id: string, user: CurrentUser) {
   await audit({ userId: user.id, action: "delete", entityType: "insurer", entityId: id, summary: `Operadora excluída (lógica): ${row.name}` });
 }
 
+// Coluna qualificada: em SELECT de tabela única o Drizzle omite o nome da tabela, o que tornaria "id" ambíguo nas subconsultas.
+const INS_ID = sql.raw(`"insurers"."id"`);
+
 export async function listInsurers(opts: { q?: string | null; includeInactive?: boolean } = {}) {
   return db
     .select({
       i: insurers,
-      activeQuotes: sql<number>`(select count(*)::int from ${quotationInsurers} qi join ${quotations} q on q.id = qi.quotation_id where qi.insurer_id = ${insurers.id} and q.deleted_at is null and qi.status in ('enviada','recebida_operadora','em_analise','pendencia','cotacao_recebida','em_negociacao','finalista'))`,
-      awaiting: sql<number>`(select count(*)::int from ${quotationInsurers} qi join ${quotations} q on q.id = qi.quotation_id where qi.insurer_id = ${insurers.id} and q.deleted_at is null and qi.status in ('enviada','recebida_operadora','em_analise','pendencia'))`,
-      avgResponseDays: sql<number | null>`(select round(avg(extract(epoch from (qi.first_response_at - qi.sent_at)) / 86400)::numeric, 1)::float from ${quotationInsurers} qi where qi.insurer_id = ${insurers.id} and qi.first_response_at is not null and qi.sent_at is not null)`,
-      totalSent: sql<number>`(select count(*)::int from ${quotationInsurers} qi where qi.insurer_id = ${insurers.id} and qi.sent_at is not null)`,
-      declined: sql<number>`(select count(*)::int from ${quotationInsurers} qi where qi.insurer_id = ${insurers.id} and qi.status = 'declinada')`,
+      activeQuotes: sql<number>`(select count(*)::int from ${quotationInsurers} qi join ${quotations} q on q.id = qi.quotation_id where qi.insurer_id = ${INS_ID} and q.deleted_at is null and qi.status in ('enviada','recebida_operadora','em_analise','pendencia','cotacao_recebida','em_negociacao','finalista'))`,
+      awaiting: sql<number>`(select count(*)::int from ${quotationInsurers} qi join ${quotations} q on q.id = qi.quotation_id where qi.insurer_id = ${INS_ID} and q.deleted_at is null and qi.status in ('enviada','recebida_operadora','em_analise','pendencia'))`,
+      avgResponseDays: sql<number | null>`(select round(avg(extract(epoch from (qi.first_response_at - qi.sent_at)) / 86400)::numeric, 1)::float from ${quotationInsurers} qi where qi.insurer_id = ${INS_ID} and qi.first_response_at is not null and qi.sent_at is not null)`,
+      totalSent: sql<number>`(select count(*)::int from ${quotationInsurers} qi where qi.insurer_id = ${INS_ID} and qi.sent_at is not null)`,
+      declined: sql<number>`(select count(*)::int from ${quotationInsurers} qi where qi.insurer_id = ${INS_ID} and qi.status = 'declinada')`,
     })
     .from(insurers)
     .where(
@@ -239,7 +243,11 @@ export async function listFollowups(quotationInsurerId: string) {
 
 export async function listQuotationInsurers(quotationId: string) {
   const rows = await db
-    .select({ qi: quotationInsurers, insurer: insurers })
+    .select({
+      qi: quotationInsurers,
+      insurer: insurers,
+      proposalCount: sql<number>`(select count(*)::int from ${proposals} p where p.quotation_insurer_id = ${QI_ID} and p.deleted_at is null)`,
+    })
     .from(quotationInsurers)
     .innerJoin(insurers, eq(insurers.id, quotationInsurers.insurerId))
     .where(eq(quotationInsurers.quotationId, quotationId))

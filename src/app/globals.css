@@ -1,26 +1,89 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --foreground: #0f172a;
+  --muted: #5b6474;
+  --border: #e3e6eb;
+  --ring: #2563eb;
+  --primary: #12355b;
+  --primary-foreground: #ffffff;
+  --accent: #0f766e;
+  --sidebar: #0d2340;
+  --sidebar-foreground: #c9d4e3;
+  --sidebar-active: #1d3a63;
+  /* gráficos (paleta de referência validada para CVD) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --chart-grid: #e6e8ec;
+  --chart-text: #52514e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #0b1220;
+    --surface: #111a2b;
+    --surface-2: #17223a;
+    --foreground: #e6ebf3;
+    --muted: #9aa6b8;
+    --border: #243049;
+    --ring: #60a5fa;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --accent: #2dd4bf;
+    --sidebar: #070d18;
+    --sidebar-foreground: #b6c2d4;
+    --sidebar-active: #15233d;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --chart-grid: #2a3550;
+    --chart-text: #c3c2b7;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-active: var(--sidebar-active);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .print-full {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }

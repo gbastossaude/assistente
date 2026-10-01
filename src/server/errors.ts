@@ -22,3 +22,10 @@ export function logTechnicalError(context: string, err: unknown) {
   console.error(`[erro] ${context}: ${e?.name ?? "Error"} — ${e?.message?.slice(0, 300) ?? String(err).slice(0, 300)}`);
   if (process.env.NODE_ENV !== "production" && e?.stack) console.error(e.stack.split("\n").slice(1, 6).join("\n"));
 }
+
+export class ForbiddenError extends Error {
+  constructor(message = "Você não tem permissão para esta ação.") {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}

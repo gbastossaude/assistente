@@ -7,6 +7,7 @@ import { can, type Permission } from "@/lib/auth/permissions";
 import { SESSION_COOKIE, verifySession, type SessionPayload } from "@/lib/auth/session";
 import { db } from "./db";
 import { users } from "./db/schema";
+import { ForbiddenError } from "./errors";
 
 export interface CurrentUser {
   id: string;
@@ -34,11 +35,7 @@ export async function requireUser(): Promise<CurrentUser> {
   return u;
 }
 
-export class ForbiddenError extends Error {
-  constructor(message = "Você não tem permissão para esta ação.") {
-    super(message);
-  }
-}
+export { ForbiddenError };
 
 export async function requirePermission(permission: Permission): Promise<CurrentUser> {
   const u = await requireUser();

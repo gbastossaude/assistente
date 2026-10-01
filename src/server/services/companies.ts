@@ -1,4 +1,5 @@
 import "server-only";
+import { C_ID } from "../db/qualified";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import type { z } from "zod";
 import { formatCnpj } from "@/lib/domain/cnpj";
@@ -228,17 +229,17 @@ export async function listCompanies(f: CompanyFilters = {}) {
     const digits = f.q.replace(/[^0-9A-Za-z]/g, "").toUpperCase();
     conds.push(
       sql`(${companies.legalName} ilike ${like} or ${companies.tradeName} ilike ${like} or ${companies.economicGroup} ilike ${like}
-        or exists (select 1 from ${companyCnpjs} cc where cc.company_id = ${companies.id} and ${digits.length >= 4 ? sql`cc.cnpj like ${"%" + digits + "%"}` : sql`false`})
-        or exists (select 1 from ${contacts} ct where ct.company_id = ${companies.id} and ct.deleted_at is null and (ct.name ilike ${like} or ct.email ilike ${like})))`,
+        or exists (select 1 from ${companyCnpjs} cc where cc.company_id = ${C_ID} and ${digits.length >= 4 ? sql`cc.cnpj like ${"%" + digits + "%"}` : sql`false`})
+        or exists (select 1 from ${contacts} ct where ct.company_id = ${C_ID} and ct.deleted_at is null and (ct.name ilike ${like} or ct.email ilike ${like})))`,
     );
   }
   return db
     .select({
       c: companies,
       ownerName: users.name,
-      cnpjCount: sql<number>`(select count(*)::int from ${companyCnpjs} cc where cc.company_id = ${companies.id})`,
-      openQuotations: sql<number>`(select count(*)::int from ${quotations} q where q.company_id = ${companies.id} and q.deleted_at is null and q.status not in ('fechada_ganha','fechada_perdida','concluida','cancelada'))`,
-      nextAnniversary: sql<string | null>`(select min(cc.anniversary_date)::text from ${currentContracts} cc where cc.company_id = ${companies.id} and cc.deleted_at is null)`,
+      cnpjCount: sql<number>`(select count(*)::int from ${companyCnpjs} cc where cc.company_id = ${C_ID})`,
+      openQuotations: sql<number>`(select count(*)::int from ${quotations} q where q.company_id = ${C_ID} and q.deleted_at is null and q.status not in ('fechada_ganha','fechada_perdida','concluida','cancelada'))`,
+      nextAnniversary: sql<string | null>`(select min(cc.anniversary_date)::text from ${currentContracts} cc where cc.company_id = ${C_ID} and cc.deleted_at is null)`,
     })
     .from(companies)
     .leftJoin(users, eq(users.id, companies.ownerId))

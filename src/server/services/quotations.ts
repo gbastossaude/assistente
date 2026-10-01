@@ -1,4 +1,5 @@
 import "server-only";
+import { Q_ID } from "../db/qualified";
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql, type SQL } from "drizzle-orm";
 import type { z } from "zod";
 import {
@@ -320,13 +321,13 @@ export async function listQuotations(f: QuotationFilters = {}) {
       q: quotations,
       companyName: sql<string>`coalesce(${companies.tradeName}, ${companies.legalName})`,
       ownerName: users.name,
-      reqTotal: sql<number>`(select count(*)::int from ${quotationChecklistItems} ci where ci.quotation_id = ${quotations.id} and ci.required and ci.applicable)`,
-      reqDone: sql<number>`(select count(*)::int from ${quotationChecklistItems} ci where ci.quotation_id = ${quotations.id} and ci.required and ci.applicable and ci.status <> 'pendente')`,
-      openPendencies: sql<number>`(select count(*)::int from ${pendencies} p where p.quotation_id = ${quotations.id} and p.status in ('aberta','em_andamento'))`,
-      insurersTotal: sql<number>`(select count(*)::int from ${quotationInsurers} qi where qi.quotation_id = ${quotations.id})`,
-      insurersAwaiting: sql<number>`(select count(*)::int from ${quotationInsurers} qi where qi.quotation_id = ${quotations.id} and qi.status in ('enviada','recebida_operadora','em_analise','pendencia'))`,
-      proposalsReceived: sql<number>`(select count(*)::int from ${quotationInsurers} qi where qi.quotation_id = ${quotations.id} and qi.status in ('cotacao_recebida','em_negociacao','finalista'))`,
-      nextTaskDue: sql<string | null>`(select min(coalesce(t.due_date, t.scheduled_date))::text from ${tasks} t where t.quotation_id = ${quotations.id} and t.deleted_at is null and t.status in ('a_fazer','em_andamento','aguardando_terceiro'))`,
+      reqTotal: sql<number>`(select count(*)::int from ${quotationChecklistItems} ci where ci.quotation_id = ${Q_ID} and ci.required and ci.applicable)`,
+      reqDone: sql<number>`(select count(*)::int from ${quotationChecklistItems} ci where ci.quotation_id = ${Q_ID} and ci.required and ci.applicable and ci.status <> 'pendente')`,
+      openPendencies: sql<number>`(select count(*)::int from ${pendencies} p where p.quotation_id = ${Q_ID} and p.status in ('aberta','em_andamento'))`,
+      insurersTotal: sql<number>`(select count(*)::int from ${quotationInsurers} qi where qi.quotation_id = ${Q_ID})`,
+      insurersAwaiting: sql<number>`(select count(*)::int from ${quotationInsurers} qi where qi.quotation_id = ${Q_ID} and qi.status in ('enviada','recebida_operadora','em_analise','pendencia'))`,
+      proposalsReceived: sql<number>`(select count(*)::int from ${quotationInsurers} qi where qi.quotation_id = ${Q_ID} and qi.status in ('cotacao_recebida','em_negociacao','finalista'))`,
+      nextTaskDue: sql<string | null>`(select min(coalesce(t.due_date, t.scheduled_date))::text from ${tasks} t where t.quotation_id = ${Q_ID} and t.deleted_at is null and t.status in ('a_fazer','em_andamento','aguardando_terceiro'))`,
     })
     .from(quotations)
     .innerJoin(companies, eq(companies.id, quotations.companyId))
