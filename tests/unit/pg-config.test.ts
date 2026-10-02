@@ -5,6 +5,17 @@ describe("configuração de conexão PostgreSQL", () => {
   afterEach(() => {
     delete process.env.DATABASE_CA_CERT;
     delete process.env.DATABASE_SSL;
+    delete process.env.DATABASE_HOST;
+  });
+  it("DATABASE_HOST substitui o host da URL e mantém usuário/senha", () => {
+    process.env.DATABASE_HOST = "aws-1-sa-east-1.pooler.supabase.com";
+    const c = pgConfig("postgresql://besmart_app.abc:s3nha@aws-X-sa-east-1.pooler.supabase.com:5432/postgres");
+    expect(c.connectionString).toBe("postgresql://besmart_app.abc:s3nha@aws-1-sa-east-1.pooler.supabase.com:5432/postgres");
+    expect(c.ssl).toEqual({ rejectUnauthorized: false });
+  });
+  it("rejeita DATABASE_HOST com URL ou porta", () => {
+    process.env.DATABASE_HOST = "https://x.com:5432";
+    expect(() => pgConfig("postgres://u:p@localhost:5432/db")).toThrow(/DATABASE_HOST/);
   });
   it("Supabase: remove sslmode da URL e ativa SSL criptografado", () => {
     const c = pgConfig("postgresql://postgres.abc:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=require");
