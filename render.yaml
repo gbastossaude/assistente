@@ -4,7 +4,7 @@ services:
   - type: web
     name: besmart-health-cockpit
     runtime: node
-    region: virginia # mesma região do banco Supabase (East US) — latência baixa
+    region: virginia # Render não tem São Paulo; Virginia é a região mais próxima do Supabase sa-east-1 / East US
     plan: free # para uso diário sem "hibernação", troque para starter
     buildCommand: npm ci --include=dev && npm run build
     # migrations e bootstrap são idempotentes: rodam a cada inicialização sem duplicar nada
