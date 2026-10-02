@@ -8,6 +8,10 @@ describe("configuração de conexão PostgreSQL", () => {
     delete process.env.DATABASE_HOST;
     delete process.env.DATABASE_USER;
   });
+  it("senha entre colchetes (modelo do Supabase) é usada sem os colchetes", () => {
+    const c = pgConfig("postgresql://besmart_app.abc:[Abc123xyz]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres");
+    expect(c.connectionString).toBe("postgresql://besmart_app.abc:Abc123xyz@aws-0-sa-east-1.pooler.supabase.com:5432/postgres");
+  });
   it("DATABASE_USER substitui o usuário da URL e mantém a senha", () => {
     process.env.DATABASE_USER = "besmart_app.abc";
     const c = pgConfig("postgresql://postgres.abc:s3nha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres");
@@ -86,7 +90,7 @@ describe("diagnóstico da conexão (sem expor a senha)", () => {
     const { describeConnection } = await import("@/server/db/pg-config");
     expect(describeConnection("postgresql://u:[YOUR-PASSWORD]@h:5432/db")).toMatch(/YOUR-PASSWORD/);
     expect(describeConnection("postgresql://u:SENHA@h:5432/db")).toMatch(/texto de exemplo "SENHA"/);
-    expect(describeConnection("postgresql://u:[abc123]@h:5432/db")).toMatch(/entre colchetes/);
+    expect(describeConnection("postgresql://u:[abc123]@h:5432/db")).not.toMatch(/atenção/);
     expect(describeConnection("postgresql://u:MinhaSenhaForte2026abc@h:5432/db")).not.toMatch(/atenção/);
     expect(describeConnection("postgresql://u@h:5432/db")).toMatch(/sem senha/);
   });

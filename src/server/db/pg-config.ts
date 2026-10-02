@@ -5,6 +5,7 @@ import type { ClientBase, PoolConfig } from "pg";
  * - Remove `sslmode` da URL: no pg 8, `sslmode=require` vira verificação completa e anula o objeto `ssl`.
  * - Supabase (ou DATABASE_SSL=true) → conexão criptografada. Com DATABASE_CA_CERT (PEM do Supabase:
  *   Project Settings → Database → SSL Configuration) o certificado também é verificado.
+ * - Senha entre colchetes (resto do modelo "[YOUR-PASSWORD]" do Supabase) é aceita sem os colchetes.
  * - DATABASE_HOST / DATABASE_USER (opcionais) substituem o servidor / o usuário da URL — ajustam a conexão
  *   (ex.: pooler do Supabase, usuário dedicado) sem reescrever a URL que contém a senha.
  */
@@ -16,6 +17,9 @@ export function pgConfig(rawUrl: string | undefined, extra: PoolConfig = {}): Po
     if (!/^[a-z0-9.-]+$/i.test(host)) throw new Error("DATABASE_HOST inválido: informe só o nome do servidor (ex.: aws-1-sa-east-1.pooler.supabase.com)");
     url.hostname = host;
   }
+  // Erro comum ao copiar o modelo do Supabase ("...:[YOUR-PASSWORD]@..."): a senha fica entre colchetes.
+  const pw = decodeURIComponent(url.password);
+  if (/^\[[^\[\]]+\]$/.test(pw) && !/YOUR-PASSWORD/i.test(pw)) url.password = encodeURIComponent(pw.slice(1, -1));
   const user = process.env.DATABASE_USER?.trim();
   if (user) {
     if (!/^[a-z0-9_.-]+$/i.test(user)) throw new Error("DATABASE_USER inválido (ex.: besmart_app.<id-do-projeto>)");
@@ -73,7 +77,6 @@ export function describeConnection(rawUrl: string | undefined): string {
   if (!url.password) hints.push("a URL está sem senha");
   const pw = decodeURIComponent(url.password || "");
   if (/YOUR-PASSWORD/i.test(pw)) hints.push('a senha ainda é o texto de exemplo "[YOUR-PASSWORD]"');
-  else if (/^\[.*\]$/.test(pw)) hints.push("a senha está entre colchetes [ ] — remova os colchetes");
   else if (/^(SENHA|SUA_SENHA|SENHA_DO_BANCO)$/i.test(pw)) hints.push(`a senha é o texto de exemplo "${pw}" — troque pela senha definida no Supabase`);
   else if (/[\[\]<>]/.test(pw)) hints.push("a senha contém [ ] < ou > — use só letras e números");
   if (/\s/.test(pw)) hints.push("a senha contém espaços");
