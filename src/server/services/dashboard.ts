@@ -18,13 +18,18 @@ import { listTimeline } from "./interactions";
 const companyName = sql<string>`coalesce(${companies.tradeName}, ${companies.legalName})`;
 const openQuotation = and(isNull(quotations.deletedAt), sql`${quotations.status} not in ('fechada_ganha','fechada_perdida','concluida','cancelada')`);
 
-/** "Meu Dia": tudo que exige ação agora. `ownerId` null = visão de toda a equipe. */
-export async function getMyDay(ownerId: string | null) {
+/**
+ * "Meu Dia": tudo que exige ação agora. `owner` null = toda a operação; string = carteira de um usuário;
+ * lista = equipe (escopo do supervisor).
+ */
+export async function getMyDay(owner: string | string[] | null) {
+  const oc = (col: Parameters<typeof eq>[0]) => (owner === null ? undefined : Array.isArray(owner) ? (owner.length ? inArray(col, owner) : sql`false`) : eq(col, owner));
+  const ownerId = owner;
   const today = todayISO();
   const staleDays = (await getRule("stale_process")).params.dias ?? 7;
   const criticalDays = await getSetting("critical_deadline_days");
-  const taskOwner = ownerId ? eq(tasks.ownerId, ownerId) : undefined;
-  const qOwner = ownerId ? eq(quotations.ownerId, ownerId) : undefined;
+  const taskOwner = oc(tasks.ownerId);
+  const qOwner = oc(quotations.ownerId);
 
   const [taskRows, quotationRows, followupRows, renewalRows, pendencyRows] = await Promise.all([
     db
@@ -62,7 +67,7 @@ export async function getMyDay(ownerId: string | null) {
       .where(
         and(
           isNull(renewals.deletedAt),
-          ownerId ? eq(renewals.ownerId, ownerId) : undefined,
+          oc(renewals.ownerId),
           sql`${renewals.status} not in ('renovada','migrada','perdida','cancelada')`,
           lte(renewals.anniversaryDate, addDays(today, 90)),
         ),
@@ -73,7 +78,7 @@ export async function getMyDay(ownerId: string | null) {
       .from(pendencies)
       .leftJoin(companies, eq(companies.id, pendencies.companyId))
       .leftJoin(quotations, eq(quotations.id, pendencies.quotationId))
-      .where(and(inArray(pendencies.status, ["aberta", "em_andamento"]), ownerId ? eq(pendencies.ownerId, ownerId) : undefined))
+      .where(and(inArray(pendencies.status, ["aberta", "em_andamento"]), oc(pendencies.ownerId)))
       .orderBy(asc(pendencies.dueDate)),
   ]);
 
@@ -154,7 +159,7 @@ export async function getMyDay(ownerId: string | null) {
     })),
   ];
   const priorities = rankPriorities(candidates, today).slice(0, 15);
-  const timeline = await listTimeline({ limit: 15 });
+  const timeline = await listTimeline({ limit: 15, userIds: Array.isArray(ownerId) ? ownerId : null });
 
   return {
     today,

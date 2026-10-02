@@ -62,3 +62,26 @@ describe("roteador — Playbook Be Smart", () => {
     expect(r("Gere o WhatsApp de follow-up D3 para a empresa Horizonte")).toEqual({ tool: "gerar_mensagem", input: { cotacao: "Horizonte", modelo: "cliente_cadencia_d3", operadora: "" } });
   });
 });
+
+describe("roteador — comandos comerciais (CRM, reuniões, campanhas)", () => {
+  it("comandos internos do prompt mestre", () => {
+    expect(r("Criar mensagem de follow-up para o cliente Construtora Alfa.")).toEqual({ tool: "mensagem_followup_cliente", input: { cliente: "Construtora Alfa" } });
+    expect(r("Criar mensagem de follow-up para este cliente.")).toHaveProperty("clarify");
+    expect(r("Resumir esta reunião.")).toEqual({ tool: "resumir_reuniao", input: { reuniao: "" } });
+    expect(r("Criar roteiro para reunião com o cliente Construtora Alfa.")).toEqual({ tool: "roteiro_reuniao", input: { cliente: "Construtora Alfa" } });
+    expect(r("Gerar mensagem pedindo documentos para o cliente Construtora Alfa")).toEqual({ tool: "checklist_documentos", input: { cliente: "Construtora Alfa", produto: "", vidas: 0, mensagem: true } });
+    expect(r("Mostrar vendas com follow-up atrasado.")).toEqual({ tool: "listar_oportunidades", input: { etapa: "", followup: "atrasado", produto: "" } });
+    expect(r("Criar campanha para planos empresariais este mês.")).toEqual({ tool: "propor_campanha", input: { produto: "plano_saude", mes: "2026-10", foco: "empresarial" } });
+    expect(r("Sugira uma campanha de plano dental para PME em dezembro")).toEqual({ tool: "propor_campanha", input: { produto: "dental", mes: "2026-12", foco: "pme" } });
+  });
+  it("resumos e relatórios", () => {
+    expect(r("Resumo do dia")).toEqual({ tool: "resumo_diario", input: {} });
+    expect(r("Gere o resumo semanal")).toEqual({ tool: "resumo_semanal", input: {} });
+    expect(r("Relatório de vendas do mês")).toEqual({ tool: "relatorio_vendas", input: { de: "2026-10-01", ate: "" } });
+    expect(r("Quais os próximos passos para o cliente Construtora Alfa?")).toEqual({ tool: "resumo_oportunidade", input: { cliente: "Construtora Alfa" } });
+    expect(r("Liste as oportunidades em negociação")).toMatchObject({ tool: "listar_oportunidades", input: { etapa: "em_negociacao" } });
+  });
+  it("checklist de documentos sem mensagem", () => {
+    expect(r("Criar checklist de documentos para plano dental com 12 vidas")).toEqual({ tool: "checklist_documentos", input: { cliente: "", produto: "dental", vidas: 12, mensagem: false } });
+  });
+});

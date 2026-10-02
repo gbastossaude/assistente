@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiHandler } from "@/server/api-utils";
+import { guardDocument } from "@/server/access";
 import { authorizeDownload } from "@/server/services/documents";
 import { storage } from "@/server/storage";
 
@@ -11,6 +12,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   return apiHandler(
     "read",
     async (user) => {
+      await guardDocument(user, id);
       const doc = await authorizeDownload(id, user);
       // Supabase: URL assinada de curta duração (60 s)
       const signed = await storage().signedUrl(doc.storageKey, 60, doc.fileName);

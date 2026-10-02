@@ -26,6 +26,15 @@ export interface ChatAction {
 }
 
 const SUGGESTIONS = [
+  "Resumo do dia",
+  "Mostrar vendas com follow-up atrasado",
+  "Criar mensagem de follow-up para o cliente Construtora Alfa",
+  "Resumir a última reunião",
+  "Criar roteiro para reunião com o cliente Construtora Alfa",
+  "Gerar mensagem pedindo documentos para o cliente Construtora Alfa",
+  "Criar campanha para planos empresariais este mês",
+  "Relatório de vendas do mês",
+  "Resumo semanal",
   "Resuma a cotação da empresa Horizonte",
   "O que está pendente na cotação da empresa Sol Nascente?",
   "Quais renovações vencem nos próximos 90 dias?",

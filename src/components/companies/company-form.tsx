@@ -18,7 +18,7 @@ export function CompanyForm({ initial, id, users }: { initial?: Partial<FormValu
   const { run, fieldErrors } = useAction();
   const form = useForm<FormValues>({
     resolver: zodResolver(companySchema) as never,
-    defaultValues: { legalName: "", tradeName: "", mainCnpj: "", economicGroup: "", segment: "", estimatedLives: "", city: "", uf: "", ownerId: "", origin: "", notes: "", isClient: false, ...initial },
+    defaultValues: { legalName: "", tradeName: "", mainCnpj: "", economicGroup: "", segment: "", estimatedLives: "", address: "", city: "", uf: "", ownerId: "", origin: "", notes: "", isClient: false, ...initial },
   });
   const err = (k: keyof FormValues) => (form.formState.errors[k]?.message as string | undefined) ?? fieldErrors[k as string]?.[0];
   const onSubmit = form.handleSubmit(async (values) => {
@@ -51,6 +51,9 @@ export function CompanyForm({ initial, id, users }: { initial?: Partial<FormValu
           </Field>
           <Field label="Quantidade estimada de vidas" error={err("estimatedLives")}>
             <Input type="number" min={0} {...form.register("estimatedLives")} />
+          </Field>
+          <Field label="Endereço" error={err("address")}>
+            <Input {...form.register("address")} placeholder="Rua, número, bairro, CEP" />
           </Field>
           <Field label="Cidade" error={err("city")}>
             <Input {...form.register("city")} />

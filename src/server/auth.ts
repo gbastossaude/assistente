@@ -46,3 +46,10 @@ export async function requirePermission(permission: Permission): Promise<Current
 export function hasPermission(user: CurrentUser | null, permission: Permission) {
   return can(user?.role, permission);
 }
+
+/** Para páginas: sem a permissão, leva a uma tela amigável de acesso restrito (em vez de erro). */
+export async function requirePagePermission(permission: Permission): Promise<CurrentUser> {
+  const u = await requireUser();
+  if (!can(u.role, permission)) redirect("/sem-acesso");
+  return u;
+}

@@ -1,13 +1,16 @@
 # BeSmart Health Cockpit
 
-Cockpit operacional + assistente de grandes contas para o **Head de Planos de Saúde da BeSmart** — cotações
+Central de comando comercial e operacional + assistente de IA para o **Head de Planos de Saúde da BeSmart** e sua
+equipe — **CRM multi-produto, reuniões com ata automática, campanhas do mês, mensagens prontas, respostas rápidas,
+hierarquia (Supervisor/Corretor/Assistente)**, cotações
 empresariais (foco em +99 vidas), checklist automático NEW/RENEW, importação e validação da base de vidas,
 documentos com storage privado, operadoras e propostas, comparativo, tarefas, agenda, pendências, renovações,
 relatórios, auditoria, **Playbook Estratégico Be Smart** (regras das modalidades, SPIN, ganchos e cadência de
 follow-up D0–D7, integrados de planosaude26-rgb.github.io/besmart) e assistente inteligente.
 
-> Especificação e decisões: [`docs/`](docs) — comece por [`PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) e
-> [`REQUIREMENTS_MATRIX.md`](docs/REQUIREMENTS_MATRIX.md).
+> Especificação e decisões: [`docs/`](docs) — comece por [`ASSISTENTE_COMERCIAL.md`](docs/ASSISTENTE_COMERCIAL.md)
+> (arquitetura, módulos, modelo de dados, fluxo diário e checklist do módulo comercial),
+> [`PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) e [`REQUIREMENTS_MATRIX.md`](docs/REQUIREMENTS_MATRIX.md).
 
 ## Stack
 
@@ -35,8 +38,11 @@ npm run db:seed-dev             # (opcional, SOMENTE dev) dados fictícios de de
 npm run dev                     # http://localhost:3000
 ```
 
-Usuários do seed de demonstração (senha `Besmart@2026`): `head@besmart.local`, `analista@besmart.local`,
-`comercial@besmart.local`, `leitura@besmart.local`.
+Usuários do seed de demonstração (senha `Besmart@2026`): `head@besmart.local`, `supervisor@besmart.local`,
+`corretor@besmart.local` e `corretor2@besmart.local` (equipe do supervisor), `assistente@besmart.local`,
+`analista@besmart.local`, `comercial@besmart.local`, `leitura@besmart.local`. O seed inclui oportunidades no CRM,
+uma reunião com ata gerada, uma campanha ativa e compromissos; se o banco já tiver empresas, ele acrescenta apenas
+os dados comerciais.
 
 ### Base de vidas de referência
 
@@ -93,23 +99,42 @@ src/components        design system e componentes por módulo
 
 Detalhes em [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) e [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md).
 
+## Módulo comercial (resumo)
+
+| Tela | Para quê |
+|---|---|
+| `/` Início | Indicadores comerciais, alertas, compromissos de hoje, follow-ups atrasados, campanhas e operação do dia |
+| `/crm` | Pipeline de 11 etapas (Kanban/tabela), próximos passos sugeridos, mensagem de follow-up e checklist de documentos |
+| `/reunioes` | Ficha com roteiro de 17 perguntas → ata, pendências, WhatsApp de follow-up e tarefa de retorno |
+| `/campanhas` | Campanhas do mês com metas e lembretes de início, meio, últimos dias e resultado |
+| `/mensagens` · `/respostas` | Biblioteca com variáveis e botão copiar · respostas rápidas sobre planos de saúde |
+| `/tarefas?modo=kanban` · `/agenda` | Kanban de tarefas · agenda com status, assessor/comercial e lembrete |
+| `/relatorios` | Aba Comercial + exportação CSV/PDF |
+| Configurações → LGPD e backup | Localizar e anonimizar titular; backup JSON sem dados de saúde |
+
+Hierarquia: **Corretor** vê só a própria carteira; **Supervisor** vê a equipe (defina o supervisor de cada usuário
+em Configurações → Usuários); Head/Administrador veem tudo. Detalhes em
+[`docs/ASSISTENTE_COMERCIAL.md`](docs/ASSISTENTE_COMERCIAL.md).
+
 ## Assistente IA
 
 - **Com `ANTHROPIC_API_KEY`**: Claude (`ANTHROPIC_MODEL`, padrão `claude-opus-5-5`) com tool use sobre ferramentas
   tipadas e somente leitura (busca, resumo de cotação, pendências, renovações, operadoras sem resposta,
-  histórico, agenda do dia, geração de mensagens). Fallback de recusa do lado do servidor habilitado
+  histórico, agenda do dia, geração de mensagens, **CRM, follow-ups atrasados, mensagem de follow-up por cliente,
+  resumo e roteiro de reunião, checklist de documentos, resumo diário/semanal e relatório de vendas**). Fallback de recusa do lado do servidor habilitado
   (`fallbacks: "default"`). Erros da API caem para o modo local.
 - **Sem chave**: roteador de intenções em português, determinístico, que usa as mesmas ferramentas.
-- Ações em lote (ex.: “crie tarefas para as operadoras que não responderam”) são **propostas** com a lista
-  exata de registros e só executam após o botão “Confirmar”. Nada é enviado por e-mail/WhatsApp
+- Ações (ex.: “crie tarefas para as operadoras que não responderam”, “criar campanha para planos empresariais este
+  mês”) são **propostas** com a lista exata do que será criado e só executam após o botão “Confirmar”. Nada é enviado por e-mail/WhatsApp
   automaticamente. Histórico de conversas e ações fica persistido e auditado.
 
 ## Rotina diária (alertas e automações)
 
 Agende `POST /api/cron/sweep` com `Authorization: Bearer $CRON_SECRET` (ex.: a cada hora). A rotina também roda
 sozinha, no máximo 1×/hora, quando alguém abre o “Meu Dia”. Ela recalcula pendências, gera alertas (processos
-parados, propostas vencendo, follow-ups, tarefas atrasadas, lembretes, janelas de renovação) e aplica a
-política de retenção.
+parados, propostas vencendo, follow-ups, tarefas atrasadas, lembretes de tarefas e de compromissos, follow-ups de
+vendas atrasados, marcos das campanhas, janelas de renovação) e aplica a política de retenção. Para lembretes de
+compromissos com antecedência de minutos, agende a rotina a cada 5–15 minutos (a tela também avisa em tempo real).
 
 ## Deploy, backup e segurança
 

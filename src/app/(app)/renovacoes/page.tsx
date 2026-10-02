@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/misc";
 import { can } from "@/lib/auth/permissions";
 import { sp } from "@/lib/utils";
-import { requireUser } from "@/server/auth";
+import { requirePagePermission } from "@/server/auth";
 import { taskOptions } from "@/server/services/options";
 import { listRenewals, renewalSuggestions } from "@/server/services/renewals";
 
 export const metadata = { title: "Renovações" };
 
 export default async function RenewalsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const user = await requireUser();
+  const user = await requirePagePermission("operations:read");
   const s = await searchParams;
   const [rows, sugg, opts] = await Promise.all([
     listRenewals({ q: sp(s.q), includeClosed: s.encerradas === "1", ownerId: s.resp === "eu" ? user.id : null, month: sp(s.mes) }),

@@ -30,6 +30,12 @@ seed de desenvolvimento; toda informação é persistida no PostgreSQL.
 | Analista | Opera cotações, documentos e base de vidas | Operacional + dados sensíveis |
 | Comercial | Relacionamento, empresas, tarefas e cotações | Operacional, **sem** dados sensíveis de saúde |
 | Somente leitura | Consulta | Leitura, sem dados sensíveis |
+| Supervisor | Lidera uma equipe de corretores | Dados da própria equipe (CRM, reuniões, tarefas, agenda, empresas/cotações), campanhas, exportação |
+| Corretor | Vende e atende a própria carteira | Apenas os próprios leads, clientes, cotações, tarefas, reuniões e vendas |
+| Assistente | Apoio operacional | Agenda, tarefas, reuniões, mensagens, pendências e documentos; sem exclusões/configurações |
+
+O papel "Head" é exibido como **Head/Gerente**. Módulo comercial (CRM, reuniões, campanhas, mensagens prontas,
+respostas rápidas, hierarquia, LGPD): ver [`ASSISTENTE_COMERCIAL.md`](ASSISTENTE_COMERCIAL.md).
 
 Matriz detalhada em `src/lib/auth/permissions.ts` (RBAC granular por permissão, pronto para expansão).
 

@@ -5,19 +5,20 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/inputs";
 import { EmptyState, PageHeader } from "@/components/ui/misc";
 import { requireUser } from "@/server/auth";
+import { getScope } from "@/server/scope";
 import { globalSearch } from "@/server/services/search";
 
 export const metadata = { title: "Busca" };
 
-const KIND: Record<string, string> = { empresa: "Empresa", cnpj: "CNPJ", contato: "Contato", cotacao: "Cotação", operadora: "Operadora", protocolo: "Protocolo", plano: "Plano", documento: "Documento", tarefa: "Tarefa" };
+const KIND: Record<string, string> = { oportunidade: "Oportunidade", reuniao: "Reunião", mensagem: "Mensagem", resposta: "Resposta", empresa: "Empresa", cnpj: "CNPJ", contato: "Contato", cotacao: "Cotação", operadora: "Operadora", protocolo: "Protocolo", plano: "Plano", documento: "Documento", tarefa: "Tarefa" };
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  await requireUser();
+  const user = await requireUser();
   const q = ((await searchParams).q ?? "").trim();
-  const hits = await globalSearch(q);
+  const hits = await globalSearch(q, 8, await getScope(user));
   return (
     <>
-      <PageHeader title="Busca" description={q ? `Resultados para “${q}”` : "Empresa, CNPJ, contato, cotação, operadora, protocolo, plano, documento ou tarefa"} />
+      <PageHeader title="Busca" description={q ? `Resultados para “${q}”` : "Oportunidade, reunião, empresa, CNPJ, contato, cotação, operadora, protocolo, plano, documento, tarefa, mensagem ou resposta rápida"} />
       <form className="mb-4 max-w-xl" role="search">
         <Input name="q" defaultValue={q} placeholder="Digite ao menos 2 caracteres" autoFocus />
       </form>

@@ -25,26 +25,12 @@ import { getQuotationDetail } from "../services/quotations";
 import { findPlaybook } from "../services/playbook";
 import { globalSearch } from "../services/search";
 import { PLAYBOOK_SECTIONS } from "@/lib/playbook/content";
+import { SCOPED_ROLES } from "@/lib/domain/constants";
+import { getScope } from "../scope";
+import { COMMERCIAL_TOOLS } from "./commercial-tools";
 
-export interface ToolResult {
-  /** Texto pronto para exibir (modo local) — também enviado ao modelo. */
-  text: string;
-  data?: unknown;
-  /** Ação proposta que exige confirmação explícita do usuário. */
-  actionId?: string;
-}
-
-interface ToolDef<S extends z.ZodTypeAny> {
-  name: string;
-  description: string;
-  schema: S;
-  jsonSchema: Record<string, unknown>;
-  run: (input: z.infer<S>, user: CurrentUser) => Promise<ToolResult>;
-}
-
-const str = (description: string) => ({ type: "string", description });
-const int = (description: string) => ({ type: "integer", description });
-const obj = (properties: Record<string, unknown>, required: string[] = Object.keys(properties)) => ({ type: "object", properties, required, additionalProperties: false });
+import { int, obj, str, type ToolDef, type ToolResult } from "./tool-kit";
+export type { ToolDef, ToolResult };
 
 const OPEN = sql`${quotations.status} not in ('fechada_ganha','fechada_perdida','concluida','cancelada')`;
 const companyName = sql<string>`coalesce(${companies.tradeName}, ${companies.legalName})`;
@@ -84,11 +70,12 @@ const isResult = (x: unknown): x is ToolResult => typeof x === "object" && x !==
 
 const buscar: ToolDef<z.ZodObject<{ termo: z.ZodString }>> = {
   name: "buscar",
-  description: "Busca global no sistema: empresas, CNPJs, contatos, cotações, operadoras, protocolos, planos, documentos e tarefas.",
+  description: "Busca global no sistema: oportunidades (CRM), reuniões, empresas, CNPJs, contatos, cotações, operadoras, protocolos, planos, documentos, tarefas, mensagens prontas e respostas rápidas.",
   schema: z.object({ termo: z.string().min(2) }),
   jsonSchema: obj({ termo: str("Texto a buscar (nome, CNPJ, código da cotação, protocolo…)") }),
-  async run({ termo }) {
-    const hits = await globalSearch(termo, 6);
+  scopeSafe: true,
+  async run({ termo }, user) {
+    const hits = await globalSearch(termo, 6, await getScope(user));
     if (!hits.length) return { text: `Nada encontrado para “${termo}”.`, data: [] };
     return { text: hits.map((h) => `• [${h.kind}] ${h.title}${h.subtitle ? ` — ${h.subtitle}` : ""}`).join("\n"), data: hits };
   },
@@ -272,6 +259,7 @@ const historico: ToolDef<z.ZodObject<{ cotacao: z.ZodString }>> = {
 
 const agendaHoje: ToolDef<z.ZodObject<Record<string, never>>> = {
   name: "agenda_do_dia",
+  scopeSafe: true,
   description: "Compromissos e tarefas de hoje do usuário, com contexto das cotações envolvidas. Use para preparar resumo executivo de reuniões.",
   schema: z.object({}),
   jsonSchema: obj({}),
@@ -281,7 +269,7 @@ const agendaHoje: ToolDef<z.ZodObject<Record<string, never>>> = {
     const parts: string[] = [];
     for (const { e, companyName: cn, quotationCode } of events) {
       parts.push(`• ${e.allDay ? "Dia inteiro" : formatDateTimeBR(e.startsAt).slice(-5)} — ${e.title} (${EVENT_TYPE_LABELS[e.type]})${cn ? ` · ${cn}` : ""}${quotationCode ? ` ${quotationCode}` : ""}`);
-      if (e.quotationId) {
+      if (e.quotationId && !SCOPED_ROLES.includes(user.role)) {
         const s = await resumoCotacao.run({ cotacao: quotationCode! }, user);
         parts.push(s.text.split("\n").map((l) => `    ${l}`).join("\n"));
       }
@@ -347,6 +335,7 @@ const proporTarefasOperadoras: ToolDef<z.ZodObject<{ dias: z.ZodNumber; prazo_di
 
 const consultarPlaybook: ToolDef<z.ZodObject<{ pergunta: z.ZodString }>> = {
   name: "consultar_playbook",
+  scopeSafe: true,
   description:
     "Consulta o Playbook Estratégico Be Smart: regras das modalidades (PME, Adesão, Individual/PF, PJ +99 vidas), segmentação, acomodação, coparticipação, carências, vigência, reajuste, documentação, qualificação do cliente, script SPIN, ganchos de venda e cadência de follow-up D0–D7.",
   schema: z.object({ pergunta: z.string().min(2) }),
@@ -363,10 +352,16 @@ const consultarPlaybook: ToolDef<z.ZodObject<{ pergunta: z.ZodString }>> = {
   },
 };
 
-export const TOOLS = [buscar, resumoCotacao, pendenciasTool, listarCotacoes, renovacoesTool, operadorasSemResposta, historico, agendaHoje, gerarMensagem, proporTarefasOperadoras, consultarPlaybook] as ToolDef<z.ZodTypeAny>[];
+export const TOOLS = [buscar, resumoCotacao, pendenciasTool, listarCotacoes, renovacoesTool, operadorasSemResposta, historico, agendaHoje, gerarMensagem, proporTarefasOperadoras, consultarPlaybook, ...COMMERCIAL_TOOLS] as ToolDef<z.ZodTypeAny>[];
+
+/** Ferramentas disponíveis ao usuário: papéis com escopo (corretor/supervisor) só usam as que respeitam o escopo. */
+export function toolsFor(user: Pick<CurrentUser, "role">) {
+  return SCOPED_ROLES.includes(user.role) ? TOOLS.filter((t) => t.scopeSafe) : TOOLS;
+}
 
 export async function runTool(name: string, input: unknown, user: CurrentUser): Promise<ToolResult> {
-  const t = TOOLS.find((x) => x.name === name);
+  const t = toolsFor(user).find((x) => x.name === name);
+  if (!t && TOOLS.some((x) => x.name === name)) return { text: "Esta consulta abrange dados de toda a operação e não está disponível para o seu perfil. Posso ajudar com a sua carteira (CRM, reuniões, tarefas e agenda)." };
   if (!t) return { text: `Ferramenta desconhecida: ${name}` };
   const parsed = t.schema.safeParse(input);
   if (!parsed.success) return { text: `Parâmetros inválidos para ${name}: ${parsed.error.issues[0]?.message}` };

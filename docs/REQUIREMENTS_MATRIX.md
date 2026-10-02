@@ -71,6 +71,29 @@ Testes: **U** = unitário (`tests/unit`), **I** = integração com PostgreSQL (`
 | 34 | Pedido de informações ao cliente omitindo itens recebidos/validados | ✅ | `clientRequestItems` | I |
 | — | Conteúdo do site Be Smart (Playbook/Arsenal): módulo Playbook, checklist PJ +99, coluna SEXO, cadência D0–D7, assistente | ✅ | `/playbook`, `lib/playbook/*`, `client_followup_cadence`, `consultar_playbook` | U, I, E |
 
+## Prompt mestre — Assistente de IA para Head de Planos de Saúde (módulo comercial)
+
+Detalhes em [`ASSISTENTE_COMERCIAL.md`](ASSISTENTE_COMERCIAL.md). Testes: `tests/unit/commercial.test.ts`,
+`tests/unit/assistant-router.test.ts` (comandos comerciais), `tests/integration/commercial.test.ts`,
+`tests/e2e/commercial.spec.ts`.
+
+| § | Requisito | Status | Onde | Teste |
+|---|---|---|---|---|
+| 1 | Dashboard: compromissos, tarefas, cotações, reuniões, follow-ups atrasados, vendas, campanhas, alertas, 9 indicadores | ✅ | `/`, `services/commercial.ts` | I, E |
+| 2 | Agenda: campos (cliente, assessor, comercial, local/link, observações), 8 tipos pedidos, status, lembrete; dia/semana/mês | ✅ | `/agenda`, rotina 5b, `UpcomingReminders` | I, manual |
+| 3 | Tarefas: prioridades até urgente, categorias do prompt, atrasadas em destaque; lista e Kanban | ✅ | `/tarefas?modo=kanban` | manual |
+| 4 | CRM: 11 etapas, campos, editar/excluir/mover/voltar, histórico, motivo de perda | ✅ | `/crm`, `services/opportunities.ts` | U, I, E |
+| 5 | Cotações: campos do prompt (acomodação, abrangência, titulares/dependentes, início, prazo, endereço) e pendências automáticas antes do envio | ✅ | `quotation-gaps.ts`, painel na Central da Cotação | U, I |
+| 6 | Reunião: roteiro de 17 perguntas (feita/recebida/pendente/observação), ata, pendências, próximos passos, WhatsApp e tarefa de retorno | ✅ | `/reunioes`, `lib/domain/meetings.ts` | U, I, E |
+| 7 | Campanhas com lembretes de início/meio/últimos dias/leads/follow-ups/resultado | ✅ | `/campanhas`, `runCampaignReminders` | U, I |
+| 8 | Mensagens prontas: 11 categorias, variáveis, copiar/editar/duplicar | ✅ | `/mensagens`, `library-content.ts` | U, I, E |
+| 9 | Respostas rápidas: 16 temas, editáveis, copiar, ressalva | ✅ | `/respostas` | U, I, E |
+| 10 | Assistente: comandos internos do prompt | ✅ | `assistant/commercial-tools.ts`, `router.ts` | U, I, E |
+| 11 | Relatórios comerciais + CSV/PDF | ✅/🟡 | `/relatorios`, `/api/export/[dataset]`; PDF pela impressão do navegador | U (CSV), I |
+| 12 | Hierarquia Administrador/Head/Supervisor/Corretor/Assistente com escopo | ✅ | `permissions.ts`, `scope.ts`, `access.ts` | U, I, E |
+| 13 | LGPD: anonimização, avisos, auditoria, backup | ✅/🟡 | Configurações → LGPD e backup (backup lógico JSON, sem importação pela interface) | I |
+| 14 | Responsivo | ✅ | verificado em 390 px | manual |
+
 ## Débitos técnicos explícitos
 
 1. **Autenticação própria em vez de Supabase Auth** — decisão para rodar em qualquer ambiente. Sem SSO/MFA ainda;
@@ -88,3 +111,7 @@ Testes: **U** = unitário (`tests/unit`), **I** = integração com PostgreSQL (`
 8. **Planilha real `EXEMPLO BASE 1.xlsm`** não estava no repositório; a validação usa o layout descrito na
    especificação e uma planilha sintética equivalente. Validar com o arquivo real assim que for adicionado em
    `templates/`.
+9. **Lembretes de compromissos por notificação** dependem da frequência do cron (padrão: de hora em hora); o aviso
+   na tela é em tempo real. Envio por WhatsApp/e-mail automático não faz parte desta versão.
+10. **Backup JSON** é parcial (sem dados de saúde/arquivos) e não há importação pela interface — restauração
+    integral pelo PostgreSQL/Supabase.

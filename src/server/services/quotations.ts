@@ -299,6 +299,8 @@ export interface QuotationFilters {
   minLives?: number | null;
   includeClosed?: boolean;
   priority?: Priority | null;
+  /** Escopo de dados (corretor/supervisor): restringe aos responsáveis informados. */
+  ownerIds?: string[] | null;
 }
 
 export async function listQuotations(f: QuotationFilters = {}) {
@@ -307,6 +309,7 @@ export async function listQuotations(f: QuotationFilters = {}) {
   else if (!f.includeClosed) conds.push(sql`${quotations.status} not in ${sql.raw(`(${CLOSED_STATUSES.map((s) => `'${s}'`).join(",")})`)}`);
   if (f.processType) conds.push(eq(quotations.processType, f.processType));
   if (f.ownerId) conds.push(eq(quotations.ownerId, f.ownerId));
+  if (f.ownerIds) conds.push(f.ownerIds.length ? inArray(quotations.ownerId, f.ownerIds) : sql`false`);
   if (f.companyId) conds.push(eq(quotations.companyId, f.companyId));
   if (f.minLives) conds.push(gte(quotations.estimatedLives, f.minLives));
   if (f.priority) conds.push(eq(quotations.priority, f.priority));

@@ -1,4 +1,4 @@
-import { AlarmClock, ArrowRight, Building2, CalendarClock, CheckSquare, ClipboardList, FileWarning, Hourglass, Inbox, RefreshCw, Siren, Star } from "lucide-react";
+import { AlarmClock, ArrowRight, BadgeDollarSign, Building2, CalendarClock, CalendarDays, CheckSquare, ClipboardList, FileWarning, Handshake, Hourglass, Inbox, Megaphone, Percent, RefreshCw, Send, Siren, Star, Target, Users } from "lucide-react";
 import Link from "next/link";
 import { Timeline } from "@/components/crm/timeline";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader, StatCard } from "@/components/ui/misc";
 import { PriorityBadge } from "@/components/ui/status";
 import { formatDateBR, relativeDays } from "@/lib/domain/dates";
-import { formatNumber, sp } from "@/lib/utils";
+import { EVENT_STATUS_LABELS, EVENT_TYPE_LABELS, SCOPED_ROLES } from "@/lib/domain/constants";
+import { formatMoney, formatNumber, formatPct, sp } from "@/lib/utils";
+import { FollowupBadge } from "@/components/commercial/badges";
+import { getScope } from "@/server/scope";
+import { getCommercialOverview } from "@/server/services/commercial";
 import { maybeRunSweep } from "@/server/automation/engine";
 import { requireUser } from "@/server/auth";
 import { logTechnicalError } from "@/server/errors";
@@ -18,10 +22,16 @@ const KIND_LABEL = { tarefa: "Tarefa", cotacao: "Cotação", followup: "Follow-u
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ escopo?: string }> }) {
   const user = await requireUser();
-  const scope = sp((await searchParams).escopo) === "equipe" ? "equipe" : "meu";
+  const isScoped = SCOPED_ROLES.includes(user.role);
+  const dataScope = await getScope(user);
+  const canTeam = user.role !== "corretor";
+  const scope = canTeam && sp((await searchParams).escopo) === "equipe" ? "equipe" : "meu";
   // Rotina de alertas/automações (no máximo 1x por hora); falha não impede o painel.
   await maybeRunSweep().catch((e) => logTechnicalError("sweep", e));
-  const d = await getMyDay(scope === "meu" ? user.id : null);
+  const owner = scope === "meu" ? (isScoped ? [user.id] : user.id) : dataScope.all ? null : dataScope.ownerIds;
+  const viewScope = scope === "meu" ? { all: false as const, ownerIds: [user.id] } : dataScope;
+  const [d, c] = await Promise.all([getMyDay(owner), getCommercialOverview(viewScope)]);
+  const time = (dt: Date) => new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(dt);
   const hour = Number(new Intl.DateTimeFormat("pt-BR", { hour: "numeric", hour12: false, timeZone: "America/Sao_Paulo" }).format(new Date()));
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
 
@@ -31,16 +41,78 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         title={`${greeting}, ${user.name.split(" ")[0]}`}
         description={`O que precisa de ação agora · ${formatDateBR(d.today)}`}
         actions={
-          <div className="flex rounded-md border border-border bg-surface p-0.5 text-xs">
+          canTeam && <div className="flex rounded-md border border-border bg-surface p-0.5 text-xs">
             <Link href="/" className={`rounded px-3 py-1 ${scope === "meu" ? "bg-primary text-white" : "text-muted"}`}>
               Minha carteira
             </Link>
             <Link href="/?escopo=equipe" className={`rounded px-3 py-1 ${scope === "equipe" ? "bg-primary text-white" : "text-muted"}`}>
-              Equipe
+              {user.role === "supervisor" ? "Minha equipe" : "Equipe"}
             </Link>
           </div>
         }
       />
+      {c.alerts.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2" role="list" aria-label="Alertas importantes">
+          {c.alerts.map((a) => (
+            <Link
+              key={a.text}
+              role="listitem"
+              href={a.href}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${a.tone === "red" ? "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200" : a.tone === "amber" ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200" : "border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200"}`}
+            >
+              <Siren className="size-3.5" /> {a.text}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Indicadores comerciais</h2>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <StatCard label="Total de leads" value={formatNumber(c.kpis.totalLeads)} hint={`${c.kpis.newLeadsMonth} novo(s) no mês`} href="/crm" icon={<Target />} />
+        <StatCard label="Clientes ativos" value={formatNumber(c.kpis.activeClients)} href="/empresas?kind=cliente" icon={<Building2 />} />
+        <StatCard label="Cotações em andamento" value={c.kpis.quotationsInProgress} hint={`${c.kpis.quotationsSplit.large} no módulo Cotações · ${c.kpis.quotationsSplit.crm} no CRM`} href="/cotacoes" icon={<ClipboardList />} />
+        <StatCard label="Propostas enviadas" value={c.kpis.proposalsSent} hint={c.kpis.proposalsValue ? `${formatMoney(c.kpis.proposalsValue)}/mês` : undefined} href="/crm?etapa=proposta_enviada&view=tabela" icon={<Send />} />
+        <StatCard label="Vendas fechadas no mês" value={c.kpis.salesClosedMonth} hint={c.kpis.salesValueMonth ? `${formatMoney(c.kpis.salesValueMonth)}/mês` : undefined} tone={c.kpis.salesClosedMonth ? "green" : "default"} href="/relatorios?tab=comercial" icon={<Handshake />} />
+        <StatCard label="Valor em negociação" value={formatMoney(c.kpis.negotiationValue)} hint={`${c.kpis.negotiationCount} oportunidade(s)`} tone="blue" href="/crm" icon={<BadgeDollarSign />} />
+        <StatCard label="Taxa de conversão (12 meses)" value={c.kpis.conversionRate === null ? "—" : formatPct(c.kpis.conversionRate)} hint={`${c.kpis.decided.won} ganha(s) · ${c.kpis.decided.lost} perdida(s)`} icon={<Percent />} />
+        <StatCard label="Tarefas atrasadas" value={c.kpis.overdueTasks} tone={c.kpis.overdueTasks ? "red" : "default"} href="/tarefas?view=atrasadas" icon={<AlarmClock />} />
+        <StatCard label="Reuniões da semana" value={c.kpis.meetingsWeek} href="/agenda?view=semana" icon={<Users />} />
+        <StatCard label="Campanhas ativas" value={c.activeCampaigns.length} href="/campanhas?status=ativa" icon={<Megaphone />} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <ListCard id="compromissos" title="Compromissos de hoje" empty="Agenda livre hoje">
+          {c.todayEvents.map(({ e, ownerName }) => (
+            <Row
+              key={e.id}
+              href={`/agenda?view=dia&data=${c.today}`}
+              title={`${e.allDay ? "Dia inteiro" : time(e.startsAt)} · ${e.title}`}
+              sub={[EVENT_TYPE_LABELS[e.type], e.clientName, e.status !== "agendado" ? EVENT_STATUS_LABELS[e.status] : null, scope === "equipe" ? ownerName : null].filter(Boolean).join(" · ")}
+            />
+          ))}
+        </ListCard>
+        <ListCard id="vendas-atrasadas" title="Follow-ups de vendas atrasados" empty="Nenhum follow-up de vendas atrasado">
+          {c.overdueFollowups.map(({ o, brokerName }) => (
+            <li key={o.id}>
+              <Link href={`/crm/${o.id}`} className="block px-4 py-2 hover:bg-surface-2/60">
+                <p className="flex items-center justify-between gap-2 truncate text-sm">
+                  {o.clientName} <FollowupBadge date={o.nextFollowupAt} today={c.today} stage={o.stage} />
+                </p>
+                <p className="truncate text-xs text-muted">{[o.nextStep, scope === "equipe" ? brokerName : null].filter(Boolean).join(" · ") || "Sem próximo passo"}</p>
+              </Link>
+            </li>
+          ))}
+        </ListCard>
+        <ListCard id="campanhas" title="Campanhas ativas do mês" empty="Nenhuma campanha ativa">
+          {c.activeCampaigns.map(({ c: camp, leads }) => (
+            <Row key={camp.id} href={`/campanhas/${camp.id}`} title={camp.name} sub={`até ${formatDateBR(camp.endDate)} · ${leads}${camp.goalLeads ? `/${camp.goalLeads}` : ""} lead(s)`} />
+          ))}
+        </ListCard>
+      </div>
+
+      <h2 className="mb-2 mt-6 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+        <CalendarDays className="size-3.5" /> Operação do dia
+      </h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
         <StatCard label="Tarefas para hoje" value={d.tasksToday.length} href="/tarefas?view=hoje" icon={<CheckSquare />} tone={d.tasksToday.length ? "blue" : "default"} />
         <StatCard label="Tarefas atrasadas" value={d.tasksOverdue.length} href="/tarefas?view=atrasadas" icon={<AlarmClock />} tone={d.tasksOverdue.length ? "red" : "default"} />

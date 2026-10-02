@@ -9,6 +9,7 @@ import { can } from "@/lib/auth/permissions";
 import { PRIORITIES, PRIORITY_LABELS, type Priority, type ProcessType } from "@/lib/domain/constants";
 import { cn, sp } from "@/lib/utils";
 import { requireUser } from "@/server/auth";
+import { getScope } from "@/server/scope";
 import { listQuotations } from "@/server/services/quotations";
 import { userOptions } from "@/server/services/users";
 
@@ -19,9 +20,10 @@ export default async function QuotationsPage({ searchParams }: { searchParams: P
   const s = await searchParams;
   const view = s.view === "tabela" ? "tabela" : "kanban";
   const includeClosed = s.encerradas === "1";
+  const scope = await getScope(user);
   const [rows, users] = await Promise.all([
-    listQuotations({ q: sp(s.q), ownerId: sp(s.owner), processType: sp(s.tipo) as ProcessType | null, priority: sp(s.prioridade) as Priority | null, includeClosed, minLives: s.min ? Number(s.min) : null }),
-    userOptions(),
+    listQuotations({ ownerIds: scope.all ? null : scope.ownerIds, q: sp(s.q), ownerId: sp(s.owner), processType: sp(s.tipo) as ProcessType | null, priority: sp(s.prioridade) as Priority | null, includeClosed, minLives: s.min ? Number(s.min) : null }),
+    userOptions(scope),
   ]);
   const data = toPipelineRows(rows);
   const qs = (patch: Record<string, string | null>) => {

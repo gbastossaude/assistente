@@ -6,10 +6,14 @@
 import "dotenv/config";
 import { eq, inArray, sql } from "drizzle-orm";
 import { addDays, todayISO } from "../src/lib/domain/dates";
-import { companySchema, contractSchema, quotationStep1Schema, quotationStep2Schema, quotationStep3Schema, taskSchema } from "../src/lib/validation/schemas";
+import { campaignSchema, meetingSchema, opportunitySchema, companySchema, contractSchema, eventSchema, quotationStep1Schema, quotationStep2Schema, quotationStep3Schema, taskSchema } from "../src/lib/validation/schemas";
 import type { CurrentUser } from "../src/server/auth";
 import { db } from "../src/server/db";
-import { companies, insurers, users } from "../src/server/db/schema";
+import { companies, insurers, opportunities, users } from "../src/server/db/schema";
+import { defaultQuestions } from "../src/lib/domain/meetings";
+import { saveCampaign } from "../src/server/services/campaigns";
+import { generateMeetingOutputs, saveMeeting } from "../src/server/services/meetings";
+import { createOpportunity } from "../src/server/services/opportunities";
 import { runSweep } from "../src/server/automation/engine";
 import { createCompany, saveContact, saveContract } from "../src/server/services/companies";
 import { uploadDocument } from "../src/server/services/documents";
@@ -41,7 +45,9 @@ async function user(email: string, name: string, role: CurrentUser["role"]): Pro
 async function main() {
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(companies);
   if (n > 0) {
-    console.log("Já existem empresas — seed de demonstração ignorado.");
+    console.log("Já existem empresas — dados de cotações ignorados.");
+    await seedCommercial();
+    console.log("Rotina de automações:", await runSweep());
     process.exit(0);
   }
   const head = await user("head@besmart.local", "Helena Duarte (Head)", "head");
@@ -96,15 +102,121 @@ async function main() {
   const c4 = await createCompany(companySchema.parse({ legalName: "Transportes Rota Sul S.A. (DEMO)", mainCnpj: syntheticCnpj(44), estimatedLives: 640, city: "Porto Alegre", uf: "RS", isClient: true }), head);
   await saveContract(null, contractSchema.parse({ companyId: c4.id, insurerId: id("Omint"), startDate: "2021-06-01", anniversaryDate: addDays(T, 110), plans: [{ planName: "Omint Premium", lives: 640, monthlyCost: 512000, consultationReimbursement: 400 }] }), head);
   await saveRenewal(null, { companyId: c4.id, contractId: null, insurerId: id("Omint"), insurerName: null, lives: 640, anniversaryDate: addDays(T, 110), adjustmentReceivedPct: null, lossRatioPct: 71, status: "a_iniciar", ownerId: head.id, quotationId: null, notes: null }, head);
-  await saveEvent(null, { title: "Apresentação de propostas — Horizonte", type: "apresentacao", date: addDays(T, 3), startTime: "10:00", endTime: "11:30", allDay: false, location: "Teams", description: null, companyId: c1.id, quotationId: q1.id, insurerId: null, taskId: null, ownerId: head.id }, head);
-  await saveEvent(null, { title: "Reunião com Amil — revisão comercial", type: "reuniao_operadora", date: T, startTime: "15:00", endTime: "16:00", allDay: false, location: null, description: null, companyId: c1.id, quotationId: q1.id, insurerId: id("Amil"), taskId: null, ownerId: head.id }, head);
+  await saveEvent(null, eventSchema.parse({ title: "Apresentação de propostas — Horizonte", type: "apresentacao", date: addDays(T, 3), startTime: "10:00", endTime: "11:30", allDay: false, location: "Teams", description: null, companyId: c1.id, quotationId: q1.id, insurerId: null, taskId: null, ownerId: head.id }), head);
+  await saveEvent(null, eventSchema.parse({ title: "Reunião com Amil — revisão comercial", type: "reuniao_operadora", date: T, startTime: "15:00", endTime: "16:00", allDay: false, location: null, description: null, companyId: c1.id, quotationId: q1.id, insurerId: id("Amil"), taskId: null, ownerId: head.id }), head);
   await createTask(taskSchema.parse({ title: "Cobrar maiores usuários e picos — Horizonte", companyId: c1.id, quotationId: q1.id, priority: "alta", dueDate: addDays(T, -1), category: "documentacao" }), head);
   await createTask(taskSchema.parse({ title: "Preparar comparativo para apresentação", companyId: c1.id, quotationId: q1.id, priority: "alta", dueDate: T, category: "cotacao", checklist: [{ text: "Consolidar propostas", done: true }, { text: "Simular contribuição", done: false }] }), head);
   await createTask(taskSchema.parse({ title: "Status semanal da carteira", priority: "media", dueDate: addDays(T, 2), category: "interna", recurrence: "semanal" }), head);
 
+  await seedCommercial();
   console.log("Rotina de automações:", await runSweep());
   console.log("Seed de desenvolvimento concluído. Senha dos usuários de demonstração: Besmart@2026");
   process.exit(0);
+}
+
+/** Módulo comercial: hierarquia (supervisor/corretores/assistente), CRM, reuniões e campanha — fictícios. */
+async function seedCommercial() {
+  const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(opportunities);
+  if (n > 0) {
+    console.log("Já existem oportunidades — seed comercial ignorado.");
+    return;
+  }
+  const head = await user("head@besmart.local", "Helena Duarte (Head)", "head");
+  const supervisor = await user("supervisor@besmart.local", "Sérgio Prado (Supervisor)", "supervisor");
+  const bruna = await user("corretor@besmart.local", "Bruna Costa (Corretora)", "corretor");
+  const diego = await user("corretor2@besmart.local", "Diego Ramos (Corretor)", "corretor");
+  await user("assistente@besmart.local", "Paula Nunes (Assistente)", "assistente");
+  await db.update(users).set({ supervisorId: supervisor.id }).where(inArray(users.id, [bruna.id, diego.id]));
+
+  const month = T.slice(0, 7);
+  const [y, m] = month.split("-").map(Number);
+  const monthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+  const campId = await saveCampaign(
+    null,
+    campaignSchema.parse({
+      name: `Saúde Empresarial — ${month.split("-").reverse().join("/")} (DEMO)`,
+      product: "plano_saude",
+      startDate: `${month}-01`,
+      endDate: monthEnd,
+      audience: "Empresas de 30 a 300 vidas com reajuste nos próximos 90 dias",
+      goal: "20 reuniões de diagnóstico e 4 contratos",
+      goalLeads: 20,
+      goalSales: 4,
+      goalValue: 120000,
+      mainMessage: "Diagnóstico gratuito do plano de saúde da sua empresa e comparação com as principais operadoras — redução de custo sem perder rede.",
+      channels: ["whatsapp", "email", "linkedin"],
+      status: "ativa",
+      responsibles: "Equipe comercial",
+    }),
+    head,
+  );
+
+  const opp = async (u: CurrentUser, data: Record<string, unknown>, closedDaysAgo?: number) => {
+    const o = await createOpportunity(opportunitySchema.parse(data), u);
+    if (closedDaysAgo !== undefined) await db.update(opportunities).set({ closedAt: new Date(Date.now() - closedDaysAgo * 86_400_000) }).where(eq(opportunities.id, o.id));
+    return o;
+  };
+  const alfa = await opp(bruna, { clientName: "Construtora Alfa (DEMO)", contactName: "Marcos Lima", phone: "(11) 90000-1001", email: "marcos.lima@exemplo.invalid", product: "plano_saude", lives: 85, estimatedValue: 64000, currentInsurer: "Amil", source: "campanha", campaignId: campId, stage: "primeiro_contato", nextStep: "Reunião de diagnóstico", nextFollowupAt: addDays(T, -2) });
+  await opp(bruna, { clientName: "Escritório Beta Advocacia (DEMO)", contactName: "Juliana Reis", phone: "(11) 90000-1002", product: "dental", lives: 14, estimatedValue: 1250, source: "indicacao", stage: "proposta_enviada", quotedInsurers: ["OdontoPrev", "Amil Dental"], nextStep: "Check-in da proposta", nextFollowupAt: T });
+  await opp(diego, { clientName: "Família Souza (DEMO)", contactName: "Roberto Souza", phone: "(11) 90000-1003", product: "plano_saude", lives: 4, estimatedValue: 3900, source: "site", stage: "documentos_pendentes", nextStep: "Receber documentos dos dependentes", nextFollowupAt: addDays(T, -5) });
+  await opp(diego, { clientName: "Logística Gama Ltda. (DEMO)", contactName: "Fernanda Alves", product: "plano_saude", lives: 140, estimatedValue: 118000, currentInsurer: "Bradesco Saúde", quotedInsurers: ["SulAmérica Saúde", "Porto Saúde", "Amil"], source: "campanha", campaignId: campId, stage: "cotacao_em_andamento", nextStep: "Cobrar retorno das operadoras", nextFollowupAt: addDays(T, 2) });
+  await opp(head, { clientName: "Clínica Delta Odonto (DEMO)", contactName: "Dra. Lúcia Prado", product: "vida", lives: 32, estimatedValue: 2100, source: "carteira", stage: "em_negociacao", nextStep: "Ajustar capital segurado", nextFollowupAt: addDays(T, 1) });
+  await opp(bruna, { clientName: "Padaria Ômega (DEMO)", contactName: "Sr. Antônio", product: "plano_saude", lives: 6, estimatedValue: 4800, source: "indicacao", stage: "fechado" }, 3);
+  await opp(diego, { clientName: "Tech Sigma Software (DEMO)", contactName: "Camila Torres", product: "plano_saude", lives: 48, estimatedValue: 39500, source: "campanha", campaignId: campId, stage: "implantado" }, 40);
+  await opp(head, { clientName: "Metalúrgica Épsilon (DEMO)", product: "beneficios", lives: 210, estimatedValue: 9800, source: "prospeccao_ativa", stage: "fechado" }, 70);
+  await opp(diego, { clientName: "Comércio Zeta (DEMO)", product: "plano_saude", lives: 22, estimatedValue: 17600, source: "redes_sociais", stage: "perdido", lostReason: "Preço" }, 12);
+  await opp(bruna, { clientName: "Startup Kappa (DEMO)", contactName: "Rafael Nogueira", product: "plano_saude", lives: 12, estimatedValue: 9100, source: "site", stage: "lead_novo", nextStep: "Fazer o primeiro contato", nextFollowupAt: T });
+
+  const questions = defaultQuestions().map((q) => {
+    const answers: Record<string, [string, "recebida" | "pendente"]> = {
+      objetivo: ["Reduzir o custo do plano sem perder o Hospital Albert Einstein", "recebida"],
+      possui_plano: ["Sim, empresarial", "recebida"],
+      operadora_atual: ["Amil", "recebida"],
+      valor_atual: ["", "pendente"],
+      vidas: ["85 vidas (60 titulares e 25 dependentes)", "recebida"],
+      acomodacao: ["Apartamento para diretoria, enfermaria para os demais", "recebida"],
+      prazo_decisao: ["Até o fim do mês", "recebida"],
+      decisor: ["Diretor financeiro (Marcos)", "recebida"],
+      docs_pendentes: ["Fatura atual e relação de vidas", "pendente"],
+    };
+    const a = answers[q.key];
+    return a ? { ...q, asked: true, status: a[1], answer: a[0] } : q;
+  });
+  const meetingId = await saveMeeting(
+    null,
+    meetingSchema.parse({
+      title: "Diagnóstico — Construtora Alfa",
+      opportunityId: alfa.id,
+      clientName: "Marcos Lima",
+      companyName: "Construtora Alfa (DEMO)",
+      advisorName: "Ana Ribeiro",
+      salesRepName: "Bruna Costa",
+      ownerId: bruna.id,
+      date: addDays(T, -1),
+      startTime: "10:00",
+      endTime: "11:00",
+      participants: "Marcos Lima (Diretor financeiro), Carla (RH)",
+      location: "https://meet.exemplo.invalid/alfa",
+      objective: "Entender a necessidade e coletar os dados para cotação",
+      summary: "Cliente insatisfeito com o último reajuste (22%). Quer manter o Einstein para a diretoria.",
+      status: "realizada",
+      questions,
+      actions: [
+        { text: "Enviar fatura atual e relação de vidas", owner: "Marcos (cliente)", dueDate: addDays(T, 2), done: false },
+        { text: "Cotar SulAmérica, Porto e Bradesco", owner: "Bruna", dueDate: addDays(T, 5), done: false },
+      ],
+    }),
+    bruna,
+  );
+  await generateMeetingOutputs(meetingId, { createTask: true }, bruna);
+  await saveMeeting(
+    null,
+    meetingSchema.parse({ title: "Apresentação da proposta — Escritório Beta", clientName: "Juliana Reis", companyName: "Escritório Beta Advocacia (DEMO)", ownerId: bruna.id, date: addDays(T, 1), startTime: "15:00", endTime: "15:45", location: "Presencial — Av. Paulista, 1000", objective: "Apresentar o comparativo de plano dental", questions: defaultQuestions() }),
+    bruna,
+  );
+  await saveEvent(null, eventSchema.parse({ title: "Ligação — Startup Kappa", type: "ligacao", date: T, startTime: "16:30", endTime: "16:45", clientName: "Rafael Nogueira", salesRepName: "Bruna Costa", ownerId: bruna.id, reminderMinutes: 10 }), bruna);
+  await createTask(taskSchema.parse({ title: "Divulgar a campanha do mês no LinkedIn", priority: "media", dueDate: addDays(T, 1), category: "campanha", campaignId: campId }), head);
+  console.log("Seed comercial concluído (CRM, reuniões, campanha e hierarquia).");
 }
 
 main().catch((e) => {

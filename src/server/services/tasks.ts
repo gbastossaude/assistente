@@ -12,6 +12,9 @@ import { BusinessError, NotFoundError } from "../errors";
 import { addTimeline } from "../timeline";
 
 type TaskData = z.output<typeof taskSchema>;
+type Links = "opportunityId" | "meetingId" | "campaignId";
+/** Vínculos comerciais são opcionais para quem cria tarefas por código (automações, assistente). */
+export type NewTaskData = Omit<TaskData, Links> & Partial<Pick<TaskData, Links>>;
 
 async function resolveCompany(data: { companyId: string | null; quotationId: string | null }) {
   if (data.quotationId && !data.companyId) {
@@ -21,7 +24,7 @@ async function resolveCompany(data: { companyId: string | null; quotationId: str
   return data.companyId;
 }
 
-export async function createTask(input: TaskData, user: CurrentUser, extra: { source?: string; parentTaskId?: string | null } = {}) {
+export async function createTask(input: NewTaskData, user: CurrentUser, extra: { source?: string; parentTaskId?: string | null } = {}) {
   const companyId = await resolveCompany(input);
   const [t] = await db
     .insert(tasks)
@@ -97,6 +100,8 @@ async function afterComplete(t: typeof tasks.$inferSelect, user: CurrentUser) {
         companyId: t.companyId,
         quotationId: t.quotationId,
         insurerId: t.insurerId,
+        opportunityId: t.opportunityId,
+        campaignId: t.campaignId,
         ownerId: t.ownerId,
         priority: t.priority,
         scheduledDate: shift(t.scheduledDate),
@@ -134,6 +139,7 @@ export async function completeTask(input: z.output<typeof completeTaskSchema>, u
         companyId: t.companyId,
         quotationId: t.quotationId,
         insurerId: t.insurerId,
+        opportunityId: t.opportunityId,
         ownerId: input.nextActionOwnerId ?? t.ownerId,
         priority: t.priority,
         scheduledDate: input.nextActionDate,
@@ -188,6 +194,7 @@ export interface TaskFilters {
   category?: string | null;
   from?: string | null;
   to?: string | null;
+  ownerIds?: string[] | null;
 }
 
 const effectiveDate = sql`coalesce(${tasks.dueDate}, ${tasks.scheduledDate})`;
@@ -203,6 +210,7 @@ export async function listTasks(f: TaskFilters = {}) {
   if (view === "atrasadas") conds.push(sql`${tasks.dueDate} < ${today}`);
   if (view === "semana") conds.push(sql`${effectiveDate} between ${today} and ${addDays(today, 7)}`);
   if (f.ownerId) conds.push(eq(tasks.ownerId, f.ownerId));
+  if (f.ownerIds) conds.push(f.ownerIds.length ? inArray(tasks.ownerId, f.ownerIds) : sql`false`);
   if (f.quotationId) conds.push(eq(tasks.quotationId, f.quotationId));
   if (f.companyId) conds.push(eq(tasks.companyId, f.companyId));
   if (f.priority) conds.push(eq(tasks.priority, f.priority as never));

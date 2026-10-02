@@ -6,14 +6,14 @@ import { EmptyState, PageHeader, Table, Td, Th } from "@/components/ui/misc";
 import { QuotationStatusBadge } from "@/components/ui/status";
 import { formatDateBR } from "@/lib/domain/dates";
 import { formatMoney, formatNumber } from "@/lib/utils";
-import { requireUser } from "@/server/auth";
+import { requirePagePermission } from "@/server/auth";
 import { db } from "@/server/db";
 import { companies, proposals, quotations } from "@/server/db/schema";
 
 export const metadata = { title: "Comparativos" };
 
 export default async function ComparisonsPage() {
-  await requireUser();
+  await requirePagePermission("operations:read");
   const rows = await db
     .select({
       id: quotations.id,

@@ -3,15 +3,30 @@
  * Fonte única para status, rótulos e cores — não duplicar em componentes.
  */
 
-export const ROLES = ["admin", "head", "analista", "comercial", "leitura"] as const;
+export const ROLES = ["admin", "head", "supervisor", "analista", "comercial", "corretor", "assistente", "leitura"] as const;
 export type Role = (typeof ROLES)[number];
 export const ROLE_LABELS: Record<Role, string> = {
   admin: "Administrador",
-  head: "Head",
+  head: "Head/Gerente",
+  supervisor: "Supervisor",
   analista: "Analista",
   comercial: "Comercial",
+  corretor: "Corretor",
+  assistente: "Assistente",
   leitura: "Somente leitura",
 };
+export const ROLE_DESCRIPTIONS: Record<Role, string> = {
+  admin: "Vê e administra tudo, inclusive usuários.",
+  head: "Vê tudo da operação; configura parâmetros e audita.",
+  supervisor: "Vê os dados da própria equipe (corretores sob sua supervisão).",
+  analista: "Opera cotações, documentos e base de vidas (dados sensíveis).",
+  comercial: "Relacionamento, empresas, cotações e tarefas (sem dados sensíveis).",
+  corretor: "Vê apenas os próprios leads, clientes, tarefas, reuniões e vendas.",
+  assistente: "Apoio operacional: agenda, tarefas, reuniões e mensagens.",
+  leitura: "Consulta, sem dados sensíveis.",
+};
+/** Papéis cuja visão de dados é restrita à própria carteira (corretor) ou equipe (supervisor). */
+export const SCOPED_ROLES: Role[] = ["supervisor", "corretor"];
 
 export const PROCESS_TYPES = ["NEW", "RENEW"] as const;
 export type ProcessType = (typeof PROCESS_TYPES)[number];
@@ -22,7 +37,7 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
   baixa: "Baixa",
   media: "Média",
   alta: "Alta",
-  critica: "Crítica",
+  critica: "Urgente",
 };
 export const PRIORITY_WEIGHT: Record<Priority, number> = { baixa: 1, media: 2, alta: 3, critica: 4 };
 
@@ -155,6 +170,7 @@ export const DOCUMENT_TYPES = [
   "proposta_operadora",
   "carta_nomeacao",
   "contrato_social",
+  "comprovante_endereco",
   "relatorio_analitico",
   "outros",
 ] as const;
@@ -175,6 +191,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   proposta_operadora: "Proposta de operadora",
   carta_nomeacao: "Carta de nomeação (operadoras/seguradoras)",
   contrato_social: "Contrato social / cartão CNPJ",
+  comprovante_endereco: "Comprovante de endereço",
   relatorio_analitico: "Relatório analítico de utilização",
   outros: "Outros documentos",
 };
@@ -210,6 +227,10 @@ export const TASK_CATEGORIES = [
   "reuniao",
   "renovacao",
   "implantacao",
+  "venda",
+  "campanha",
+  "pos_venda",
+  "financeiro",
   "interna",
   "outro",
 ] as const;
@@ -222,6 +243,10 @@ export const TASK_CATEGORY_LABELS: Record<TaskCategory, string> = {
   reuniao: "Reunião",
   renovacao: "Renovação",
   implantacao: "Implantação",
+  venda: "Venda",
+  campanha: "Campanha",
+  pos_venda: "Pós-venda",
+  financeiro: "Financeiro",
   interna: "Interna",
   outro: "Outro",
 };
@@ -239,11 +264,16 @@ export const RECURRENCE_LABELS: Record<Recurrence, string> = {
 export const EVENT_TYPES = [
   "reuniao_cliente",
   "reuniao_operadora",
+  "ligacao",
   "follow_up",
+  "envio_cotacao",
+  "retorno_operadora",
   "apresentacao",
   "renovacao",
   "prazo_proposta",
   "implantacao",
+  "pos_venda",
+  "campanha",
   "tarefa_interna",
   "outro",
 ] as const;
@@ -251,14 +281,39 @@ export type EventType = (typeof EVENT_TYPES)[number];
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   reuniao_cliente: "Reunião com cliente",
   reuniao_operadora: "Reunião com operadora",
+  ligacao: "Ligação",
   follow_up: "Follow-up",
+  envio_cotacao: "Envio de cotação",
+  retorno_operadora: "Retorno de operadora",
   apresentacao: "Apresentação",
   renovacao: "Renovação",
   prazo_proposta: "Prazo de proposta",
   implantacao: "Implantação",
+  pos_venda: "Pós-venda",
+  campanha: "Campanha",
   tarefa_interna: "Tarefa interna",
   outro: "Outro",
 };
+/** Tipos contados como "reunião" nos indicadores. */
+export const MEETING_EVENT_TYPES: EventType[] = ["reuniao_cliente", "reuniao_operadora", "apresentacao"];
+
+export const EVENT_STATUSES = ["agendado", "realizado", "remarcado", "cancelado"] as const;
+export type EventStatus = (typeof EVENT_STATUSES)[number];
+export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
+  agendado: "Agendado",
+  realizado: "Realizado",
+  remarcado: "Remarcado",
+  cancelado: "Cancelado",
+};
+/** Opções de lembrete antes do compromisso (minutos). 0 = sem lembrete. */
+export const REMINDER_OPTIONS: { value: number; label: string }[] = [
+  { value: 0, label: "Sem lembrete" },
+  { value: 10, label: "10 minutos antes" },
+  { value: 30, label: "30 minutos antes" },
+  { value: 60, label: "1 hora antes" },
+  { value: 120, label: "2 horas antes" },
+  { value: 1440, label: "1 dia antes" },
+];
 
 export const INTERACTION_TYPES = [
   "ligacao",
@@ -369,6 +424,14 @@ export type InsurerKind = (typeof INSURER_KINDS)[number];
 
 export const HOLDER_TYPES = ["TITULAR", "DEPENDENTE", "AGREGADO"] as const;
 export type HolderType = (typeof HOLDER_TYPES)[number];
+
+export const ACCOMMODATIONS = ["enfermaria", "apartamento", "ambos"] as const;
+export type Accommodation = (typeof ACCOMMODATIONS)[number];
+export const ACCOMMODATION_LABELS: Record<Accommodation, string> = { enfermaria: "Enfermaria", apartamento: "Apartamento", ambos: "Enfermaria e apartamento" };
+
+export const COVERAGE_AREAS = ["regional", "estadual", "nacional"] as const;
+export type CoverageArea = (typeof COVERAGE_AREAS)[number];
+export const COVERAGE_AREA_LABELS: Record<CoverageArea, string> = { regional: "Regional (grupo de municípios)", estadual: "Estadual", nacional: "Nacional" };
 
 export const LARGE_ACCOUNT_MIN_LIVES = 100; // "+99 vidas"
 

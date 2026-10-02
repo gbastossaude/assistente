@@ -4,6 +4,7 @@
  * created_by/updated_by onde há autoria, deleted_at para soft delete de registros comerciais.
  */
 import {
+  type AnyPgColumn,
   boolean,
   date,
   index,
@@ -36,7 +37,10 @@ import {
   RENEWAL_STATUSES,
   ROLES,
   TASK_STATUSES,
+  EVENT_STATUSES,
 } from "@/lib/domain/constants";
+import { CAMPAIGN_STATUSES, MEETING_STATUSES, OPPORTUNITY_STAGES, PRODUCTS } from "@/lib/domain/commercial";
+import type { MeetingAction, MeetingQuestion } from "@/lib/domain/meetings";
 import { SPECIAL_CASE_KINDS } from "@/lib/domain/special-cases";
 
 export const roleEnum = pgEnum("user_role", ROLES);
@@ -57,6 +61,11 @@ export const modalityEnum = pgEnum("modality", MODALITIES);
 export const contributionTypeEnum = pgEnum("contribution_type", CONTRIBUTION_TYPES);
 export const insurerKindEnum = pgEnum("insurer_kind", INSURER_KINDS);
 export const specialCaseKindEnum = pgEnum("special_case_kind", SPECIAL_CASE_KINDS);
+export const eventStatusEnum = pgEnum("event_status", EVENT_STATUSES);
+export const productEnum = pgEnum("product", PRODUCTS);
+export const opportunityStageEnum = pgEnum("opportunity_stage", OPPORTUNITY_STAGES);
+export const meetingStatusEnum = pgEnum("meeting_status", MEETING_STATUSES);
+export const campaignStatusEnum = pgEnum("campaign_status", CAMPAIGN_STATUSES);
 
 const id = () => uuid("id").primaryKey().defaultRandom();
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
@@ -79,6 +88,8 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: roleEnum("role").notNull().default("analista"),
+  /** Supervisor responsável (define a "equipe" vista pelo papel Supervisor). */
+  supervisorId: uuid("supervisor_id").references((): AnyPgColumn => users.id, { onDelete: "set null" }),
   active: boolean("active").notNull().default(true),
   lastLoginAt: ts("last_login_at"),
   createdAt: createdAt(),
@@ -105,6 +116,7 @@ export const companies = pgTable(
     economicGroup: text("economic_group"),
     segment: text("segment"),
     estimatedLives: integer("estimated_lives"),
+    address: text("address"),
     city: text("city"),
     uf: text("uf"),
     ownerId: uuid("owner_id").references(() => users.id),
@@ -258,6 +270,13 @@ export const quotations = pgTable(
     commissionPct: pct("commission_pct"),
     designChange: boolean("design_change"),
     designChangeDetails: text("design_change_details"),
+    // Perfil do produto desejado
+    accommodation: text("accommodation"),
+    coverageArea: text("coverage_area"),
+    holdersCount: integer("holders_count"),
+    dependentsCount: integer("dependents_count"),
+    desiredStartDate: day("desired_start_date"),
+    clientDeadline: day("client_deadline"),
     // Etapa 3 — contribuição e coparticipação
     employeeContributionType: contributionTypeEnum("employee_contribution_type"),
     employeeContributionValue: numeric("employee_contribution_value", { precision: 14, scale: 2, mode: "number" }),
@@ -603,6 +622,7 @@ export const interactions = pgTable(
     id: id(),
     companyId: uuid("company_id").references(() => companies.id),
     quotationId: uuid("quotation_id").references(() => quotations.id),
+    opportunityId: uuid("opportunity_id").references((): AnyPgColumn => opportunities.id, { onDelete: "cascade" }),
     type: interactionTypeEnum("type").notNull(),
     occurredAt: ts("occurred_at").notNull().defaultNow(),
     userId: uuid("user_id").references(() => users.id),
@@ -615,6 +635,7 @@ export const interactions = pgTable(
   (t) => [
     index("interactions_company_idx").on(t.companyId, t.occurredAt),
     index("interactions_quotation_idx").on(t.quotationId, t.occurredAt),
+    index("interactions_opportunity_idx").on(t.opportunityId, t.occurredAt),
   ],
 );
 
@@ -629,6 +650,9 @@ export const tasks = pgTable(
     insurerId: uuid("insurer_id").references(() => insurers.id),
     quotationInsurerId: uuid("quotation_insurer_id").references(() => quotationInsurers.id, { onDelete: "set null" }),
     renewalId: uuid("renewal_id"),
+    opportunityId: uuid("opportunity_id").references((): AnyPgColumn => opportunities.id, { onDelete: "set null" }),
+    meetingId: uuid("meeting_id").references((): AnyPgColumn => meetings.id, { onDelete: "set null" }),
+    campaignId: uuid("campaign_id").references((): AnyPgColumn => campaigns.id, { onDelete: "set null" }),
     ownerId: uuid("owner_id").references(() => users.id),
     priority: priorityEnum("priority").notNull().default("media"),
     scheduledDate: day("scheduled_date"),
@@ -656,6 +680,7 @@ export const tasks = pgTable(
     index("tasks_owner_status_idx").on(t.ownerId, t.status),
     index("tasks_due_idx").on(t.dueDate),
     index("tasks_quotation_idx").on(t.quotationId),
+    index("tasks_opportunity_idx").on(t.opportunityId),
   ],
 );
 
@@ -665,6 +690,7 @@ export const calendarEvents = pgTable(
     id: id(),
     title: text("title").notNull(),
     type: eventTypeEnum("type").notNull().default("outro"),
+    status: eventStatusEnum("status").notNull().default("agendado"),
     startsAt: ts("starts_at").notNull(),
     endsAt: ts("ends_at"),
     allDay: boolean("all_day").notNull().default(false),
@@ -674,6 +700,12 @@ export const calendarEvents = pgTable(
     quotationId: uuid("quotation_id").references(() => quotations.id),
     insurerId: uuid("insurer_id").references(() => insurers.id),
     taskId: uuid("task_id").references(() => tasks.id, { onDelete: "set null" }),
+    opportunityId: uuid("opportunity_id").references((): AnyPgColumn => opportunities.id, { onDelete: "set null" }),
+    clientName: text("client_name"),
+    advisorName: text("advisor_name"),
+    salesRepName: text("sales_rep_name"),
+    reminderMinutes: integer("reminder_minutes").notNull().default(0),
+    reminderSentAt: ts("reminder_sent_at"),
     ownerId: uuid("owner_id").references(() => users.id),
     externalProvider: text("external_provider"),
     externalId: text("external_id"),
@@ -854,4 +886,157 @@ export const playbookEntries = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex("playbook_entries_uq").on(t.section, t.key)],
+);
+
+// ───────────────────────────── Comercial: CRM, reuniões, campanhas, biblioteca ─────────────────────────────
+
+/** Oportunidade de venda (CRM). Multi-produto: saúde, dental, vida, seguros, consórcio, benefícios. */
+export const opportunities = pgTable(
+  "opportunities",
+  {
+    id: id(),
+    clientName: text("client_name").notNull(),
+    companyId: uuid("company_id").references(() => companies.id, { onDelete: "set null" }),
+    document: text("document"),
+    contactName: text("contact_name"),
+    phone: text("phone"),
+    email: text("email"),
+    product: productEnum("product").notNull().default("plano_saude"),
+    lives: integer("lives"),
+    estimatedValue: money("estimated_value"),
+    currentInsurer: text("current_insurer"),
+    quotedInsurers: jsonb("quoted_insurers").$type<string[]>().notNull().default([]),
+    brokerId: uuid("broker_id").references(() => users.id),
+    advisorName: text("advisor_name"),
+    salesRepName: text("sales_rep_name"),
+    source: text("source").notNull().default("outro"),
+    campaignId: uuid("campaign_id").references((): AnyPgColumn => campaigns.id, { onDelete: "set null" }),
+    stage: opportunityStageEnum("stage").notNull().default("lead_novo"),
+    stageChangedAt: ts("stage_changed_at").notNull().defaultNow(),
+    nextStep: text("next_step"),
+    nextFollowupAt: day("next_followup_at"),
+    lostReason: text("lost_reason"),
+    quotationId: uuid("quotation_id").references(() => quotations.id, { onDelete: "set null" }),
+    closedAt: ts("closed_at"),
+    notes: text("notes"),
+    anonymizedAt: ts("anonymized_at"),
+    createdBy: uuid("created_by").references(() => users.id),
+    updatedBy: uuid("updated_by").references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    deletedAt: deletedAt(),
+  },
+  (t) => [
+    index("opportunities_stage_idx").on(t.stage),
+    index("opportunities_broker_idx").on(t.brokerId),
+    index("opportunities_followup_idx").on(t.nextFollowupAt),
+    index("opportunities_campaign_idx").on(t.campaignId),
+  ],
+);
+
+export const opportunityStageHistory = pgTable(
+  "opportunity_stage_history",
+  {
+    id: id(),
+    opportunityId: uuid("opportunity_id")
+      .notNull()
+      .references(() => opportunities.id, { onDelete: "cascade" }),
+    fromStage: opportunityStageEnum("from_stage"),
+    toStage: opportunityStageEnum("to_stage").notNull(),
+    note: text("note"),
+    userId: uuid("user_id").references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [index("opportunity_stage_history_idx").on(t.opportunityId, t.createdAt)],
+);
+
+/** Ficha de reunião com UM cliente: roteiro de perguntas, ações e ata gerada. */
+export const meetings = pgTable(
+  "meetings",
+  {
+    id: id(),
+    title: text("title").notNull(),
+    opportunityId: uuid("opportunity_id").references(() => opportunities.id, { onDelete: "set null" }),
+    companyId: uuid("company_id").references(() => companies.id, { onDelete: "set null" }),
+    quotationId: uuid("quotation_id").references(() => quotations.id, { onDelete: "set null" }),
+    clientName: text("client_name"),
+    companyName: text("company_name"),
+    advisorName: text("advisor_name"),
+    salesRepName: text("sales_rep_name"),
+    ownerId: uuid("owner_id").references(() => users.id),
+    date: day("date").notNull(),
+    startTime: time("start_time"),
+    endTime: time("end_time"),
+    participants: text("participants"),
+    location: text("location"),
+    objective: text("objective"),
+    summary: text("summary"),
+    status: meetingStatusEnum("status").notNull().default("agendada"),
+    questions: jsonb("questions").$type<MeetingQuestion[]>().notNull().default([]),
+    actions: jsonb("actions").$type<MeetingAction[]>().notNull().default([]),
+    minutes: text("minutes"),
+    followupMessage: text("followup_message"),
+    minutesGeneratedAt: ts("minutes_generated_at"),
+    calendarEventId: uuid("calendar_event_id").references(() => calendarEvents.id, { onDelete: "set null" }),
+    followupTaskId: uuid("followup_task_id"),
+    createdBy: uuid("created_by").references(() => users.id),
+    updatedBy: uuid("updated_by").references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    deletedAt: deletedAt(),
+  },
+  (t) => [index("meetings_date_idx").on(t.date), index("meetings_owner_idx").on(t.ownerId), index("meetings_opportunity_idx").on(t.opportunityId)],
+);
+
+/** Campanhas comerciais do mês, com lembretes automáticos (início, meio, reta final, encerramento). */
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: id(),
+    name: text("name").notNull(),
+    product: productEnum("product").notNull().default("plano_saude"),
+    startDate: day("start_date").notNull(),
+    endDate: day("end_date").notNull(),
+    audience: text("audience"),
+    goal: text("goal"),
+    goalLeads: integer("goal_leads"),
+    goalSales: integer("goal_sales"),
+    goalValue: money("goal_value"),
+    mainMessage: text("main_message"),
+    channels: jsonb("channels").$type<string[]>().notNull().default([]),
+    ownerId: uuid("owner_id").references(() => users.id),
+    responsibles: text("responsibles"),
+    status: campaignStatusEnum("status").notNull().default("planejada"),
+    remindersEnabled: boolean("reminders_enabled").notNull().default(true),
+    results: text("results"),
+    createdBy: uuid("created_by").references(() => users.id),
+    updatedBy: uuid("updated_by").references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    deletedAt: deletedAt(),
+  },
+  (t) => [index("campaigns_period_idx").on(t.startDate, t.endDate)],
+);
+
+/** Biblioteca compartilhada: mensagens prontas (kind=mensagem) e respostas rápidas (kind=resposta). */
+export const libraryItems = pgTable(
+  "library_items",
+  {
+    id: id(),
+    kind: text("kind").notNull(),
+    category: text("category").notNull(),
+    title: text("title").notNull(),
+    channel: text("channel").notNull().default("whatsapp"),
+    subject: text("subject"),
+    body: text("body").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    sourceKey: text("source_key").unique(),
+    createdBy: uuid("created_by").references(() => users.id),
+    updatedBy: uuid("updated_by").references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    deletedAt: deletedAt(),
+  },
+  (t) => [index("library_items_kind_idx").on(t.kind, t.category)],
 );

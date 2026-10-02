@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import Link from "next/link";
+import { LgpdPanel } from "@/components/settings/lgpd-panel";
 import { ChecklistTemplatesAdmin, GeneralSettingsForm, RulesAdmin, TemplatesAdmin, UsersAdmin } from "@/components/settings/settings-forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     canSettings && { key: "automacoes", label: "Automações" },
     canSettings && { key: "templates", label: "Templates" },
     can(user.role, "audit:read") && { key: "auditoria", label: "Auditoria" },
+    can(user.role, "lgpd:manage") && { key: "lgpd", label: "LGPD e backup" },
     { key: "sobre", label: "Sobre / integrações" },
   ].filter(Boolean) as { key: string; label: string }[];
   const tab = tabs.find((t) => t.key === s.tab)?.key ?? tabs[0].key;
@@ -54,6 +56,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       )}
       {tab === "templates" && <TemplatesAdmin templates={await listMessageTemplates()} />}
       {tab === "auditoria" && <AuditTab s={s} />}
+      {tab === "lgpd" && <LgpdPanel />}
       {tab === "sobre" && (
         <Card className="space-y-3 p-4 text-sm">
           <p>

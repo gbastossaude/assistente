@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/misc";
 import { can } from "@/lib/auth/permissions";
 import { DOCUMENT_STATUSES, DOCUMENT_STATUS_LABELS, DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from "@/lib/domain/constants";
 import { sp } from "@/lib/utils";
-import { requireUser } from "@/server/auth";
+import { requirePagePermission } from "@/server/auth";
 import { listDocuments } from "@/server/services/documents";
 import { taskOptions } from "@/server/services/options";
 import { maxUploadBytes } from "@/server/storage";
@@ -15,7 +15,7 @@ import { maxUploadBytes } from "@/server/storage";
 export const metadata = { title: "Documentos" };
 
 export default async function DocumentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const user = await requireUser();
+  const user = await requirePagePermission("operations:read");
   const s = await searchParams;
   const [rows, opts] = await Promise.all([listDocuments({ q: sp(s.q), docType: sp(s.tipo), status: sp(s.status), taskId: sp(s.tarefa) }), taskOptions()]);
   return (

@@ -22,6 +22,9 @@ import { audit } from "../audit";
 import { getRule, getSetting } from "../settings";
 import { storage } from "../storage";
 import { notify } from "../services/notifications";
+import { runCampaignReminders } from "../services/campaigns";
+import { opportunities } from "../db/schema";
+import { OPEN_STAGES } from "@/lib/domain/commercial";
 import { syncPendencies } from "../services/pendencies";
 
 const OPEN_TASK = ["a_fazer", "em_andamento", "aguardando_terceiro"] as const;
@@ -363,6 +366,43 @@ export async function runSweep(now = new Date()): Promise<SweepReport> {
       report.remindersSent++;
     }
   }
+
+  // 5b) Lembretes de compromissos da agenda (X minutos antes)
+  const evts = await db
+    .select()
+    .from(calendarEvents)
+    .where(
+      and(
+        isNull(calendarEvents.deletedAt),
+        eq(calendarEvents.status, "agendado"),
+        sql`${calendarEvents.reminderMinutes} > 0`,
+        isNull(calendarEvents.reminderSentAt),
+        sql`${calendarEvents.startsAt} - make_interval(mins => ${calendarEvents.reminderMinutes}) <= ${now}`,
+        sql`${calendarEvents.startsAt} > ${now}`,
+      ),
+    );
+  for (const e of evts) {
+    if (e.ownerId) {
+      const hhmm = new Intl.DateTimeFormat("pt-BR", { timeZone: process.env.APP_TIMEZONE || "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(e.startsAt);
+      await notify({ userId: e.ownerId, kind: "lembrete", title: `Compromisso às ${hhmm}: ${e.title}`, body: e.location ?? null, link: `/agenda?view=dia&data=${todayISO(e.startsAt)}`, dedupeKey: `evrem:${e.id}:${e.startsAt.toISOString()}` });
+    }
+    await db.update(calendarEvents).set({ reminderSentAt: now }).where(eq(calendarEvents.id, e.id));
+    report.remindersSent++;
+  }
+
+  // 5c) Follow-ups de oportunidades (CRM) atrasados
+  const oppFus = await db
+    .select()
+    .from(opportunities)
+    .where(and(isNull(opportunities.deletedAt), inArray(opportunities.stage, OPEN_STAGES), sql`${opportunities.nextFollowupAt} < ${today}`));
+  for (const o of oppFus) {
+    if (!o.brokerId) continue;
+    await count({ userId: o.brokerId, kind: "followup", title: `Follow-up atrasado: ${o.clientName}`, body: o.nextStep ?? null, link: `/crm/${o.id}`, dedupeKey: `oppfu:${o.id}:${o.nextFollowupAt}` });
+  }
+
+  // 5d) Campanhas: ativação automática e lembretes por marco
+  const camp = await runCampaignReminders(today);
+  report.notifications += camp.sent;
 
   // 6) Janelas de renovação (120/90/60/30)
   const rens = await db

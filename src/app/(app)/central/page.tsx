@@ -8,6 +8,7 @@ import { can } from "@/lib/auth/permissions";
 import { EVENT_TYPE_LABELS } from "@/lib/domain/constants";
 import { addDays, formatDateBR, formatDateTimeBR, todayISO } from "@/lib/domain/dates";
 import { requireUser } from "@/server/auth";
+import { getScope } from "@/server/scope";
 import { listAgenda, localToUtc } from "@/server/services/calendar";
 import { listNotifications } from "@/server/services/notifications";
 import { taskOptions } from "@/server/services/options";
@@ -26,7 +27,7 @@ export default async function MyCentralPage() {
     listPendencies({ ownerId: user.id }),
     listNotifications(user.id, 15),
     listAgenda(localToUtc(today, "00:00"), localToUtc(addDays(today, 7), "00:00"), { ownerId: user.id }),
-    taskOptions(),
+    taskOptions(await getScope(user)),
   ]);
   return (
     <>

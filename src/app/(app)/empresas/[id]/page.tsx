@@ -11,10 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState, KeyValue, PageHeader, Table, TabLinks, Td, Th } from "@/components/ui/misc";
 import { QuotationStatusBadge, RenewalStatusBadge } from "@/components/ui/status";
 import { can } from "@/lib/auth/permissions";
+import { inScope } from "@/lib/auth/scope";
 import { formatCnpj } from "@/lib/domain/cnpj";
 import { formatDateBR, relativeDays } from "@/lib/domain/dates";
 import { formatNumber } from "@/lib/utils";
 import { requireUser } from "@/server/auth";
+import { getScope } from "@/server/scope";
 import { getCompanyDetail } from "@/server/services/companies";
 import { insurerOptions } from "@/server/services/insurers";
 import { listTimeline } from "@/server/services/interactions";
@@ -27,7 +29,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   const { tab: rawTab } = await searchParams;
   const tab = (TABS as readonly string[]).includes(rawTab ?? "") ? rawTab! : "visao";
   const d = await getCompanyDetail(id);
-  if (!d) notFound();
+  if (!d || !inScope(await getScope(user), d.c.ownerId)) notFound();
   const c = d.c;
   const canWrite = can(user.role, "company:write") && !c.deletedAt;
   const [timeline, insurers] = await Promise.all([tab === "timeline" || tab === "visao" ? listTimeline({ companyId: id, limit: tab === "visao" ? 8 : 300 }) : [], tab === "contratos" ? insurerOptions() : []]);
@@ -97,6 +99,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
                   { label: "Segmento", value: c.segment },
                   { label: "Vidas estimadas", value: formatNumber(c.estimatedLives) },
                   { label: "Vidas em contratos atuais", value: formatNumber(totalLives) },
+                  { label: "Endereço", value: c.address },
                   { label: "Local", value: [c.city, c.uf].filter(Boolean).join("/") || null },
                   { label: "Executivo responsável", value: d.ownerName },
                   { label: "Origem", value: c.origin },

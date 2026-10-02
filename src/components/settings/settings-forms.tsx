@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/inputs";
 import { useAction } from "@/components/ui/use-action";
-import { ROLES, ROLE_LABELS, type Role } from "@/lib/domain/constants";
+import { ROLES, ROLE_LABELS, ROLE_DESCRIPTIONS, type Role } from "@/lib/domain/constants";
 import { CHECKLIST_CATEGORIES, CHECKLIST_CATEGORY_LABELS } from "@/lib/domain/checklist-catalog";
 import { PLACEHOLDERS } from "@/lib/domain/messages";
 import type { AgeBand } from "@/lib/domain/age";
@@ -16,17 +16,21 @@ import { formatDateTimeBR } from "@/lib/domain/dates";
 import { runSweepAction, saveAgeBandsAction, saveChecklistTemplateAction, saveGeneralSettingsAction, saveRuleAction, saveTemplateAction, saveUserAction } from "@/server/actions/admin";
 
 // ─── Usuários ───
-export function UsersAdmin({ users, currentUserId }: { users: { id: string; name: string; email: string; role: Role; active: boolean; lastLoginAt: Date | null }[]; currentUserId: string }) {
+export function UsersAdmin({ users, currentUserId }: { users: { id: string; name: string; email: string; role: Role; active: boolean; lastLoginAt: Date | null; supervisorId: string | null }[]; currentUserId: string }) {
   const { run, pending, fieldErrors } = useAction();
-  const [edit, setEdit] = useState<{ id?: string; name: string; email: string; role: Role; active: boolean; password: string } | null>(null);
+  const [edit, setEdit] = useState<{ id?: string; name: string; email: string; role: Role; active: boolean; password: string; supervisorId: string } | null>(null);
+  const supervisors = users.filter((u) => u.role === "supervisor" && u.active);
+  const nameOf = (id: string | null) => users.find((u) => u.id === id)?.name ?? null;
   return (
     <Card>
       <CardHeader>
         <div>
           <CardTitle>Usuários e papéis</CardTitle>
-          <CardDescription>Administrador · Head · Analista · Comercial · Somente leitura. Comercial e leitura não veem dados de saúde.</CardDescription>
+          <CardDescription>
+            Hierarquia: Administrador vê tudo · Head/Gerente vê toda a operação · Supervisor vê a própria equipe · Corretor vê apenas a própria carteira · Assistente apoia na operação. Apenas Administrador, Head e Analista veem dados de saúde.
+          </CardDescription>
         </div>
-        <Button size="sm" onClick={() => setEdit({ name: "", email: "", role: "analista", active: true, password: "" })}>
+        <Button size="sm" onClick={() => setEdit({ name: "", email: "", role: "corretor", active: true, password: "", supervisorId: "" })}>
           <Plus /> Novo usuário
         </Button>
       </CardHeader>
@@ -37,6 +41,7 @@ export function UsersAdmin({ users, currentUserId }: { users: { id: string; name
               <th className="px-4 py-2">Nome</th>
               <th className="px-4 py-2">E-mail</th>
               <th className="px-4 py-2">Papel</th>
+              <th className="px-4 py-2">Supervisor</th>
               <th className="px-4 py-2">Último acesso</th>
               <th className="px-4 py-2" />
             </tr>
@@ -49,9 +54,10 @@ export function UsersAdmin({ users, currentUserId }: { users: { id: string; name
                 </td>
                 <td className="px-4 py-2">{u.email}</td>
                 <td className="px-4 py-2">{ROLE_LABELS[u.role]}</td>
+                <td className="px-4 py-2 text-xs">{nameOf(u.supervisorId) ?? "—"}</td>
                 <td className="px-4 py-2 text-xs text-muted">{u.lastLoginAt ? formatDateTimeBR(u.lastLoginAt) : "—"}</td>
                 <td className="px-4 py-2 text-right">
-                  <Button size="icon-sm" variant="ghost" aria-label="Editar" onClick={() => setEdit({ ...u, password: "" })}>
+                  <Button size="icon-sm" variant="ghost" aria-label="Editar" onClick={() => setEdit({ ...u, password: "", supervisorId: u.supervisorId ?? "" })}>
                     <Pencil />
                   </Button>
                 </td>
@@ -79,6 +85,19 @@ export function UsersAdmin({ users, currentUserId }: { users: { id: string; name
                   ))}
                 </Select>
               </Field>
+              <Field label="Supervisor" error={fieldErrors.supervisorId} hint="Define a equipe vista pelo Supervisor">
+                <Select value={edit.supervisorId} onChange={(e) => setEdit({ ...edit, supervisorId: e.target.value })} disabled={edit.role === "supervisor" || edit.role === "admin" || edit.role === "head"}>
+                  <option value="">—</option>
+                  {supervisors
+                    .filter((sv) => sv.id !== edit.id)
+                    .map((sv) => (
+                      <option key={sv.id} value={sv.id}>
+                        {sv.name}
+                      </option>
+                    ))}
+                </Select>
+              </Field>
+              <p className="text-xs text-muted sm:col-span-2">{ROLE_DESCRIPTIONS[edit.role]}</p>
               <Field label={edit.id ? "Nova senha (opcional)" : "Senha inicial"} error={fieldErrors.password} hint="Mínimo de 10 caracteres">
                 <Input type="password" autoComplete="new-password" value={edit.password} onChange={(e) => setEdit({ ...edit, password: e.target.value })} />
               </Field>
@@ -91,7 +110,7 @@ export function UsersAdmin({ users, currentUserId }: { users: { id: string; name
             <Button
               loading={pending}
               onClick={async () => {
-                const r = await run(() => saveUserAction(edit));
+                const r = await run(() => saveUserAction({ ...edit, supervisorId: ["supervisor", "admin", "head"].includes(edit!.role) ? "" : edit!.supervisorId }));
                 if (r.ok) setEdit(null);
               }}
             >

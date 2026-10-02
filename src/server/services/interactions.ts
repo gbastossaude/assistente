@@ -51,7 +51,7 @@ export async function registerInteraction(input: z.output<typeof interactionSche
   return id;
 }
 
-export async function listTimeline(f: { companyId?: string | null; quotationId?: string | null; types?: InteractionType[] | null; limit?: number }) {
+export async function listTimeline(f: { companyId?: string | null; quotationId?: string | null; types?: InteractionType[] | null; limit?: number; userIds?: string[] | null }) {
   return db
     .select({
       i: interactions,
@@ -68,6 +68,7 @@ export async function listTimeline(f: { companyId?: string | null; quotationId?:
         f.companyId ? eq(interactions.companyId, f.companyId) : undefined,
         f.quotationId ? eq(interactions.quotationId, f.quotationId) : undefined,
         f.types?.length ? inArray(interactions.type, f.types) : undefined,
+        f.userIds ? (f.userIds.length ? inArray(interactions.userId, f.userIds) : sql`false`) : undefined,
       ),
     )
     .orderBy(desc(interactions.occurredAt))

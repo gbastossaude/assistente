@@ -13,6 +13,7 @@ import {
 import { reqCnpj } from "@/lib/validation/fields";
 import { and, eq } from "drizzle-orm";
 import { parseInput, runAction } from "../action-utils";
+import { effectiveOwner, guardChecklistItem, guardCompany, guardQuotation, guardSpecialEntry } from "../access";
 import { audit } from "../audit";
 import { db } from "../db";
 import { quotationChecklistItems } from "../db/schema";
@@ -26,25 +27,37 @@ import { applyTemplateToQuotation } from "../services/admin";
 import { generateMessage } from "../services/messages";
 
 export async function createQuotationAction(input: unknown) {
-  return runAction("quotation:write", async (u) => (await createQuotation(parseInput(quotationStep1Schema, input), u)).id, { message: "Cotação aberta — checklist gerado" });
+  return runAction("quotation:write", async (u) => {
+    const d = parseInput(quotationStep1Schema, input);
+    await guardCompany(u, d.companyId);
+    return (await createQuotation({ ...d, ownerId: await effectiveOwner(u, d.ownerId) }, u)).id;
+  }, { message: "Cotação aberta — checklist gerado" });
 }
 export async function updateStep2Action(id: string, input: unknown) {
-  return runAction("quotation:write", (u) => updateQuotationStep2(id, parseInput(quotationStep2Schema, input), u), { message: "Contrato atual salvo" });
+  return runAction("quotation:write", async (u) => (await guardQuotation(u, id), updateQuotationStep2(id, parseInput(quotationStep2Schema, input), u)), { message: "Contrato atual salvo" });
 }
 export async function updateStep3Action(id: string, input: unknown) {
-  return runAction("quotation:write", (u) => updateQuotationStep3(id, parseInput(quotationStep3Schema, input), u), { message: "Contribuição e coparticipação salvas" });
+  return runAction("quotation:write", async (u) => (await guardQuotation(u, id), updateQuotationStep3(id, parseInput(quotationStep3Schema, input), u)), { message: "Contribuição e coparticipação salvas" });
 }
 export async function updateHeaderAction(id: string, input: unknown) {
-  return runAction("quotation:write", (u) => updateQuotationHeader(id, parseInput(quotationHeaderSchema, input), u), { message: "Cotação atualizada" });
+  return runAction("quotation:write", async (u) => {
+    await guardQuotation(u, id);
+    const d = parseInput(quotationHeaderSchema, input);
+    return updateQuotationHeader(id, { ...d, ownerId: await effectiveOwner(u, d.ownerId) }, u);
+  }, { message: "Cotação atualizada" });
 }
 export async function setCnpjsAction(id: string, cnpjs: unknown) {
-  return runAction("quotation:write", (u) => setQuotationCnpjs(id, parseInput(z.array(reqCnpj()).max(200), cnpjs), u), { message: "CNPJs atualizados" });
+  return runAction("quotation:write", async (u) => (await guardQuotation(u, id), setQuotationCnpjs(id, parseInput(z.array(reqCnpj()).max(200), cnpjs), u)), { message: "CNPJs atualizados" });
 }
 export async function changeStatusAction(input: unknown) {
-  return runAction("quotation:write", (u) => changeQuotationStatus(parseInput(statusChangeSchema, input), u), { message: "Status atualizado" });
+  return runAction("quotation:write", async (u) => {
+    const d = parseInput(statusChangeSchema, input);
+    await guardQuotation(u, d.quotationId);
+    return changeQuotationStatus(d, u);
+  }, { message: "Status atualizado" });
 }
 export async function deleteQuotationAction(id: string) {
-  return runAction("delete", (u) => softDeleteQuotation(id, u), { message: "Cotação excluída" });
+  return runAction("delete", async (u) => (await guardQuotation(u, id), softDeleteQuotation(id, u)), { message: "Cotação excluída" });
 }
 
 export async function updateChecklistItemAction(input: unknown) {
@@ -52,6 +65,7 @@ export async function updateChecklistItemAction(input: unknown) {
     "quotation:write",
     async (u) => {
       const d = parseInput(checklistItemUpdateSchema, input);
+      await guardChecklistItem(u, d.id);
       const [item] = await db.select().from(quotationChecklistItems).where(eq(quotationChecklistItems.id, d.id));
       if (!item) throw new NotFoundError("Item");
       await db.transaction(async (tx) => {
@@ -85,6 +99,7 @@ export async function markRequestedAction(quotationId: string) {
   return runAction(
     "quotation:write",
     async (u) => {
+      await guardQuotation(u, quotationId);
       const now = new Date();
       const rows = await db
         .update(quotationChecklistItems)
@@ -99,31 +114,41 @@ export async function markRequestedAction(quotationId: string) {
 }
 
 export async function applyTemplateAction(quotationId: string) {
-  return runAction("quotation:write", (u) => applyTemplateToQuotation(quotationId, u), { message: "Modelo de checklist reaplicado" });
+  return runAction("quotation:write", async (u) => (await guardQuotation(u, quotationId), applyTemplateToQuotation(quotationId, u)), { message: "Modelo de checklist reaplicado" });
 }
 
 export async function saveSpecialSummaryAction(input: unknown) {
-  return runAction("quotation:write", (u) => saveSpecialSummary(parseInput(specialCaseSummarySchema, input), u), { message: "Situação especial salva" });
+  return runAction("quotation:write", async (u) => {
+    const d = parseInput(specialCaseSummarySchema, input);
+    await guardQuotation(u, d.quotationId);
+    return saveSpecialSummary(d, u);
+  }, { message: "Situação especial salva" });
 }
 export async function declareRemainingNoAction(quotationId: string) {
-  return runAction("quotation:write", (u) => declareRemainingAsNo(quotationId, u), { message: "Demais situações declaradas como Não" });
+  return runAction("quotation:write", async (u) => (await guardQuotation(u, quotationId), declareRemainingAsNo(quotationId, u)), { message: "Demais situações declaradas como Não" });
 }
 const entryInput = z.object({ id: z.string().uuid().nullable().optional(), quotationId: z.string().uuid(), kind: z.enum(SPECIAL_CASE_KINDS), data: z.record(z.string(), z.unknown()) });
 export async function saveSpecialEntryAction(input: unknown) {
-  return runAction("quotation:write", (u) => saveSpecialEntry(parseInput(entryInput, input), u), { message: "Registro salvo" });
+  return runAction("quotation:write", async (u) => {
+    const d = parseInput(entryInput, input);
+    await guardQuotation(u, d.quotationId);
+    if (d.id) await guardSpecialEntry(u, d.id);
+    return saveSpecialEntry(d, u);
+  }, { message: "Registro salvo" });
 }
 export async function deleteSpecialEntryAction(id: string) {
-  return runAction("quotation:write", (u) => deleteSpecialEntry(id, u), { message: "Registro removido" });
+  return runAction("quotation:write", async (u) => (await guardSpecialEntry(u, id), deleteSpecialEntry(id, u)), { message: "Registro removido" });
 }
 
 export async function generateMessageAction(input: { quotationId: string; templateKey: string; quotationInsurerId?: string | null; includeOptional?: boolean }) {
-  return runAction("read", (u) => generateMessage(input, u.name), { revalidate: [] });
+  return runAction("read", async (u) => (await guardQuotation(u, input.quotationId), generateMessage(input, u.name)), { revalidate: [] });
 }
 
 export async function logMessageSentAction(input: { quotationId: string; channel: string; summary: string }) {
   return runAction(
     "read",
     async (u) => {
+      await guardQuotation(u, input.quotationId);
       await addTimeline({ type: input.channel === "whatsapp" ? "whatsapp" : "email", description: `Mensagem preparada/enviada pelo usuário: ${input.summary.slice(0, 300)}`, userId: u.id, quotationId: input.quotationId });
     },
     { message: "Registrado na timeline" },

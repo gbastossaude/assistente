@@ -5,14 +5,14 @@ import { PageHeader } from "@/components/ui/misc";
 import { can } from "@/lib/auth/permissions";
 import { PENDENCY_CATEGORIES, type PendencyCategory } from "@/lib/domain/constants";
 import { sp } from "@/lib/utils";
-import { requireUser } from "@/server/auth";
+import { requirePagePermission } from "@/server/auth";
 import { taskOptions } from "@/server/services/options";
 import { listPendencies } from "@/server/services/pendencies";
 
 export const metadata = { title: "Pendências" };
 
 export default async function PendenciesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const user = await requireUser();
+  const user = await requirePagePermission("operations:read");
   const s = await searchParams;
   const category = PENDENCY_CATEGORIES.includes(s.categoria as PendencyCategory) ? (s.categoria as PendencyCategory) : null;
   const status = (sp(s.status) as "abertas" | "todas" | "resolvidas" | null) ?? "abertas";

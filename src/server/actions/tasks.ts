@@ -3,24 +3,33 @@ import { z } from "zod";
 import { TASK_STATUSES } from "@/lib/domain/constants";
 import { completeTaskSchema, taskSchema } from "@/lib/validation/schemas";
 import { parseInput, runAction } from "../action-utils";
+import { effectiveOwner, guardCompany, guardQuotation, guardTask } from "../access";
 import { completeTask, createTask, setTaskStatus, softDeleteTask, toggleTaskChecklistItem, updateTask } from "../services/tasks";
 
 export async function saveTaskAction(id: string | null, input: unknown) {
   return runAction("task:write", async (u) => {
-    const data = parseInput(taskSchema, input);
+    const parsed = parseInput(taskSchema, input);
+    if (id) await guardTask(u, id);
+    await guardQuotation(u, parsed.quotationId);
+    await guardCompany(u, parsed.companyId);
+    const data = { ...parsed, ownerId: await effectiveOwner(u, parsed.ownerId) };
     if (id) await updateTask(id, data, u);
     else await createTask(data, u);
   }, { message: id ? "Tarefa atualizada" : "Tarefa criada" });
 }
 export async function completeTaskAction(input: unknown) {
-  return runAction("task:write", (u) => completeTask(parseInput(completeTaskSchema, input), u), { message: "Tarefa concluída" });
+  return runAction("task:write", async (u) => {
+    const d = parseInput(completeTaskSchema, input);
+    await guardTask(u, d.id);
+    return completeTask({ ...d, nextActionOwnerId: d.nextActionOwnerId ? await effectiveOwner(u, d.nextActionOwnerId) : null }, u);
+  }, { message: "Tarefa concluída" });
 }
 export async function setTaskStatusAction(id: string, status: unknown) {
-  return runAction("task:write", (u) => setTaskStatus(id, parseInput(z.enum(TASK_STATUSES), status), u), { message: "Status atualizado" });
+  return runAction("task:write", async (u) => (await guardTask(u, id), setTaskStatus(id, parseInput(z.enum(TASK_STATUSES), status), u)), { message: "Status atualizado" });
 }
 export async function toggleTaskChecklistAction(id: string, index: number) {
-  return runAction("task:write", (u) => toggleTaskChecklistItem(id, index, u), {});
+  return runAction("task:write", async (u) => (await guardTask(u, id), toggleTaskChecklistItem(id, index, u)), {});
 }
 export async function deleteTaskAction(id: string) {
-  return runAction("task:write", (u) => softDeleteTask(id, u), { message: "Tarefa excluída" });
+  return runAction("task:write", async (u) => (await guardTask(u, id), softDeleteTask(id, u)), { message: "Tarefa excluída" });
 }

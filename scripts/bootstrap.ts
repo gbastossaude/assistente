@@ -1,6 +1,7 @@
 /**
  * Bootstrap (seguro para produção, idempotente): parâmetros padrão, modelos de checklist NEW/RENEW,
- * templates de mensagens, regras de automação, catálogo de operadoras e o primeiro administrador
+ * templates de mensagens, regras de automação, catálogo de operadoras, biblioteca (mensagens prontas e
+ * respostas rápidas) e o primeiro administrador
  * (ADMIN_EMAIL/ADMIN_PASSWORD/ADMIN_NAME) quando não houver usuários. Não cria dados de clientes.
  */
 import "dotenv/config";
@@ -12,6 +13,7 @@ import { pgConfig } from "../src/server/db/pg-config";
 import { CHECKLIST_CATALOG } from "../src/lib/domain/checklist-catalog";
 import { DEFAULT_TEMPLATES } from "../src/lib/domain/messages";
 import { PLAYBOOK_DEFAULTS } from "../src/lib/playbook/content";
+import { LIBRARY_DEFAULTS } from "../src/lib/domain/library-content";
 import { AUTOMATION_RULES, DEFAULT_SETTINGS } from "../src/lib/domain/settings-defaults";
 import * as schema from "../src/server/db/schema";
 
@@ -80,6 +82,16 @@ export async function bootstrap(url = process.env.DATABASE_URL) {
 
   // Playbook Estratégico (conteúdo padrão; não sobrescreve edições feitas no sistema)
   for (const p of PLAYBOOK_DEFAULTS) await db.insert(schema.playbookEntries).values(p).onConflictDoNothing();
+
+  // Biblioteca: mensagens prontas e respostas rápidas (não sobrescreve edições feitas no sistema)
+  let libOrder = 0;
+  for (const item of LIBRARY_DEFAULTS) {
+    libOrder += 10;
+    await db
+      .insert(schema.libraryItems)
+      .values({ sourceKey: item.sourceKey, kind: item.kind, category: item.category, title: item.title, channel: item.channel, subject: item.subject ?? null, body: item.body, sortOrder: libOrder })
+      .onConflictDoNothing();
+  }
 
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.users);
   if (n === 0) {

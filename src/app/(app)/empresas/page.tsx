@@ -11,6 +11,7 @@ import { UFS } from "@/lib/domain/constants";
 import { formatDateBR } from "@/lib/domain/dates";
 import { formatNumber, sp } from "@/lib/utils";
 import { requireUser } from "@/server/auth";
+import { getScope } from "@/server/scope";
 import { listCompanies } from "@/server/services/companies";
 import { userOptions } from "@/server/services/users";
 import { RestoreCompanyButton } from "@/components/companies/restore-button";
@@ -19,9 +20,10 @@ export const metadata = { title: "Empresas" };
 
 export default async function CompaniesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireUser();
+  const scope = await getScope(user);
   const s = await searchParams;
   const filters = { q: sp(s.q), ownerId: sp(s.owner), uf: sp(s.uf), kind: sp(s.kind) as "cliente" | "prospect" | null, deleted: s.excluidas === "1" };
-  const [rows, users] = await Promise.all([listCompanies(filters), userOptions()]);
+  const [rows, users] = await Promise.all([listCompanies({ ...filters, ownerIds: scope.all ? null : scope.ownerIds }), userOptions(scope)]);
   return (
     <>
       <PageHeader

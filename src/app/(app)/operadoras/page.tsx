@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/inputs";
 import { PageHeader, Table, Td, Th } from "@/components/ui/misc";
 import { can } from "@/lib/auth/permissions";
 import { sp } from "@/lib/utils";
-import { requireUser } from "@/server/auth";
+import { requirePagePermission } from "@/server/auth";
 import { listInsurers } from "@/server/services/insurers";
 
 export const metadata = { title: "Operadoras" };
 
 export default async function InsurersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const user = await requireUser();
+  const user = await requirePagePermission("operations:read");
   const rows = await listInsurers({ q: sp((await searchParams).q), includeInactive: true });
   return (
     <>

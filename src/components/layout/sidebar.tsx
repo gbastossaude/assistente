@@ -10,14 +10,19 @@ import {
   FileText,
   Home,
   KanbanSquare,
+  Megaphone,
   Menu,
+  MessageSquareText,
   RefreshCw,
   Settings,
   ShieldCheck,
   Sparkles,
   Star,
+  Target,
   UserCircle,
+  Users,
   X,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -41,9 +46,14 @@ const ICONS = {
   sparkles: Sparkles,
   settings: Settings,
   book: BookOpen,
+  target: Target,
+  megaphone: Megaphone,
+  message: MessageSquareText,
+  zap: Zap,
+  users: Users,
 } as const;
 
-export function Sidebar({ items, badges }: { items: { href: string; label: string; icon: string }[]; badges: Record<string, number> }) {
+export function Sidebar({ items, badges }: { items: { href: string; label: string; icon: string; section?: string }[]; badges: Record<string, number> }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [pathname]);
@@ -55,8 +65,9 @@ export function Sidebar({ items, badges }: { items: { href: string; label: strin
         const active = it.href === "/" ? pathname === "/" : pathname === it.href || pathname.startsWith(`${it.href}/`);
         const badge = badges[it.href];
         return (
+          <div key={it.href}>
+          {it.section && <p className="mt-3 px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/70 first:mt-0">{it.section}</p>}
           <Link
-            key={it.href}
             href={it.href}
             aria-current={active ? "page" : undefined}
             className={cn(
@@ -68,6 +79,7 @@ export function Sidebar({ items, badges }: { items: { href: string; label: strin
             <span className="truncate">{it.label}</span>
             {badge ? <span className="ml-auto rounded-full bg-red-500 px-1.5 text-[10px] font-semibold text-white">{badge > 99 ? "99+" : badge}</span> : null}
           </Link>
+          </div>
         );
       })}
     </nav>

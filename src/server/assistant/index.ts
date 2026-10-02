@@ -9,15 +9,21 @@ import { db } from "../db";
 import { assistantActions, assistantMessages, tasks } from "../db/schema";
 import { BusinessError, logTechnicalError } from "../errors";
 import { addTimeline } from "../timeline";
-import { runTool, TOOLS } from "./tools";
+import { saveCampaign } from "../services/campaigns";
+import { campaignSchema } from "@/lib/validation/schemas";
+import { can } from "@/lib/auth/permissions";
+import { runTool, toolsFor } from "./tools";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
 const MAX_TOOL_ROUNDS = 6;
 
-const SYSTEM = `Você é o assistente operacional do Head de Planos de Saúde da BeSmart (corretora). Responda em português do Brasil, de forma objetiva e executiva.
+const SYSTEM = `Você é o assistente comercial e operacional do Head de Planos de Saúde da BeSmart (corretora) e da equipe — uma "equipe digital" de agenda, tarefas, cotações, reuniões, follow-up, campanhas, mensagens, respostas rápidas e relatórios. Responda em português do Brasil, de forma objetiva e executiva.
 Regras obrigatórias:
 - Use SOMENTE dados obtidos pelas ferramentas. Nunca invente empresas, números, datas, status ou documentos. Se a informação não existir no sistema, diga claramente que está pendente/ausente.
 - Para perguntas sobre cotações, pendências, renovações, operadoras, histórico ou agenda, consulte a ferramenta adequada antes de responder.
+- Para vendas/leads/clientes do CRM use listar_oportunidades, resumo_oportunidade (próximos passos) e mensagem_followup_cliente; para reuniões, resumir_reuniao e roteiro_reuniao; para documentos, checklist_documentos; para resumos, resumo_diario, resumo_semanal e relatorio_vendas.
+- Campanhas só podem ser PROPOSTAS (propor_campanha); a criação depende de confirmação do usuário na interface.
+- Em dúvidas sobre planos de saúde, lembre que as condições variam conforme operadora, contrato, região e análise.
 - Para dúvidas de regras de produto (carência, vigência, reajuste, coparticipação, acomodação, modalidades PME/Adesão/PF/PJ +99) ou de abordagem comercial (qualificação, SPIN, ganchos, objeções, cadência de follow-up), use consultar_playbook e responda com base no texto retornado, citando que é o Playbook Be Smart e que regras de operadora devem ser confirmadas.
 - Você não altera dados diretamente. Ações em lote só podem ser PROPOSTAS pela ferramenta de proposta; deixe claro que o usuário precisa confirmar na interface e liste exatamente os registros afetados.
 - Mensagens de e-mail/WhatsApp são geradas como texto para o usuário revisar e enviar; nunca afirme que algo foi enviado.
@@ -54,7 +60,7 @@ async function claudeAnswer(text: string, user: CurrentUser): Promise<AssistantR
   while (messages.length && messages[0].role !== "user") messages.shift();
   if (!messages.length || messages[messages.length - 1].content !== text) messages.push({ role: "user", content: text });
 
-  const tools: Anthropic.Beta.BetaTool[] = TOOLS.map((t) => ({
+  const tools: Anthropic.Beta.BetaTool[] = toolsFor(user).map((t) => ({
     name: t.name,
     description: t.description,
     input_schema: t.jsonSchema as Anthropic.Beta.BetaTool.InputSchema,
@@ -159,6 +165,14 @@ export async function decideAction(actionId: string, confirm: boolean, user: Cur
     await db.update(assistantActions).set({ status: "recusada", decidedAt: new Date() }).where(eq(assistantActions.id, actionId));
     await audit({ userId: user.id, action: "assistant_action", entityType: "assistant_action", entityId: actionId, summary: `Ação do assistente recusada: ${a.description}` });
     return { created: 0 };
+  }
+  if (a.kind === "create_campaign") {
+    if (!can(user.role, "campaign:write")) throw new BusinessError("Seu perfil não permite criar campanhas.");
+    const data = campaignSchema.parse({ ...(a.payload.campaign as Record<string, unknown>), status: "planejada", remindersEnabled: true, ownerId: user.id });
+    const id = await saveCampaign(null, data, user);
+    await db.update(assistantActions).set({ status: "executada", decidedAt: new Date(), result: { campaignId: id } }).where(eq(assistantActions.id, actionId));
+    await audit({ userId: user.id, action: "assistant_action", entityType: "assistant_action", entityId: actionId, summary: `Campanha criada via assistente: ${data.name}`, changes: { campaignId: id } });
+    return { created: 1, campaignId: id };
   }
   if (a.kind !== "create_tasks") throw new BusinessError("Tipo de ação não suportado.");
   const items = (a.payload.items as TaskItem[]) ?? [];

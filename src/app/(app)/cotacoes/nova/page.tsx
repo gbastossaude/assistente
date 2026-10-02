@@ -7,6 +7,7 @@ import { requirePermission } from "@/server/auth";
 import { db } from "@/server/db";
 import { companies, companyCnpjs, currentContracts } from "@/server/db/schema";
 import { userOptions } from "@/server/services/users";
+import { getScope, ownerCond } from "@/server/scope";
 
 export const metadata = { title: "Nova cotação" };
 
@@ -14,18 +15,19 @@ export default async function NewQuotationPage({ searchParams }: { searchParams:
   const user = await requirePermission("quotation:write");
   const { empresa } = await searchParams;
   const today = todayISO();
+  const scope = await getScope(user);
   const [cos, cnpjs, anniversaries, users] = await Promise.all([
     db
       .select({ id: companies.id, name: sql<string>`coalesce(${companies.tradeName}, ${companies.legalName})`, legalName: companies.legalName, estimatedLives: companies.estimatedLives })
       .from(companies)
-      .where(isNull(companies.deletedAt))
+      .where(and(isNull(companies.deletedAt), ownerCond(scope, companies.ownerId)))
       .orderBy(companies.legalName),
     db.select({ companyId: companyCnpjs.companyId, cnpj: companyCnpjs.cnpj }).from(companyCnpjs),
     db
       .select({ companyId: currentContracts.companyId, date: currentContracts.anniversaryDate })
       .from(currentContracts)
       .where(and(isNull(currentContracts.deletedAt), eq(currentContracts.active, true))),
-    userOptions(),
+    userOptions(scope),
   ]);
   const options = cos.map((c) => {
     const dates = anniversaries.filter((a) => a.companyId === c.id && a.date).map((a) => nextAnniversary(a.date!, today)).sort();

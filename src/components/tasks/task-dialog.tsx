@@ -17,6 +17,9 @@ export interface TaskFormValue {
   companyId: string;
   quotationId: string;
   insurerId: string;
+  opportunityId: string;
+  meetingId: string;
+  campaignId: string;
   ownerId: string;
   priority: string;
   scheduledDate: string;
@@ -45,6 +48,9 @@ export function blankTask(over: Partial<TaskFormValue> = {}): TaskFormValue {
     companyId: "",
     quotationId: "",
     insurerId: "",
+    opportunityId: "",
+    meetingId: "",
+    campaignId: "",
     ownerId: "",
     priority: "media",
     scheduledDate: "",

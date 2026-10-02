@@ -4,7 +4,7 @@ import type { InteractionType } from "@/lib/domain/constants";
 import { db, type DbOrTx } from "./db";
 import { interactions, quotations } from "./db/schema";
 
-/** Registra um evento na timeline única (empresa e/ou cotação) e atualiza a "última movimentação". */
+/** Registra um evento na timeline única (empresa, cotação e/ou oportunidade) e atualiza a "última movimentação". */
 export async function addTimeline(
   e: {
     type: InteractionType;
@@ -12,6 +12,7 @@ export async function addTimeline(
     userId: string | null;
     companyId?: string | null;
     quotationId?: string | null;
+    opportunityId?: string | null;
     nextAction?: string | null;
     nextActionAt?: string | null;
     metadata?: Record<string, unknown>;
@@ -32,6 +33,7 @@ export async function addTimeline(
       userId: e.userId,
       companyId,
       quotationId: e.quotationId ?? null,
+      opportunityId: e.opportunityId ?? null,
       nextAction: e.nextAction ?? null,
       nextActionAt: e.nextActionAt ?? null,
       metadata: e.metadata ?? {},

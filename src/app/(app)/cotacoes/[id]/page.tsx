@@ -24,12 +24,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { EmptyState, KeyValue, Progress, TabLinks } from "@/components/ui/misc";
 import { CompletenessBar, PriorityBadge, QuotationStatusBadge } from "@/components/ui/status";
 import { can } from "@/lib/auth/permissions";
+import { inScope } from "@/lib/auth/scope";
 import { formatCnpj } from "@/lib/domain/cnpj";
-import { COPAY_PROCEDURE_LABELS, MANUAL_INTERACTION_TYPES, MODALITY_LABELS, QUOTATION_STATUS_LABELS, type CopayProcedure, type InteractionType } from "@/lib/domain/constants";
+import { COPAY_PROCEDURE_LABELS, MANUAL_INTERACTION_TYPES, MODALITY_LABELS, ACCOMMODATION_LABELS, COVERAGE_AREA_LABELS, type Accommodation, type CoverageArea, QUOTATION_STATUS_LABELS, type CopayProcedure, type InteractionType } from "@/lib/domain/constants";
 import { formatDateBR, formatDateTimeBR, relativeDays } from "@/lib/domain/dates";
 import type { LivesSummary } from "@/lib/lives-import/summary";
 import { formatNumber, formatPct } from "@/lib/utils";
 import { requireUser } from "@/server/auth";
+import { getScope } from "@/server/scope";
 import { getCompanyDetail } from "@/server/services/companies";
 import { listDocuments } from "@/server/services/documents";
 import { getComparison, insurerOptions, listQuotationInsurers } from "@/server/services/insurers";
@@ -38,6 +40,7 @@ import { listImports, listLives } from "@/server/services/lives";
 import { listTemplates } from "@/server/services/messages";
 import { taskOptions } from "@/server/services/options";
 import { getQuotationDetail } from "@/server/services/quotations";
+import { getQuotationGaps } from "@/server/services/quotation-gaps";
 import { redactEntries } from "@/server/services/quotation-view";
 import { listTasks } from "@/server/services/tasks";
 import { userOptions } from "@/server/services/users";
@@ -58,12 +61,13 @@ export default async function QuotationCentral({ params, searchParams }: { param
   const s = await searchParams;
   const tab: Tab = (TABS as readonly string[]).includes(s.tab ?? "") ? (s.tab as Tab) : "visao";
   const d = await getQuotationDetail(id);
-  if (!d) notFound();
+  const scope = await getScope(user);
+  if (!d || !inScope(scope, d.q.ownerId)) notFound();
   const q = d.q;
   const canWrite = can(user.role, "quotation:write") && !d.closed;
   const canSensitive = can(user.role, "sensitive:read");
   const maxMb = Math.round(maxUploadBytes() / 1024 / 1024);
-  const [templates, qis, users] = await Promise.all([listTemplates(), listQuotationInsurers(id), userOptions()]);
+  const [templates, qis, users] = await Promise.all([listTemplates(), listQuotationInsurers(id), userOptions(scope)]);
   const templateOpts = templates.map((t) => ({ key: t.key, name: t.name, audience: t.audience, channel: t.channel }));
   const qiOpts = qis.map((r) => ({ id: r.qi.id, name: r.insurer.name }));
   const docsNeeded = ["checklist", "especiais", "documentos", "propostas"].includes(tab);
@@ -221,6 +225,7 @@ export default async function QuotationCentral({ params, searchParams }: { param
               )}
             </CardContent>
           </Card>
+          <DataGapsCard quotationId={id} canWrite={canWrite} companyId={q.companyId} />
           <Card className="xl:col-span-2">
             <CardHeader>
               <CardTitle>Identificação e condições</CardTitle>
@@ -234,6 +239,11 @@ export default async function QuotationCentral({ params, searchParams }: { param
                   { label: "CNPJs participantes", value: d.cnpjs.map((c) => formatCnpj(c.cnpj)).join(", ") || "—" },
                   { label: "Motivo", value: q.reason },
                   { label: "Modalidade", value: q.modality ? MODALITY_LABELS[q.modality] : null },
+                  { label: "Acomodação", value: q.accommodation ? ACCOMMODATION_LABELS[q.accommodation as Accommodation] : null },
+                  { label: "Abrangência", value: q.coverageArea ? COVERAGE_AREA_LABELS[q.coverageArea as CoverageArea] : null },
+                  { label: "Titulares / dependentes", value: q.holdersCount !== null || q.dependentsCount !== null ? `${q.holdersCount ?? "—"} / ${q.dependentsCount ?? "—"}` : null },
+                  { label: "Início desejado", value: formatDateBR(q.desiredStartDate) },
+                  { label: "Prazo do cliente", value: formatDateBR(q.clientDeadline) },
                   { label: "FGTS 100%", value: q.fgts100 === null ? "—" : q.fgts100 ? "Sim" : "Não" },
                   { label: "Forma de pagamento", value: q.paymentMethod },
                   { label: "Comissão", value: formatPct(q.commissionPct) },
@@ -314,7 +324,7 @@ export default async function QuotationCentral({ params, searchParams }: { param
       {tab === "tarefas" && (
         <TaskList
           tasks={toTaskViews(await listTasks({ quotationId: id, view: s.todas === "1" ? "todas" : "abertas" }))}
-          options={await taskOptions()}
+          options={await taskOptions(scope)}
           canWrite={can(user.role, "task:write")}
           defaults={{ companyId: q.companyId, quotationId: id }}
           showContext={false}
@@ -402,5 +412,52 @@ async function LivesTab({ id, s, canImport, canSensitive, maxMb, hasActive, acti
       {!canImport && !activeSummary && <EmptyState title="Base de vidas não importada" />}
       <ImportHistory imports={imports.map((i) => ({ ...i.i, userName: i.userName }))} canWrite={canImport} />
     </div>
+  );
+}
+
+async function DataGapsCard({ quotationId, companyId, canWrite }: { quotationId: string; companyId: string; canWrite: boolean }) {
+  const gaps = await getQuotationGaps(quotationId);
+  const fixHref = (fix: string) =>
+    fix === "empresa" ? `/empresas/${companyId}` : fix === "documentos" ? `/cotacoes/${quotationId}?tab=documentos` : fix === "base" ? `/cotacoes/${quotationId}?tab=base` : fix === "wizard1" ? `/cotacoes/${quotationId}?tab=empresa` : `/cotacoes/${quotationId}/wizard?step=${fix === "wizard3" ? 3 : 2}`;
+  const groups = [...new Set(gaps.map((g) => g.group))];
+  return (
+    <Card className="xl:col-span-3">
+      <CardHeader>
+        <div>
+          <CardTitle>Pendências de dados antes do envio às operadoras</CardTitle>
+          <CardDescription>Conferência automática campo a campo (empresa, cotação, contrato atual e documentos). Complementa o checklist.</CardDescription>
+        </div>
+        <Badge tone={gaps.length ? "amber" : "emerald"}>{gaps.length ? `${gaps.length} item(ns) faltando` : "Dados completos"}</Badge>
+      </CardHeader>
+      <CardContent>
+        {gaps.length === 0 ? (
+          <p className="text-sm text-muted">Todos os dados essenciais estão preenchidos.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {groups.map((g) => (
+              <div key={g}>
+                <p className="mb-1 text-xs font-semibold">{g}</p>
+                <ul className="space-y-0.5 text-sm">
+                  {gaps
+                    .filter((x) => x.group === g)
+                    .map((x) => (
+                      <li key={x.field} className="flex items-start gap-1.5">
+                        <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
+                        {canWrite ? (
+                          <Link href={fixHref(x.fix)} className="hover:underline">
+                            {x.field}
+                          </Link>
+                        ) : (
+                          x.field
+                        )}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

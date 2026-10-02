@@ -53,10 +53,66 @@ export function isPlaybookQuestion(text: string): boolean {
   return PLAYBOOK_TOPIC.test(t) && (PLAYBOOK_ASK.test(t) || !extractEntity(text));
 }
 
+const PRODUCT_WORDS: [RegExp, string][] = [
+  [/dental|odonto/, "dental"],
+  [/\bvida\b|seguro de vida/, "vida"],
+  [/consorcio/, "consorcio"],
+  [/beneficio/, "beneficios"],
+  [/\bseguros?\b/, "seguro"],
+];
+export function productOf(t: string): string {
+  return PRODUCT_WORDS.find(([re]) => re.test(t))?.[1] ?? "plano_saude";
+}
+
+/** Comandos do módulo comercial (CRM, reuniões, campanhas, resumos). Retorna null se não for um deles. */
+export function routeCommercial(text: string, today: string): RoutedIntent | { clarify: string } | null {
+  const t = norm(text);
+  const raw = extractEntity(text);
+  const entity = raw && !/^(este|esta|esse|essa|deste|desta|meu|minha)\b/i.test(raw) ? raw : null;
+  if (/resumo (do dia|diario)|meu dia|o que (eu )?tenho (hoje|pra hoje|para hoje)/.test(t)) return { tool: "resumo_diario", input: {} };
+  if (/resumo (da semana|semanal)|minha semana|semana que vem/.test(t)) return { tool: "resumo_semanal", input: {} };
+  if (/relatorio de vendas|vendas (do|deste|no) mes|vendas por (corretor|produto)|quanto (vendemos|vendi)/.test(t)) {
+    const start = /mes/.test(t) ? `${today.slice(0, 7)}-01` : "";
+    return { tool: "relatorio_vendas", input: { de: start, ate: "" } };
+  }
+  if (/\bcampanhas?\b/.test(t) && /(crie|criar|sugira|sugerir|monte|montar|planeje|planejar|proponha|propor)/.test(t)) {
+    const foco = /\bpme\b|pequenas empresas/.test(t) ? "pme" : /(pessoa fisica|individual|familiar|\bpf\b|familias)/.test(t) ? "pf" : "empresarial";
+    return { tool: "propor_campanha", input: { produto: productOf(t), mes: monthRef(text, today) ?? today.slice(0, 7), foco } };
+  }
+  if (/follow-?ups? (de vendas )?atrasad|vendas com follow-?up atrasad|clientes? sem follow-?up|follow-?ups? vencid/.test(t)) {
+    return { tool: "listar_oportunidades", input: { etapa: "", followup: /sem follow/.test(t) ? "sem_data" : "atrasado", produto: "" } };
+  }
+  if (/(roteiro|script|pauta)\s+(para|de|da)\s+(a\s+)?reuniao/.test(t)) return { tool: "roteiro_reuniao", input: { cliente: entity ?? "" } };
+  if (/(resum(a|ir|e)|ata d[ae])\s+(a\s+|da\s+|desta\s+|dessa\s+|esta\s+|essa\s+)?(ultima\s+)?reuniao/.test(t)) return { tool: "resumir_reuniao", input: { reuniao: /(ultima|esta|essa|recente)/.test(t) && !entity ? "" : (entity ?? "") } };
+  if ((/(checklist|lista) de documentos/.test(t) || (/(pedindo|pedir|solicitando|solicitar) (os )?documentos/.test(t) && !/pendent|e-?mail/.test(t))) && !/cotacao|COT-/i.test(text)) {
+    const vidas = numberAfter(text, /(\d+)\s*vidas/) ;
+    return { tool: "checklist_documentos", input: { cliente: entity ?? "", produto: /(dental|vida|consorcio|seguro|beneficio)/.test(t) ? productOf(t) : "", vidas: vidas ?? 0, mensagem: /(mensagem|whatsapp|pedindo|pedir|solicitando|solicitar|cobrando)/.test(t) } };
+  }
+  if (/follow-?up|acompanhamento/.test(t) && /(mensagem|whatsapp|texto)/.test(t) && !/\bd[01357]\b|COT-/i.test(text)) {
+    if (!entity) return { clarify: "Para qual cliente? Ex.: “Criar mensagem de follow-up para o cliente Construtora Alfa”." };
+    return { tool: "mensagem_followup_cliente", input: { cliente: entity } };
+  }
+  if (/proximos passos|proximo passo|o que fazer com/.test(t) && entity) return { tool: "resumo_oportunidade", input: { cliente: entity } };
+  if (/\b(oportunidades|pipeline|leads|funil)\b/.test(t)) {
+    const stage = [
+      [/proposta enviada|propostas enviadas/, "proposta_enviada"],
+      [/negociacao/, "em_negociacao"],
+      [/documentos pendentes/, "documentos_pendentes"],
+      [/lead novo|leads novos|novos leads/, "lead_novo"],
+      [/fechad|ganh/, "fechado"],
+      [/perdid/, "perdido"],
+    ].find(([re]) => (re as RegExp).test(t))?.[1] as string | undefined;
+    return { tool: "listar_oportunidades", input: { etapa: stage ?? "", followup: "", produto: /(dental|vida|consorcio|seguro|beneficio)/.test(t) ? productOf(t) : "" } };
+  }
+  return null;
+}
+
 export function routeIntent(text: string, today: string): RoutedIntent | { clarify: string } {
   const t = norm(text);
   const entity = extractEntity(text);
   const days = numberAfter(text, /(?:ha mais de|mais de|ha|ultimos|proximos)\s+(\d+|\w+)\s+dias?/);
+  const commercial = routeCommercial(text, today);
+  if (commercial) return commercial;
 
   if (/\b(crie|criar|gere|gerar|cadastre)\b.*\btarefas?\b/.test(t) && /(nao responderam|sem resposta|sem retorno)/.test(t)) {
     return { tool: "propor_tarefas_operadoras_sem_resposta", input: { dias: days ?? 5, prazo_dias: 0 } };
@@ -114,5 +170,5 @@ export function routeIntent(text: string, today: string): RoutedIntent | { clari
   }
   const term = entity ?? text.replace(/[?]/g, "").trim();
   if (term.length >= 2) return { tool: "buscar", input: { termo: term.slice(0, 80) } };
-  return { clarify: "Não entendi. Exemplos: “Resuma a cotação da Empresa X”, “Quais renovações vencem nos próximos 60 dias?”, “Quais operadoras não responderam há mais de 5 dias?”." };
+  return { clarify: "Não entendi. Exemplos: “Resumo do dia”, “Mostrar vendas com follow-up atrasado”, “Criar mensagem de follow-up para o cliente X”, “Resuma a cotação da Empresa X”, “Quais renovações vencem nos próximos 60 dias?”." };
 }

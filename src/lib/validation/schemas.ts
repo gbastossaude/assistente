@@ -1,9 +1,12 @@
 import { z } from "zod";
 import {
+  ACCOMMODATIONS,
+  COVERAGE_AREAS,
   CONTRIBUTION_TYPES,
   COPAY_PROCEDURES,
   DOCUMENT_STATUSES,
   DOCUMENT_TYPES,
+  EVENT_STATUSES,
   EVENT_TYPES,
   INSURER_KINDS,
   INSURER_QUOTE_STATUSES,
@@ -23,6 +26,19 @@ import {
   CHECKLIST_STATUSES,
 } from "@/lib/domain/constants";
 import { SPECIAL_CASE_KINDS } from "@/lib/domain/special-cases";
+import {
+  ANSWER_STATUSES,
+  ANSWER_TOPICS,
+  CAMPAIGN_STATUSES,
+  CHANNELS,
+  LEAD_SOURCES,
+  LIBRARY_KINDS,
+  MEETING_STATUSES,
+  MESSAGE_CATEGORIES,
+  MESSAGE_CHANNELS,
+  OPPORTUNITY_STAGES,
+  PRODUCTS,
+} from "@/lib/domain/commercial";
 import { enumOf, optBool, optCnpj, optDate, optEmail, optEnum, optNum, optStr, optUuid, reqCnpj, reqDate, reqNum, reqStr, uuid } from "./fields";
 
 // ─── Empresas ───
@@ -33,6 +49,7 @@ export const companySchema = z.object({
   economicGroup: optStr(200),
   segment: optStr(120),
   estimatedLives: optNum({ min: 0, max: 1_000_000, int: true, label: "Vidas estimadas" }),
+  address: optStr(300),
   city: optStr(120),
   uf: optEnum(UFS),
   ownerId: optUuid(),
@@ -128,6 +145,12 @@ export const quotationStep2Schema = z
     commissionPct: optNum({ min: 0, max: 100, label: "Comissão" }),
     designChange: optBool(),
     designChangeDetails: optStr(3000),
+    accommodation: optEnum(ACCOMMODATIONS),
+    coverageArea: optEnum(COVERAGE_AREAS),
+    holdersCount: optNum({ min: 0, max: 1_000_000, int: true, label: "Titulares" }),
+    dependentsCount: optNum({ min: 0, max: 1_000_000, int: true, label: "Dependentes" }),
+    desiredStartDate: optDate("Data desejada para início"),
+    clientDeadline: optDate("Prazo esperado pelo cliente"),
   })
   .refine((v) => v.designChange !== true || !!v.designChangeDetails, {
     message: "Detalhe a alteração do desenho atual",
@@ -306,6 +329,9 @@ export const taskSchema = z
     companyId: optUuid(),
     quotationId: optUuid(),
     insurerId: optUuid(),
+    opportunityId: optUuid(),
+    meetingId: optUuid(),
+    campaignId: optUuid(),
     ownerId: optUuid(),
     priority: enumOf(PRIORITIES, "Prioridade"),
     scheduledDate: optDate("Data"),
@@ -355,6 +381,12 @@ export const eventSchema = z
     insurerId: optUuid(),
     taskId: optUuid(),
     ownerId: optUuid(),
+    opportunityId: optUuid(),
+    status: enumOf(EVENT_STATUSES, "Status").default("agendado"),
+    clientName: optStr(200),
+    advisorName: optStr(150),
+    salesRepName: optStr(150),
+    reminderMinutes: optNum({ min: 0, max: 10080, int: true, label: "Lembrete" }).transform((v) => v ?? 0),
   })
   .refine((v) => v.allDay || (!!v.startTime && /^\d{2}:\d{2}$/.test(v.startTime)), { message: "Informe o horário de início", path: ["startTime"] })
   .refine((v) => v.allDay || !v.endTime || !v.startTime || v.endTime >= v.startTime, { message: "Término antes do início", path: ["endTime"] });
@@ -410,6 +442,7 @@ export const userSchema = z.object({
   name: reqStr("Nome"),
   email: z.string().trim().toLowerCase().email("E-mail inválido"),
   role: enumOf(ROLES, "Papel"),
+  supervisorId: optUuid(),
   active: optBool().transform((v) => v ?? true),
   password: optStr(200).refine((v) => v === null || v.length >= 10, { message: "A senha deve ter ao menos 10 caracteres" }),
 });
@@ -452,4 +485,152 @@ export const playbookEntrySchema = z.object({
   objective: optStr(1000),
   body: reqStr("Conteúdo", 20000),
   active: optBool().transform((v) => v ?? true),
+});
+
+// ─── Comercial: CRM, reuniões, campanhas, biblioteca ───
+const timeHHMM = (label: string) =>
+  z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => (v && v.trim() ? v.trim().slice(0, 5) : null))
+    .refine((v) => v === null || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), { message: `${label} inválida` });
+
+const nameList = (max = 20) =>
+  z
+    .union([z.array(z.string()), z.string(), z.null()])
+    .optional()
+    .transform((v) => (Array.isArray(v) ? v : (v ?? "").split(/[,;\n]/)).map((s) => s.trim()).filter(Boolean).slice(0, max));
+
+export const opportunitySchema = z.object({
+  clientName: reqStr("Nome do cliente ou empresa", 200),
+  companyId: optUuid(),
+  document: optStr(30).refine((v) => v === null || /^[\d./-]{11,20}$/.test(v), { message: "CPF/CNPJ: use apenas números, ponto, barra e hífen" }),
+  contactName: optStr(150),
+  phone: optStr(40),
+  email: optEmail(),
+  product: enumOf(PRODUCTS, "Produto"),
+  lives: optNum({ min: 0, max: 1_000_000, int: true, label: "Quantidade de vidas" }),
+  estimatedValue: optNum({ min: 0, max: 1_000_000_000, label: "Valor estimado" }),
+  currentInsurer: optStr(150),
+  quotedInsurers: nameList(),
+  brokerId: optUuid(),
+  advisorName: optStr(150),
+  salesRepName: optStr(150),
+  source: enumOf(LEAD_SOURCES, "Origem do lead"),
+  campaignId: optUuid(),
+  stage: enumOf(OPPORTUNITY_STAGES, "Etapa").default("lead_novo"),
+  nextStep: optStr(500),
+  nextFollowupAt: optDate("Data do próximo follow-up"),
+  lostReason: optStr(500),
+  quotationId: optUuid(),
+  notes: optStr(5000),
+});
+export type OpportunityInput = z.input<typeof opportunitySchema>;
+
+export const opportunityStageSchema = z.object({
+  id: uuid(),
+  stage: enumOf(OPPORTUNITY_STAGES, "Etapa"),
+  note: optStr(1000),
+  lostReason: optStr(500),
+  nextFollowupAt: optDate("Data do próximo follow-up"),
+});
+
+export const opportunityFollowupSchema = z.object({
+  id: uuid(),
+  nextStep: optStr(500),
+  nextFollowupAt: optDate("Data do próximo follow-up"),
+});
+
+const meetingQuestionSchema = z.object({
+  key: z.string().trim().min(1).max(60),
+  text: z.string().trim().min(1, "Pergunta vazia").max(300),
+  asked: z.boolean(),
+  status: z.enum(ANSWER_STATUSES),
+  answer: z.string().max(2000).default(""),
+  note: z.string().max(1000).default(""),
+});
+const meetingActionSchema = z.object({
+  text: z.string().trim().min(1, "Descreva a ação").max(300),
+  owner: z.string().trim().max(150).default(""),
+  dueDate: optDate("Prazo da ação"),
+  done: z.boolean().default(false),
+});
+
+export const meetingSchema = z
+  .object({
+    title: reqStr("Título", 200),
+    opportunityId: optUuid(),
+    companyId: optUuid(),
+    quotationId: optUuid(),
+    clientName: optStr(150),
+    companyName: optStr(200),
+    advisorName: optStr(150),
+    salesRepName: optStr(150),
+    ownerId: optUuid(),
+    date: reqDate("Data da reunião"),
+    startTime: timeHHMM("Hora de início"),
+    endTime: timeHHMM("Hora de término"),
+    participants: optStr(1000),
+    location: optStr(500),
+    objective: optStr(2000),
+    summary: optStr(10000),
+    status: enumOf(MEETING_STATUSES, "Status").default("agendada"),
+    questions: z.array(meetingQuestionSchema).max(60).default([]),
+    actions: z.array(meetingActionSchema).max(40).default([]),
+    addToAgenda: optBool().transform((v) => v ?? true),
+  })
+  .refine((v) => !!v.clientName || !!v.companyName || !!v.companyId || !!v.opportunityId, { message: "Informe o cliente ou a empresa", path: ["clientName"] })
+  .refine((v) => !v.endTime || !v.startTime || v.endTime >= v.startTime, { message: "Término antes do início", path: ["endTime"] });
+export type MeetingInput = z.input<typeof meetingSchema>;
+
+export const campaignSchema = z
+  .object({
+    name: reqStr("Nome da campanha", 200),
+    product: enumOf(PRODUCTS, "Produto"),
+    startDate: reqDate("Início"),
+    endDate: reqDate("Fim"),
+    audience: optStr(1000),
+    goal: optStr(1000),
+    goalLeads: optNum({ min: 0, max: 100000, int: true, label: "Meta de leads" }),
+    goalSales: optNum({ min: 0, max: 100000, int: true, label: "Meta de vendas" }),
+    goalValue: optNum({ min: 0, label: "Meta de valor" }),
+    mainMessage: optStr(5000),
+    channels: z.array(z.enum(CHANNELS)).max(CHANNELS.length).default([]),
+    ownerId: optUuid(),
+    responsibles: optStr(500),
+    status: enumOf(CAMPAIGN_STATUSES, "Status").default("planejada"),
+    remindersEnabled: optBool().transform((v) => v ?? true),
+    results: optStr(5000),
+  })
+  .refine((v) => v.endDate >= v.startDate, { message: "O fim deve ser igual ou posterior ao início", path: ["endDate"] });
+export type CampaignInput = z.input<typeof campaignSchema>;
+
+export const libraryItemSchema = z
+  .object({
+    kind: z.enum(LIBRARY_KINDS),
+    category: reqStr("Categoria", 60),
+    title: reqStr("Título", 200),
+    channel: enumOf(MESSAGE_CHANNELS, "Canal").default("whatsapp"),
+    subject: optStr(300),
+    body: reqStr("Texto", 10000),
+    active: optBool().transform((v) => v ?? true),
+  })
+  .refine((v) => (v.kind === "mensagem" ? (MESSAGE_CATEGORIES as readonly string[]).includes(v.category) : (ANSWER_TOPICS as readonly string[]).includes(v.category)), {
+    message: "Categoria inválida",
+    path: ["category"],
+  });
+export type LibraryItemInput = z.input<typeof libraryItemSchema>;
+
+export const opportunityInteractionSchema = z.object({
+  opportunityId: uuid(),
+  type: z.enum(MANUAL_INTERACTION_TYPES as unknown as [string, ...string[]], { error: "Tipo inválido" }),
+  description: reqStr("Descrição", 5000),
+  nextAction: optStr(300),
+  nextActionAt: optDate("Data da próxima ação"),
+});
+
+export const anonymizeSchema = z.object({
+  contactIds: z.array(z.string().uuid()).max(200).default([]),
+  opportunityIds: z.array(z.string().uuid()).max(200).default([]),
+  meetingIds: z.array(z.string().uuid()).max(200).default([]),
 });

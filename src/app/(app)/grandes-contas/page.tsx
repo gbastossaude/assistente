@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, StatCard } from "@/components/ui/misc";
 import { LARGE_ACCOUNT_MIN_LIVES, MARKET_STATUSES } from "@/lib/domain/constants";
 import { formatNumber } from "@/lib/utils";
-import { requireUser } from "@/server/auth";
+import { requirePagePermission } from "@/server/auth";
 import { listQuotations } from "@/server/services/quotations";
 
 export const metadata = { title: "Grandes Contas +99" };
 
 export default async function LargeAccountsPage() {
-  await requireUser();
+  await requirePagePermission("operations:read");
   const rows = toPipelineRows(await listQuotations({ minLives: LARGE_ACCOUNT_MIN_LIVES }));
   const ready = rows.filter((r) => r.completeness >= 100 && !MARKET_STATUSES.includes(r.status));
   const incomplete = rows.filter((r) => r.completeness < 80);

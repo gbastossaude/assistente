@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { eq } from "drizzle-orm";
 import { apiHandler } from "@/server/api-utils";
+import { guardQuotation } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { quotations } from "@/server/db/schema";
@@ -15,6 +16,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   return apiHandler(
     "read",
     async (user) => {
+      await guardQuotation(user, id);
       const [q] = await db.select().from(quotations).where(eq(quotations.id, id));
       if (!q) throw new NotFoundError("Cotação");
       const cmp = await getComparison(id);

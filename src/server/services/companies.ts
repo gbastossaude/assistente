@@ -7,6 +7,7 @@ import type { companyCnpjSchema, companySchema, contactSchema, contractSchema } 
 import { audit, diff } from "../audit";
 import type { CurrentUser } from "../auth";
 import { db } from "../db";
+import { ownerCond, type DataScope } from "../scope";
 import {
   companies,
   companyCnpjs,
@@ -216,11 +217,14 @@ export interface CompanyFilters {
   segment?: string | null;
   kind?: "cliente" | "prospect" | null;
   deleted?: boolean;
+  /** Escopo de dados (corretor/supervisor). */
+  ownerIds?: string[] | null;
 }
 
 export async function listCompanies(f: CompanyFilters = {}) {
   const conds: SQL[] = [f.deleted ? isNotNull(companies.deletedAt) : isNull(companies.deletedAt)];
   if (f.ownerId) conds.push(eq(companies.ownerId, f.ownerId));
+  if (f.ownerIds) conds.push(f.ownerIds.length ? inArray(companies.ownerId, f.ownerIds) : sql`false`);
   if (f.uf) conds.push(eq(companies.uf, f.uf));
   if (f.segment) conds.push(sql`${companies.segment} ilike ${"%" + f.segment + "%"}`);
   if (f.kind) conds.push(eq(companies.isClient, f.kind === "cliente"));
@@ -302,10 +306,10 @@ export async function getCompanyDetail(id: string) {
 }
 export type CompanyDetail = NonNullable<Awaited<ReturnType<typeof getCompanyDetail>>>;
 
-export async function companyOptions() {
+export async function companyOptions(scope?: DataScope) {
   return db
     .select({ id: companies.id, name: sql<string>`coalesce(${companies.tradeName}, ${companies.legalName})`, legalName: companies.legalName, mainCnpj: companies.mainCnpj })
     .from(companies)
-    .where(isNull(companies.deletedAt))
+    .where(and(isNull(companies.deletedAt), scope ? ownerCond(scope, companies.ownerId) : undefined))
     .orderBy(asc(companies.legalName));
 }

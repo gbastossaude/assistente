@@ -11,7 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/ui/misc";
 import { CompletenessBar } from "@/components/ui/status";
 import { can } from "@/lib/auth/permissions";
+import { inScope } from "@/lib/auth/scope";
 import { requireUser } from "@/server/auth";
+import { getScope } from "@/server/scope";
 import { getCompanyDetail } from "@/server/services/companies";
 import { listDocuments } from "@/server/services/documents";
 import { insurerOptions } from "@/server/services/insurers";
@@ -25,7 +27,7 @@ export default async function WizardPage({ params, searchParams }: { params: Pro
   const { id } = await params;
   const step = Math.min(5, Math.max(2, Number((await searchParams).step ?? 2) || 2));
   const d = await getQuotationDetail(id);
-  if (!d) notFound();
+  if (!d || !inScope(await getScope(user), d.q.ownerId)) notFound();
   const canWrite = can(user.role, "quotation:write") && !d.closed;
   const canSensitive = can(user.role, "sensitive:read");
   const maxMb = Math.round(maxUploadBytes() / 1024 / 1024);

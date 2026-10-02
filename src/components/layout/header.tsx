@@ -1,5 +1,5 @@
 "use client";
-import { Bell, Building2, CheckSquare, FileSpreadsheet, LogOut, Plus, Search, KeyRound, FilePlus2 } from "lucide-react";
+import { Bell, Building2, CalendarPlus, CheckSquare, FileSpreadsheet, LogOut, Plus, Search, KeyRound, FilePlus2, Target } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -28,12 +28,14 @@ export function Header({
   unread,
   quotations,
   canWrite,
+  perms,
 }: {
   user: { name: string; role: Role };
   notifications: Notif[];
   unread: number;
   quotations: { id: string; label: string }[];
   canWrite: boolean;
+  perms: { crm: boolean; meeting: boolean; task: boolean; company: boolean; lives: boolean };
 }) {
   const router = useRouter();
   const { run } = useAction();
@@ -46,10 +48,10 @@ export function Header({
     <header className="no-print sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-surface/95 px-4 backdrop-blur lg:px-6">
       <form action="/busca" className="relative ml-10 flex-1 lg:ml-0 lg:max-w-xl" role="search">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
-        <Input name="q" placeholder="Buscar empresa, CNPJ, contato, cotação, operadora, protocolo, plano…" className="pl-8" aria-label="Busca global" minLength={2} />
+        <Input name="q" placeholder="Buscar cliente, oportunidade, CNPJ, cotação, reunião, mensagem…" className="pl-8" aria-label="Busca global" minLength={2} />
       </form>
       <div className="ml-auto flex items-center gap-1.5">
-        {canWrite && (
+        {(canWrite || perms.crm || perms.meeting || perms.task) && (
           <Dropdown>
             <DropdownTrigger asChild>
               <Button size="sm">
@@ -57,18 +59,36 @@ export function Header({
               </Button>
             </DropdownTrigger>
             <DropdownContent>
-              <DropdownItem onSelect={() => router.push("/cotacoes/nova")}>
-                <FilePlus2 /> Nova Cotação
-              </DropdownItem>
-              <DropdownItem onSelect={() => router.push("/tarefas?nova=1")}>
-                <CheckSquare /> Nova Tarefa
-              </DropdownItem>
-              <DropdownItem onSelect={() => router.push("/empresas/nova")}>
-                <Building2 /> Nova Empresa
-              </DropdownItem>
-              <DropdownItem onSelect={() => setImportOpen(true)}>
-                <FileSpreadsheet /> Importar Base de Vidas
-              </DropdownItem>
+              {perms.crm && (
+                <DropdownItem onSelect={() => router.push("/crm?nova=1")}>
+                  <Target /> Nova Oportunidade
+                </DropdownItem>
+              )}
+              {perms.meeting && (
+                <DropdownItem onSelect={() => router.push("/reunioes/nova")}>
+                  <CalendarPlus /> Nova Reunião
+                </DropdownItem>
+              )}
+              {perms.task && (
+                <DropdownItem onSelect={() => router.push("/tarefas?nova=1")}>
+                  <CheckSquare /> Nova Tarefa
+                </DropdownItem>
+              )}
+              {canWrite && (
+                <DropdownItem onSelect={() => router.push("/cotacoes/nova")}>
+                  <FilePlus2 /> Nova Cotação
+                </DropdownItem>
+              )}
+              {perms.company && (
+                <DropdownItem onSelect={() => router.push("/empresas/nova")}>
+                  <Building2 /> Nova Empresa
+                </DropdownItem>
+              )}
+              {perms.lives && (
+                <DropdownItem onSelect={() => setImportOpen(true)}>
+                  <FileSpreadsheet /> Importar Base de Vidas
+                </DropdownItem>
+              )}
             </DropdownContent>
           </Dropdown>
         )}

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Field, Input, Select, Textarea, YesNo } from "@/components/ui/inputs";
 import { useAction } from "@/components/ui/use-action";
-import { MODALITIES, MODALITY_LABELS } from "@/lib/domain/constants";
+import { ACCOMMODATIONS, ACCOMMODATION_LABELS, COVERAGE_AREAS, COVERAGE_AREA_LABELS, MODALITIES, MODALITY_LABELS } from "@/lib/domain/constants";
 import { updateStep2Action } from "@/server/actions/quotations";
 
 export interface ConditionsValues {
@@ -21,6 +21,12 @@ export interface ConditionsValues {
   commissionPct: number | null;
   designChange: boolean | null;
   designChangeDetails: string | null;
+  accommodation: string | null;
+  coverageArea: string | null;
+  holdersCount: number | null;
+  dependentsCount: number | null;
+  desiredStartDate: string | null;
+  clientDeadline: string | null;
 }
 
 export function ConditionsForm({ quotationId, initial, canWrite, nextHref, submitLabel = "Salvar" }: { quotationId: string; initial: ConditionsValues; canWrite: boolean; nextHref?: string; submitLabel?: string }) {
@@ -36,18 +42,61 @@ export function ConditionsForm({ quotationId, initial, canWrite, nextHref, submi
     upgradeDowngradeRules: initial.upgradeDowngradeRules ?? "",
     commissionPct: initial.commissionPct?.toString() ?? "",
     designChangeDetails: initial.designChangeDetails ?? "",
+    accommodation: initial.accommodation ?? "",
+    coverageArea: initial.coverageArea ?? "",
+    holdersCount: initial.holdersCount?.toString() ?? "",
+    dependentsCount: initial.dependentsCount?.toString() ?? "",
+    desiredStartDate: initial.desiredStartDate ?? "",
+    clientDeadline: initial.clientDeadline ?? "",
   });
   const set = <K extends keyof typeof v>(k: K, val: (typeof v)[K]) => setV((s) => ({ ...s, [k]: val }));
   return (
     <Card>
       <CardHeader>
         <div>
-          <CardTitle>Condições do contrato e do estudo</CardTitle>
+          <CardTitle>Perfil do plano e condições do contrato</CardTitle>
           <CardDescription>Dados exigidos pelo checklist; o preenchimento atualiza os itens automaticamente.</CardDescription>
         </div>
       </CardHeader>
       <CardContent>
         <fieldset disabled={!canWrite} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted md:col-span-3">Perfil do plano desejado</p>
+          <Field label="Acomodação" error={fieldErrors.accommodation}>
+            <Select value={v.accommodation} onChange={(e) => set("accommodation", e.target.value)}>
+              <option value="">—</option>
+              {ACCOMMODATIONS.map((a) => (
+                <option key={a} value={a}>
+                  {ACCOMMODATION_LABELS[a]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Abrangência" error={fieldErrors.coverageArea}>
+            <Select value={v.coverageArea} onChange={(e) => set("coverageArea", e.target.value)}>
+              <option value="">—</option>
+              {COVERAGE_AREAS.map((a) => (
+                <option key={a} value={a}>
+                  {COVERAGE_AREA_LABELS[a]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Titulares" error={fieldErrors.holdersCount} hint="Se ainda sem base de vidas">
+              <Input inputMode="numeric" value={v.holdersCount} onChange={(e) => set("holdersCount", e.target.value)} />
+            </Field>
+            <Field label="Dependentes" error={fieldErrors.dependentsCount}>
+              <Input inputMode="numeric" value={v.dependentsCount} onChange={(e) => set("dependentsCount", e.target.value)} />
+            </Field>
+          </div>
+          <Field label="Data desejada para início" error={fieldErrors.desiredStartDate}>
+            <Input type="date" value={v.desiredStartDate} onChange={(e) => set("desiredStartDate", e.target.value)} />
+          </Field>
+          <Field label="Prazo esperado pelo cliente" error={fieldErrors.clientDeadline}>
+            <Input type="date" value={v.clientDeadline} onChange={(e) => set("clientDeadline", e.target.value)} />
+          </Field>
+          <div />
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted md:col-span-3">Contratação</p>
           <Field label="Tipo/modalidade de contratação" error={fieldErrors.modality}>
             <Select value={v.modality} onChange={(e) => set("modality", e.target.value)}>
               <option value="">—</option>

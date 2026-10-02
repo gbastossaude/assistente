@@ -7,11 +7,11 @@ import { InsurerStatusBadge } from "@/components/ui/status";
 import { can } from "@/lib/auth/permissions";
 import { formatDateBR } from "@/lib/domain/dates";
 import { formatNumber } from "@/lib/utils";
-import { requireUser } from "@/server/auth";
+import { requirePagePermission } from "@/server/auth";
 import { getInsurerDetail } from "@/server/services/insurers";
 
 export default async function InsurerPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireUser();
+  const user = await requirePagePermission("operations:read");
   const d = await getInsurerDetail((await params).id);
   if (!d) notFound();
   const i = d.insurer;

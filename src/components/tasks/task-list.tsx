@@ -22,6 +22,9 @@ export interface TaskView {
   companyId: string | null;
   quotationId: string | null;
   insurerId: string | null;
+  opportunityId?: string | null;
+  meetingId?: string | null;
+  campaignId?: string | null;
   ownerId: string | null;
   priority: Priority;
   scheduledDate: string | null;
@@ -41,7 +44,7 @@ export interface TaskView {
   ownerName: string | null;
 }
 
-function toForm(t: TaskView): TaskFormValue {
+export function toTaskForm(t: TaskView): TaskFormValue {
   const pad = (n: number) => String(n).padStart(2, "0");
   const r = t.reminderAt ? new Date(t.reminderAt) : null;
   return {
@@ -51,6 +54,9 @@ function toForm(t: TaskView): TaskFormValue {
     companyId: t.companyId ?? "",
     quotationId: t.quotationId ?? "",
     insurerId: t.insurerId ?? "",
+    opportunityId: t.opportunityId ?? "",
+    meetingId: t.meetingId ?? "",
+    campaignId: t.campaignId ?? "",
     ownerId: t.ownerId ?? "",
     priority: t.priority,
     scheduledDate: t.scheduledDate ?? "",
@@ -75,7 +81,7 @@ export function TaskList({ tasks, options, canWrite, defaults, openId, autoNew, 
     if (autoNew && canWrite) setDialog(blankTask(defaults));
     else if (openId) {
       const t = tasks.find((x) => x.id === openId);
-      if (t) setDialog(toForm(t));
+      if (t) setDialog(toTaskForm(t));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId, autoNew]);
@@ -156,7 +162,7 @@ export function TaskList({ tasks, options, canWrite, defaults, openId, autoNew, 
                   )}
                   {canWrite && (
                     <>
-                      <Button variant="ghost" size="icon-sm" aria-label="Editar" onClick={() => setDialog(toForm(t))}>
+                      <Button variant="ghost" size="icon-sm" aria-label="Editar" onClick={() => setDialog(toTaskForm(t))}>
                         <Pencil />
                       </Button>
                       <ConfirmButton title="Excluir tarefa?" onConfirm={() => run(() => deleteTaskAction(t.id))} size="icon-sm">

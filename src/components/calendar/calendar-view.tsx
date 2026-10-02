@@ -7,7 +7,7 @@ import { ConfirmButton } from "@/components/ui/confirm";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/inputs";
 import { useAction } from "@/components/ui/use-action";
-import { EVENT_TYPES, EVENT_TYPE_LABELS, type EventType } from "@/lib/domain/constants";
+import { EVENT_STATUSES, EVENT_STATUS_LABELS, EVENT_TYPES, EVENT_TYPE_LABELS, REMINDER_OPTIONS, type EventType } from "@/lib/domain/constants";
 import { addDays, todayISO } from "@/lib/domain/dates";
 import { cn } from "@/lib/utils";
 import { deleteEventAction, saveEventAction } from "@/server/actions/calendar";
@@ -24,13 +24,35 @@ export interface AgendaItem {
   allDay: boolean;
   href: string | null;
   context: string | null;
-  raw?: { location: string | null; description: string | null; companyId: string | null; quotationId: string | null; insurerId: string | null; taskId: string | null; ownerId: string | null };
+  status?: string;
+  /** Compromisso gerado por uma ficha de reunião: abre a ficha em vez do diálogo. */
+  meetingId?: string | null;
+  raw?: {
+    location: string | null;
+    description: string | null;
+    companyId: string | null;
+    quotationId: string | null;
+    insurerId: string | null;
+    taskId: string | null;
+    ownerId: string | null;
+    opportunityId: string | null;
+    status: string;
+    clientName: string | null;
+    advisorName: string | null;
+    salesRepName: string | null;
+    reminderMinutes: number;
+  };
 }
 
 const TYPE_COLOR: Record<string, string> = {
   reuniao_cliente: "border-l-blue-500",
   reuniao_operadora: "border-l-indigo-500",
+  ligacao: "border-l-cyan-500",
   follow_up: "border-l-amber-500",
+  envio_cotacao: "border-l-sky-500",
+  retorno_operadora: "border-l-purple-500",
+  pos_venda: "border-l-lime-500",
+  campanha: "border-l-pink-500",
   apresentacao: "border-l-violet-500",
   renovacao: "border-l-red-500",
   prazo_proposta: "border-l-fuchsia-500",
@@ -46,7 +68,27 @@ function weekday(iso: string) {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
-type EditState = { id?: string; title: string; type: EventType; date: string; startTime: string; endTime: string; allDay: boolean; location: string; description: string; companyId: string; quotationId: string; insurerId: string; ownerId: string };
+type EditState = {
+  id?: string;
+  title: string;
+  type: EventType;
+  date: string;
+  startTime: string;
+  endTime: string;
+  allDay: boolean;
+  location: string;
+  description: string;
+  companyId: string;
+  quotationId: string;
+  insurerId: string;
+  ownerId: string;
+  opportunityId: string;
+  status: string;
+  clientName: string;
+  advisorName: string;
+  salesRepName: string;
+  reminderMinutes: number;
+};
 
 export function CalendarView({ view, anchor, from, days, items, options, canWrite }: { view: "dia" | "semana" | "mes"; anchor: string; from: string; days: number; items: AgendaItem[]; options: TaskOptions; canWrite: boolean }) {
   const { run, pending, fieldErrors } = useAction();
@@ -59,18 +101,46 @@ export function CalendarView({ view, anchor, from, days, items, options, canWrit
   const rank = (i: AgendaItem) => (i.kind === "evento" ? 0 : 2) + (i.allDay ? 0 : 1);
   const byDate = (d: string) => items.filter((i) => i.date === d).sort((a, b) => rank(a) - rank(b) || (a.time ?? "").localeCompare(b.time ?? ""));
   const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${anchor}T12:00:00Z`));
-  const newAt = (date: string) => setEdit({ title: "", type: "reuniao_cliente", date, startTime: "09:00", endTime: "10:00", allDay: false, location: "", description: "", companyId: "", quotationId: "", insurerId: "", ownerId: "" });
+  const newAt = (date: string) =>
+    setEdit({ title: "", type: "reuniao_cliente", date, startTime: "09:00", endTime: "10:00", allDay: false, location: "", description: "", companyId: "", quotationId: "", insurerId: "", ownerId: "", opportunityId: "", status: "agendado", clientName: "", advisorName: "", salesRepName: "", reminderMinutes: 30 });
 
   const ItemChip = ({ it, compact }: { it: AgendaItem; compact?: boolean }) => (
     <button
       type="button"
       onClick={() => {
-        if (it.kind === "evento" && canWrite && it.raw) {
-          setEdit({ id: it.id, title: it.title, type: it.type as EventType, date: it.date, startTime: it.time ?? "09:00", endTime: it.endTime ?? "", allDay: it.allDay, location: it.raw.location ?? "", description: it.raw.description ?? "", companyId: it.raw.companyId ?? "", quotationId: it.raw.quotationId ?? "", insurerId: it.raw.insurerId ?? "", ownerId: it.raw.ownerId ?? "" });
+        if (it.meetingId) window.location.href = `/reunioes/${it.meetingId}`;
+        else if (it.kind === "evento" && canWrite && it.raw) {
+          const r = it.raw;
+          setEdit({
+            id: it.id,
+            title: it.title,
+            type: it.type as EventType,
+            date: it.date,
+            startTime: it.time ?? "09:00",
+            endTime: it.endTime ?? "",
+            allDay: it.allDay,
+            location: r.location ?? "",
+            description: r.description ?? "",
+            companyId: r.companyId ?? "",
+            quotationId: r.quotationId ?? "",
+            insurerId: r.insurerId ?? "",
+            ownerId: r.ownerId ?? "",
+            opportunityId: r.opportunityId ?? "",
+            status: r.status,
+            clientName: r.clientName ?? "",
+            advisorName: r.advisorName ?? "",
+            salesRepName: r.salesRepName ?? "",
+            reminderMinutes: r.reminderMinutes,
+          });
         } else if (it.href) window.location.href = it.href;
       }}
-      className={cn("w-full truncate rounded border border-l-4 border-border bg-surface px-1.5 py-0.5 text-left text-[11px] hover:bg-surface-2", TYPE_COLOR[it.kind === "tarefa" ? "tarefa" : it.type])}
-      title={`${it.title}${it.context ? ` — ${it.context}` : ""}`}
+      className={cn(
+        "w-full truncate rounded border border-l-4 border-border bg-surface px-1.5 py-0.5 text-left text-[11px] hover:bg-surface-2",
+        TYPE_COLOR[it.kind === "tarefa" ? "tarefa" : it.type],
+        it.status === "cancelado" && "line-through opacity-60",
+        it.status === "realizado" && "opacity-75",
+      )}
+      title={`${it.title}${it.context ? ` — ${it.context}` : ""}${it.status && it.status !== "agendado" ? ` (${EVENT_STATUS_LABELS[it.status as keyof typeof EVENT_STATUS_LABELS]})` : ""}`}
     >
       {!it.allDay && it.time && <span className="mr-1 tabular-nums text-muted">{it.time}</span>}
       {it.kind === "tarefa" && "☐ "}
@@ -196,6 +266,33 @@ export function CalendarView({ view, anchor, from, days, items, options, canWrit
                   ))}
                 </Select>
               </Field>
+              <Field label="Cliente">
+                <Input value={edit.clientName} onChange={(e) => setEdit({ ...edit, clientName: e.target.value })} placeholder="Nome do cliente" />
+              </Field>
+              <Field label="Assessor">
+                <Input value={edit.advisorName} onChange={(e) => setEdit({ ...edit, advisorName: e.target.value })} />
+              </Field>
+              <Field label="Comercial">
+                <Input value={edit.salesRepName} onChange={(e) => setEdit({ ...edit, salesRepName: e.target.value })} />
+              </Field>
+              <Field label="Status">
+                <Select value={edit.status} onChange={(e) => setEdit({ ...edit, status: e.target.value })}>
+                  {EVENT_STATUSES.map((st) => (
+                    <option key={st} value={st}>
+                      {EVENT_STATUS_LABELS[st]}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Lembrete">
+                <Select value={String(edit.reminderMinutes)} onChange={(e) => setEdit({ ...edit, reminderMinutes: Number(e.target.value) })}>
+                  {REMINDER_OPTIONS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
               <Field label="Data" required error={fieldErrors.date}>
                 <Input type="date" value={edit.date} onChange={(e) => setEdit({ ...edit, date: e.target.value })} />
               </Field>
@@ -252,10 +349,10 @@ export function CalendarView({ view, anchor, from, days, items, options, canWrit
                   ))}
                 </Select>
               </Field>
-              <Field label="Local / link" className="sm:col-span-2">
+              <Field label="Local ou link da reunião" className="sm:col-span-2">
                 <Input value={edit.location} onChange={(e) => setEdit({ ...edit, location: e.target.value })} />
               </Field>
-              <Field label="Descrição" className="sm:col-span-3">
+              <Field label="Observações" className="sm:col-span-3">
                 <Textarea value={edit.description} onChange={(e) => setEdit({ ...edit, description: e.target.value })} rows={2} />
               </Field>
             </div>

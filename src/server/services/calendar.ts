@@ -1,12 +1,12 @@
 import "server-only";
-import { and, asc, eq, gte, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lt, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { APP_TIMEZONE } from "@/lib/domain/dates";
 import type { eventSchema } from "@/lib/validation/schemas";
 import { audit } from "../audit";
 import type { CurrentUser } from "../auth";
 import { db } from "../db";
-import { calendarEvents, companies, quotations, tasks, users } from "../db/schema";
+import { calendarEvents, companies, meetings, quotations, tasks, users } from "../db/schema";
 import { NotFoundError } from "../errors";
 import { addTimeline } from "../timeline";
 
@@ -43,7 +43,8 @@ export async function saveEvent(id: string | null, input: EventData, user: Curre
   }
   const row = { ...toRow(input), companyId, ownerId: input.ownerId ?? user.id };
   if (id) {
-    await db.update(calendarEvents).set(row).where(eq(calendarEvents.id, id));
+    // Mudou horário/lembrete/status: o lembrete volta a valer.
+    await db.update(calendarEvents).set({ ...row, reminderSentAt: null }).where(eq(calendarEvents.id, id));
     await audit({ userId: user.id, action: "update", entityType: "calendar_event", entityId: id, summary: `Compromisso atualizado: ${input.title}` });
     return id;
   }
@@ -65,15 +66,18 @@ export async function deleteEvent(id: string, user: CurrentUser) {
 }
 
 /** Eventos + tarefas com data no intervalo [from, to) — a agenda funciona sem integração externa. */
-export async function listAgenda(from: Date, to: Date, opts: { ownerId?: string | null } = {}) {
+export async function listAgenda(from: Date, to: Date, opts: { ownerId?: string | null; ownerIds?: string[] | null } = {}) {
+  const scopeCond = (col: typeof calendarEvents.ownerId | typeof tasks.ownerId) => (opts.ownerIds ? (opts.ownerIds.length ? inArray(col, opts.ownerIds) : sql`false`) : undefined);
   const events = await db
     .select({
       e: calendarEvents,
       companyName: sql<string | null>`coalesce(${companies.tradeName}, ${companies.legalName})`,
       quotationCode: quotations.code,
       ownerName: users.name,
+      meetingId: meetings.id,
     })
     .from(calendarEvents)
+    .leftJoin(meetings, and(eq(meetings.calendarEventId, calendarEvents.id), isNull(meetings.deletedAt)))
     .leftJoin(companies, eq(companies.id, calendarEvents.companyId))
     .leftJoin(quotations, eq(quotations.id, calendarEvents.quotationId))
     .leftJoin(users, eq(users.id, calendarEvents.ownerId))
@@ -83,6 +87,7 @@ export async function listAgenda(from: Date, to: Date, opts: { ownerId?: string 
         gte(calendarEvents.startsAt, from),
         lt(calendarEvents.startsAt, to),
         opts.ownerId ? eq(calendarEvents.ownerId, opts.ownerId) : undefined,
+        scopeCond(calendarEvents.ownerId),
       ),
     )
     .orderBy(asc(calendarEvents.startsAt));
@@ -98,6 +103,7 @@ export async function listAgenda(from: Date, to: Date, opts: { ownerId?: string 
         sql`${tasks.status} in ('a_fazer','em_andamento','aguardando_terceiro')`,
         sql`coalesce(${tasks.scheduledDate}, ${tasks.dueDate}) >= ${fromISO} and coalesce(${tasks.scheduledDate}, ${tasks.dueDate}) <= ${toISO}`,
         opts.ownerId ? eq(tasks.ownerId, opts.ownerId) : undefined,
+        scopeCond(tasks.ownerId),
       ),
     );
   return { events, tasks: taskRows };
