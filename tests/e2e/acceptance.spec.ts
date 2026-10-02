@@ -132,4 +132,22 @@ test.describe.serial("Critérios de aceite da primeira versão utilizável", () 
     await expect(page.getByText(/resultado\(s\) para “carência”/)).toBeVisible();
     await expect(page.getByTestId("playbook-entry").first()).toBeVisible();
   });
+
+  test("Grandes Contas: lista de informações para cotação, cópia e planilha modelo para download", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await go(page, "/grandes-contas");
+    const card = page.getByTestId("quotation-requirements");
+    await expect(card.getByText("Informações necessárias para a cotação")).toBeVisible();
+    await expect(card.getByText("Nome do Estipulante")).toBeVisible();
+    await expect(card.getByText("ANEXAR SINISTRALIDADE COMPLETA E ATUALIZADA.")).toBeVisible();
+    await card.getByRole("button", { name: "Copiar lista" }).click();
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain("• Home Care:");
+    expect(copied).toContain("100% do FGTS");
+    const [download] = await Promise.all([page.waitForEvent("download"), card.getByRole("link", { name: "Baixar planilha modelo" }).click()]);
+    expect(download.suggestedFilename()).toBe("Modelo base de vidas.xlsm");
+    const res = await page.request.get("/modelos/modelo-base-de-vidas.xlsm");
+    expect(res.status()).toBe(200);
+    expect((await res.body()).subarray(0, 2).toString()).toBe("PK"); // arquivo Excel (zip) íntegro
+  });
 });

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PipelineTable } from "@/components/quotations/pipeline";
+import { RequirementsCard } from "@/components/quotations/requirements-card";
 import { toPipelineRows } from "@/components/quotations/rows";
 import { Button } from "@/components/ui/button";
 import { PageHeader, StatCard } from "@/components/ui/misc";
@@ -37,6 +38,7 @@ export default async function LargeAccountsPage() {
         <StatCard label="Incompletas (<80%)" value={incomplete.length} tone="red" />
         <StatCard label="No mercado / decisão" value={inMarket.length} tone="blue" />
       </div>
+      <RequirementsCard />
       <PipelineTable rows={rows} />
     </>
   );
