@@ -27,17 +27,17 @@ const lista = [
       'Três pilares. Uma só casa.',
       'ERBE — Proteger o que continua.',
     ],
-    legenda: `A gente planeja a escola dos filhos, a viagem das férias, a expansão da empresa.
+    legenda: `Ninguém planeja o imprevisto. Mas dá para proteger o que continua.
 
-Mas quase ninguém planeja o que protege tudo isso.
+A gente planeja a escola dos filhos, a viagem das férias, a expansão da empresa. Mas quase ninguém planeja o que protege tudo isso.
 
-Saúde, seguros e consórcio não são produtos soltos. São partes do mesmo plano: cuidar de quem você ama e do que você construiu.
+Seguros, plano de saúde e consórcio não são produtos soltos. São partes do mesmo plano: cuidar de quem você ama e do que você construiu.
 
-Na ERBE, a gente começa entendendo a sua vida — ou a sua empresa. Só depois recomenda.
+Na ERBE, a gente começa entendendo a sua vida — ou a sua empresa. Você recebe um estudo escrito, com as opções lado a lado e o motivo da recomendação. E continua falando com a gente depois de assinar.
 
-Três pilares. Uma só casa. Proteger o que continua.
+Três pilares. Uma só casa.
 
-👉 Siga a ERBE. Todos os dias, um conteúdo para você decidir com mais segurança.`,
+👉 Siga a @erbeprotecao. Todos os dias, um conteúdo para você decidir com mais segurança.`,
     hashtags: [...H.marca, '#PlanejamentoFinanceiro', '#PlanoDeSaude', '#Seguros', '#Consorcio'],
   },
   // ───────────────────────────── 02
@@ -54,21 +54,21 @@ Três pilares. Uma só casa. Proteger o que continua.
       { t: 'list', title: 'Antes de assinar, pergunte:', marker: 'num', items: ['Quais carências valem para o meu caso?', 'Existe redução de carência disponível?', 'Há cobertura parcial temporária?', 'Está tudo por escrito no contrato?'] },
       cta('Ficou com dúvida <em>sobre o seu caso?</em>', 'Fale com a ERBE', 'A gente explica cada detalhe antes de você assinar.'),
     ],
-    legenda: `Contratou o plano de saúde e já precisa usar? Antes de tudo, entenda a carência.
+    legenda: `Contratou o plano hoje. Pode usar amanhã? Depende da carência — e a lei define o limite.
 
-Carência é o tempo de espera entre a contratação e o direito de usar determinadas coberturas. A lei define prazos máximos:
+Carência é o tempo de espera entre a contratação e o direito de usar determinadas coberturas. Os prazos máximos são:
 
 • 24 horas para urgência e emergência
 • 180 dias para as demais coberturas
 • 300 dias para parto a termo
 
-Doença preexistente? Pode haver Cobertura Parcial Temporária por até 24 meses para procedimentos ligados a ela.
+Tem doença preexistente? Pode haver Cobertura Parcial Temporária por até 24 meses para procedimentos ligados a ela.
 
 E em planos empresariais com 30 vidas ou mais, quem entra em até 30 dias da contratação ou da admissão não cumpre carência.
 
-O mais importante: peça por escrito quais carências valem para o seu caso — antes de assinar.
+O mais importante: peça por escrito quais carências valem para o seu caso — antes de assinar. A gente estuda antes de indicar.
 
-Ficou com dúvida? Fale com a ERBE pelo link na bio. A gente explica cada detalhe.`,
+💬 Responda com SAÚDE (aqui nos comentários ou no WhatsApp do link na bio) e receba um estudo para o seu caso.`,
     hashtags: [...H.marca, '#PlanoDeSaude', '#Carencia', '#ANS', '#SaudeSuplementar'],
   },
   // ───────────────────────────── 03
@@ -84,19 +84,19 @@ Ficou com dúvida? Fale com a ERBE pelo link na bio. A gente explica cada detalh
       { t: 'statement', kicker: 'Bônus', title: 'Revisar beneficiários é tão importante <em>quanto contratar.</em>', body: 'Casou, separou, teve filhos? Sua apólice precisa acompanhar.' },
       cta('Salve e envie para <em>quem precisa ler isso.</em>', 'Fale com a ERBE', 'Quer entender qual proteção faz sentido para você?'),
     ],
-    legenda: `Seguro de vida ainda é cercado de ideias que afastam as pessoas de uma decisão importante.
+    legenda: `Seguro de vida não entra no inventário. E essa não é a única coisa que pouca gente sabe.
 
-Neste carrossel, quatro delas — e o que de fato acontece:
+Arraste para ver 4 ideias que afastam as pessoas de uma decisão importante — e o que de fato acontece:
 
-• Não serve só em caso de morte: muitas apólices têm coberturas em vida.
-• Não entra no inventário: o capital é pago aos beneficiários (Código Civil, art. 794).
-• Não é só para quem tem filhos.
-• E o valor só dá para saber simulando.
+• Não serve só em caso de morte: muitas apólices têm coberturas em vida, como invalidez e doenças graves.
+• O capital vai direto aos beneficiários indicados (Código Civil, art. 794).
+• Não é só para quem tem filhos: é para quem tem alguém que depende da sua renda.
+• O valor depende de idade, coberturas e capital. Só dá para saber simulando.
 
-Bônus: beneficiário desatualizado é um erro que passa despercebido. Casou, separou, teve filhos? Revise.
+Bônus: beneficiário desatualizado passa despercebido. Casou, separou, teve filhos? Revise a sua apólice.
 
-Salve este post e envie para alguém que precisa ler isso.
-Quer entender qual proteção faz sentido para você? Fale com a ERBE pelo link na bio.`,
+📌 Salve este post e envie para alguém que precisa ler isso.
+💬 Responda com SEGUROS e receba um estudo do que faz sentido para você.`,
     hashtags: [...H.marca, '#SeguroDeVida', '#MitosEVerdades', '#ProtecaoFamiliar', '#PlanejamentoFinanceiro'],
   },
   // ───────────────────────────── 04
@@ -106,11 +106,13 @@ Quer entender qual proteção faz sentido para você? Fale com a ERBE pelo link 
     slides: [
       { t: 'poster', theme: 'light', pink: true, kicker: 'Outubro Rosa', title: 'Cuidar também é <em>se lembrar de você.</em>', body: 'Converse com seu médico sobre os exames indicados para você.', line: 'A ERBE apoia a prevenção.' },
     ],
-    legenda: `A gente lembra da consulta dos filhos, dos pais, de todo mundo. E, muitas vezes, esquece da nossa.
+    legenda: `Você lembra da consulta dos filhos, dos pais, de todo mundo. E a sua?
 
 Neste Outubro Rosa, o convite é simples: converse com seu médico sobre os exames indicados para você — e agende.
 
-Se você tem plano de saúde e não sabe qual rede usar ou o que está coberto, a ERBE ajuda você a entender.
+Cuidar também é se lembrar de você.
+
+Se você tem plano de saúde e ficou com dúvida sobre a rede ou sobre o que está coberto, a gente ajuda a entender.
 
 💗 Compartilhe com uma mulher importante para você.`,
     hashtags: [...H.marca, '#OutubroRosa', '#Prevencao', '#SaudeDaMulher', '#CuidarDeVoce'],
