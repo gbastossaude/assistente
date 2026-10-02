@@ -5,7 +5,7 @@ import path from "node:path";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
-import { dbSchema, pgConfig } from "../src/server/db/pg-config";
+import { dbSchema, describeConnection, pgConfig } from "../src/server/db/pg-config";
 
 /**
  * Aplica as migrations de drizzle/. Com DATABASE_SCHEMA (ex.: "besmart"), tudo é criado nesse schema —
@@ -39,5 +39,6 @@ async function main() {
 }
 main().catch((e) => {
   console.error(e);
+  console.error(`Conexão usada: ${describeConnection(process.env.DATABASE_URL)}`);
   process.exit(1);
 });

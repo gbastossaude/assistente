@@ -55,3 +55,24 @@ export function dbSchema(): string {
 export function searchPathSql(schema = dbSchema()): string | null {
   return schema === "public" ? null : `set search_path to "${schema}", extensions`;
 }
+
+/**
+ * Diagnóstico da conexão para o log, SEM revelar a senha: usuário/servidor efetivos e problemas comuns na senha
+ * da DATABASE_URL (vazia, texto de exemplo "[YOUR-PASSWORD]", espaços, caracteres que precisam de codificação).
+ */
+export function describeConnection(rawUrl: string | undefined): string {
+  if (!rawUrl) return "DATABASE_URL não configurada";
+  let url: URL;
+  try {
+    url = new URL(pgConfig(rawUrl).connectionString!);
+  } catch {
+    return "DATABASE_URL inválida (formato esperado: postgresql://usuario:senha@servidor:5432/postgres)";
+  }
+  const raw = rawUrl.match(/^[a-z]+:\/\/[^:@/]*:([^@]*)@/i)?.[1] ?? "";
+  const hints: string[] = [];
+  if (!url.password) hints.push("a URL está sem senha");
+  if (/YOUR-PASSWORD|\[|\]|SENHA|<|>/i.test(raw)) hints.push("a senha ainda contém o texto de exemplo ou colchetes");
+  if (/\s/.test(decodeURIComponent(url.password || ""))) hints.push("a senha contém espaços");
+  if (/[#?/]/.test(raw)) hints.push("a senha contém # ? ou / sem codificação — use só letras e números");
+  return `usuário "${decodeURIComponent(url.username)}" em ${url.hostname}:${url.port || "5432"}` + (hints.length ? ` — atenção: ${hints.join("; ")}` : "");
+}

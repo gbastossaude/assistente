@@ -72,3 +72,19 @@ describe("DATABASE_SCHEMA (instalação no banco de outro sistema)", () => {
     }
   });
 });
+
+describe("diagnóstico da conexão (sem expor a senha)", () => {
+  it("mostra usuário/servidor efetivos e não a senha", async () => {
+    const { describeConnection } = await import("@/server/db/pg-config");
+    process.env.DATABASE_USER = "besmart_app.abc";
+    const d = describeConnection("postgresql://postgres.abc:SegredoXYZ123@aws-0-sa-east-1.pooler.supabase.com:5432/postgres");
+    delete process.env.DATABASE_USER;
+    expect(d).toBe('usuário "besmart_app.abc" em aws-0-sa-east-1.pooler.supabase.com:5432');
+    expect(d).not.toContain("SegredoXYZ123");
+  });
+  it("aponta texto de exemplo e senha vazia", async () => {
+    const { describeConnection } = await import("@/server/db/pg-config");
+    expect(describeConnection("postgresql://u:[YOUR-PASSWORD]@h:5432/db")).toMatch(/texto de exemplo/);
+    expect(describeConnection("postgresql://u@h:5432/db")).toMatch(/sem senha/);
+  });
+});
