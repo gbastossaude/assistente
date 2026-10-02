@@ -34,7 +34,7 @@ export function UsersAdmin({ users, currentUserId }: { users: { id: string; name
           <Plus /> Novo usuário
         </Button>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="bg-surface-2/60 text-left text-xs text-muted">
             <tr>
@@ -351,7 +351,7 @@ export function ChecklistTemplatesAdmin({ items }: { items: CT[] }) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="bg-surface-2/60 text-left text-xs text-muted">
             <tr>

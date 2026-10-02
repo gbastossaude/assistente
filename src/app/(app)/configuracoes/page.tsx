@@ -104,7 +104,7 @@ async function AuditTab({ s }: { s: Record<string, string | undefined> }) {
       {rows.length === 0 ? (
         <EmptyState title="Nenhum registro" />
       ) : (
-        <Card>
+        <Card className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-2/60 text-left text-xs text-muted">
               <tr>

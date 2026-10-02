@@ -22,6 +22,11 @@ services:
       # "besmart" ao dividir um projeto Supabase existente; vazio = public
       - key: DATABASE_SCHEMA
         sync: false
+      # opcionais: substituem só o servidor / usuário da DATABASE_URL (ver docs/DEPLOY.md)
+      - key: DATABASE_HOST
+        sync: false
+      - key: DATABASE_USER
+        sync: false
       - key: AUTH_SECRET
         generateValue: true
       - key: CRON_SECRET

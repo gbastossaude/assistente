@@ -43,8 +43,27 @@ separado (`besmart`) e num bucket separado (`besmart-documentos`):
 - `npm run db:migrate` cria o schema, as tabelas e o histórico de migrations dentro de `besmart`
   (o `search_path` não inclui `public`, então o sistema nunca lê nem altera as tabelas do outro sistema).
 - **Não** acrescente `besmart` em *Project Settings → API → Exposed schemas*: o schema fica fora da API pública,
-  com RLS ativo e sem permissões para os papéis `anon`/`authenticated` (migration `0004`). O sistema conecta
-  como dono das tabelas e não depende da API REST.
+  com RLS ativo, sem permissões e com política restritiva para os papéis `anon`/`authenticated` (migrations
+  `0004` e `0005`). O sistema conecta como dono das tabelas e não depende da API REST.
+- Recomendado: um usuário de banco exclusivo (ex.: `besmart_app`), dono só do schema `besmart` e sem acesso às
+  tabelas do outro sistema. No SQL Editor (como `postgres`):
+  ```sql
+  create role besmart_app login noinherit password 'SENHA_SÓ_LETRAS_E_NÚMEROS';
+  grant besmart_app to postgres;
+  grant connect, create on database postgres to besmart_app;
+  alter schema besmart owner to besmart_app; -- e as tabelas/tipos do schema, se já existirem
+  ```
+  `DATABASE_URL` = `postgresql://besmart_app.<id-do-projeto>:SENHA@aws-N-<região>.pooler.supabase.com:5432/postgres`
+  (copie servidor e região de *Connect → Session pooler*; `aws-0` ou `aws-1` conforme o projeto).
+- `DATABASE_HOST` e `DATABASE_USER` (opcionais) substituem só o servidor / usuário da `DATABASE_URL` — úteis
+  para corrigir esses trechos sem reescrever a URL que contém a senha.
+
+| Erro no log do Render | Causa | Correção |
+|---|---|---|
+| `getaddrinfo ENOTFOUND` | servidor errado na URL | copie o host de *Connect → Session pooler* (ou use `DATABASE_HOST`) |
+| `tenant/user … not found` | `aws-0`/`aws-1` trocado ou usuário sem `.<id-do-projeto>` | confira o host e o usuário |
+| `password authentication failed` | senha da URL ≠ senha do usuário | `alter role <usuário> password '…'` e atualize a `DATABASE_URL` |
+| `self-signed certificate in certificate chain` | `DATABASE_CA_CERT` não corresponde ao pooler | deixe `DATABASE_CA_CERT` vazio (a conexão segue criptografada) |
 - A hospedagem do outro sistema (ex.: Netlify) não muda — este sistema é publicado separadamente (Render).
 
 ## Passo 2 — Código no GitHub

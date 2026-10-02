@@ -43,17 +43,17 @@ export function Progress({ value, tone = "blue", className, label }: { value: nu
 export function StatCard({ label, value, hint, href, tone = "default", icon }: { label: string; value: React.ReactNode; hint?: React.ReactNode; href?: string; tone?: "default" | "red" | "amber" | "green" | "blue"; icon?: React.ReactNode }) {
   const accent = { default: "", red: "border-l-red-500", amber: "border-l-amber-500", green: "border-l-emerald-500", blue: "border-l-blue-500" }[tone];
   const inner = (
-    <div className={cn("flex h-full flex-col gap-1 rounded-lg border border-border bg-surface p-3.5 shadow-xs transition-colors", tone !== "default" && "border-l-4", accent, href && "hover:bg-surface-2")}>
+    <div className={cn("flex h-full min-w-0 flex-col gap-1 rounded-lg border border-border bg-surface p-3.5 shadow-xs transition-colors", tone !== "default" && "border-l-4", accent, href && "hover:bg-surface-2")}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-muted">{label}</span>
         {icon && <span className="text-muted [&_svg]:size-4">{icon}</span>}
       </div>
-      <span className="text-2xl font-semibold tabular-nums">{value}</span>
+      <span className="text-xl font-semibold tabular-nums break-words sm:text-2xl">{value}</span>
       {hint && <span className="text-xs text-muted">{hint}</span>}
     </div>
   );
   return href ? (
-    <Link href={href} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg">
+    <Link href={href} className="block min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg">
       {inner}
     </Link>
   ) : (
