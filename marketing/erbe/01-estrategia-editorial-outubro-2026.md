@@ -121,7 +121,8 @@ Slides internos em off-white; frases de impacto na cor do pilar.
 - Rótulos em caixa alta e espaçados ("PILAR 02", "ENQUETE", "PRÓXIMO PASSO").
 
 ### Elementos da marca
-- **Cabeçalho fixo:** escudo com "E" vazado + ERBE à esquerda, **@erbeprotecao** à direita.
+- **Logo:** escudo com o "E" vazado — arquivos em `marca/` (SVG verde, off-white e preto, e versão quadrada para foto de perfil).
+- **Cabeçalho fixo:** escudo + ERBE à esquerda, **@erbeprotecao** à direita.
 - **Linha do pilar nas capas:** ícone em bloco arredondado + "PILAR 0X" + nome do pilar, e o escudo em faixas à direita.
 - **Rodapé:** linha fina, frase curta à esquerda ("A gente estuda antes de indicar.", "Proteger o que continua.") e bolinhas de paginação com seta.
 - **CTA:** caixa amarela com balão — "Responda com SEGUROS e receba um estudo." — ou botão amarelo "Fale com a ERBE →" + "Link na bio".

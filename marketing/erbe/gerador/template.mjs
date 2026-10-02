@@ -39,28 +39,30 @@ export const icon = (n, size = 40, sw = 1.7) =>
   `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${I[n]}</svg>`;
 
 // Escudo da marca com o "E" vazado (recriação; trocar pelo arquivo oficial quando houver).
-const ESCUDO = 'M6 4H94V52C94 80 74 98 50 106C26 98 6 80 6 52Z';
+const ESCUDO = 'M201 0L403 61V247C403 382 300 457 201 499C102 457 0 382 0 247V61Z';
+const VAZADO = '<rect x="118" y="144" width="320" height="36" fill="#000"/><rect x="325" y="144" width="120" height="176" fill="#000"/><rect x="118" y="284" width="320" height="36" fill="#000"/>';
+const largura = (h) => Math.round((h * 403) / 499);
 let uid = 0;
+// Escudo oficial da ERBE com o "E" vazado (desenho em marca/logo-erbe-escudo-*.svg).
 export function logoMark(cor, h = 46) {
   const id = `m${uid++}`;
-  return `<svg width="${Math.round((h * 100) / 110)}" height="${h}" viewBox="0 0 100 110"><defs><mask id="${id}">
-    <rect width="100" height="110" fill="#fff"/><rect x="40" y="33" width="64" height="13" fill="#000"/><rect x="40" y="60" width="64" height="13" fill="#000"/></mask></defs>
+  return `<svg width="${largura(h)}" height="${h}" viewBox="0 0 403 499"><defs><mask id="${id}"><rect x="-10" y="-10" width="460" height="520" fill="#fff"/>${VAZADO}</mask></defs>
     <path d="${ESCUDO}" fill="${cor}" mask="url(#${id})"/></svg>`;
 }
 
-// Escudo decorativo em faixas, usado nas capas de cada pilar.
+// Versão em faixas do escudo, usada nas capas de cada pilar: topo, faixa do "E" e base em tons diferentes.
 const FAIXAS = {
   light: ['#1A6A51', '#8CC7AE', '#E2E1DA'],
-  green: ['#2F8066', '#FFFFFF', '#3F8D73'],
+  green: ['#FFFFFF', 'rgba(255,255,255,.55)', 'rgba(255,255,255,.25)'],
   dark: ['#2A302D', '#F4F3EE', '#7DCBA7'],
 };
-const FUNDO = { light: '#F4F3EE', green: '#1A6A51', dark: '#0E1311' };
 function escudoFaixas(tema, h = 150) {
   const [a, b, c] = FAIXAS[tema];
-  const id = `c${uid++}`;
-  return `<svg width="${Math.round((h * 100) / 110)}" height="${h}" viewBox="0 0 100 110"><defs><clipPath id="${id}"><path d="${ESCUDO}"/></clipPath></defs>
-    <g clip-path="url(#${id})"><rect width="100" height="110" fill="${c}"/><rect width="100" height="36" fill="${a}"/>
-    <rect y="36" width="100" height="22" fill="${b}"/><rect x="58" y="44" width="50" height="8" fill="${FUNDO[tema]}"/></g></svg>`;
+  const m = `m${uid++}`;
+  const cl = `c${uid++}`;
+  return `<svg width="${largura(h)}" height="${h}" viewBox="0 0 403 499"><defs>
+    <mask id="${m}"><rect x="-10" y="-10" width="460" height="520" fill="#fff"/>${VAZADO}</mask><clipPath id="${cl}"><path d="${ESCUDO}"/></clipPath></defs>
+    <g clip-path="url(#${cl})" mask="url(#${m})"><rect width="403" height="499" fill="${c}"/><rect width="403" height="144" fill="${a}"/><rect y="144" width="403" height="176" fill="${b}"/></g></svg>`;
 }
 
 function css(fontsCss, w, h) {
