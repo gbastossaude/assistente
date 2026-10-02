@@ -84,7 +84,10 @@ describe("diagnóstico da conexão (sem expor a senha)", () => {
   });
   it("aponta texto de exemplo e senha vazia", async () => {
     const { describeConnection } = await import("@/server/db/pg-config");
-    expect(describeConnection("postgresql://u:[YOUR-PASSWORD]@h:5432/db")).toMatch(/texto de exemplo/);
+    expect(describeConnection("postgresql://u:[YOUR-PASSWORD]@h:5432/db")).toMatch(/YOUR-PASSWORD/);
+    expect(describeConnection("postgresql://u:SENHA@h:5432/db")).toMatch(/texto de exemplo "SENHA"/);
+    expect(describeConnection("postgresql://u:[abc123]@h:5432/db")).toMatch(/entre colchetes/);
+    expect(describeConnection("postgresql://u:MinhaSenhaForte2026abc@h:5432/db")).not.toMatch(/atenção/);
     expect(describeConnection("postgresql://u@h:5432/db")).toMatch(/sem senha/);
   });
 });

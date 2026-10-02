@@ -71,8 +71,12 @@ export function describeConnection(rawUrl: string | undefined): string {
   const raw = rawUrl.match(/^[a-z]+:\/\/[^:@/]*:([^@]*)@/i)?.[1] ?? "";
   const hints: string[] = [];
   if (!url.password) hints.push("a URL está sem senha");
-  if (/YOUR-PASSWORD|\[|\]|SENHA|<|>/i.test(raw)) hints.push("a senha ainda contém o texto de exemplo ou colchetes");
-  if (/\s/.test(decodeURIComponent(url.password || ""))) hints.push("a senha contém espaços");
+  const pw = decodeURIComponent(url.password || "");
+  if (/YOUR-PASSWORD/i.test(pw)) hints.push('a senha ainda é o texto de exemplo "[YOUR-PASSWORD]"');
+  else if (/^\[.*\]$/.test(pw)) hints.push("a senha está entre colchetes [ ] — remova os colchetes");
+  else if (/^(SENHA|SUA_SENHA|SENHA_DO_BANCO)$/i.test(pw)) hints.push(`a senha é o texto de exemplo "${pw}" — troque pela senha definida no Supabase`);
+  else if (/[\[\]<>]/.test(pw)) hints.push("a senha contém [ ] < ou > — use só letras e números");
+  if (/\s/.test(pw)) hints.push("a senha contém espaços");
   if (/[#?/]/.test(raw)) hints.push("a senha contém # ? ou / sem codificação — use só letras e números");
   return `usuário "${decodeURIComponent(url.username)}" em ${url.hostname}:${url.port || "5432"}` + (hints.length ? ` — atenção: ${hints.join("; ")}` : "");
 }
