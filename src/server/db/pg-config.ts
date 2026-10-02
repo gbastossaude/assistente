@@ -5,8 +5,8 @@ import type { ClientBase, PoolConfig } from "pg";
  * - Remove `sslmode` da URL: no pg 8, `sslmode=require` vira verificação completa e anula o objeto `ssl`.
  * - Supabase (ou DATABASE_SSL=true) → conexão criptografada. Com DATABASE_CA_CERT (PEM do Supabase:
  *   Project Settings → Database → SSL Configuration) o certificado também é verificado.
- * - DATABASE_HOST (opcional) substitui o host da URL — ajusta o endereço (ex.: pooler do Supabase) sem
- *   reescrever a URL que contém a senha.
+ * - DATABASE_HOST / DATABASE_USER (opcionais) substituem o servidor / o usuário da URL — ajustam a conexão
+ *   (ex.: pooler do Supabase, usuário dedicado) sem reescrever a URL que contém a senha.
  */
 export function pgConfig(rawUrl: string | undefined, extra: PoolConfig = {}): PoolConfig {
   if (!rawUrl) throw new Error("DATABASE_URL não configurada (veja .env.example)");
@@ -15,6 +15,11 @@ export function pgConfig(rawUrl: string | undefined, extra: PoolConfig = {}): Po
   if (host) {
     if (!/^[a-z0-9.-]+$/i.test(host)) throw new Error("DATABASE_HOST inválido: informe só o nome do servidor (ex.: aws-1-sa-east-1.pooler.supabase.com)");
     url.hostname = host;
+  }
+  const user = process.env.DATABASE_USER?.trim();
+  if (user) {
+    if (!/^[a-z0-9_.-]+$/i.test(user)) throw new Error("DATABASE_USER inválido (ex.: besmart_app.<id-do-projeto>)");
+    url.username = user;
   }
   const sslmode = url.searchParams.get("sslmode");
   url.searchParams.delete("sslmode");

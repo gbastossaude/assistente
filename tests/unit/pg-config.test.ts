@@ -6,6 +6,12 @@ describe("configuração de conexão PostgreSQL", () => {
     delete process.env.DATABASE_CA_CERT;
     delete process.env.DATABASE_SSL;
     delete process.env.DATABASE_HOST;
+    delete process.env.DATABASE_USER;
+  });
+  it("DATABASE_USER substitui o usuário da URL e mantém a senha", () => {
+    process.env.DATABASE_USER = "besmart_app.abc";
+    const c = pgConfig("postgresql://postgres.abc:s3nha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres");
+    expect(c.connectionString).toBe("postgresql://besmart_app.abc:s3nha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres");
   });
   it("DATABASE_HOST substitui o host da URL e mantém usuário/senha", () => {
     process.env.DATABASE_HOST = "aws-1-sa-east-1.pooler.supabase.com";
