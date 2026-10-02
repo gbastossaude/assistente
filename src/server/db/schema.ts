@@ -784,6 +784,8 @@ export const notifications = pgTable(
     link: text("link"),
     dedupeKey: text("dedupe_key"),
     readAt: ts("read_at"),
+    /** Excluída pelo usuário: some da lista, mas a linha fica para o dedupeKey não recriar o mesmo alerta. */
+    dismissedAt: ts("dismissed_at"),
     createdAt: createdAt(),
   },
   (t) => [

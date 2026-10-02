@@ -3,6 +3,9 @@ import { INTERACTION_TYPE_LABELS, type InteractionType } from "@/lib/domain/cons
 import { formatDateBR, formatDateTimeBR } from "@/lib/domain/dates";
 import type { TimelineRow } from "@/server/services/interactions";
 import Link from "next/link";
+import { canDeleteActivity } from "@/lib/auth/permissions";
+import { getCurrentUser } from "@/server/auth";
+import { DeleteActivityButton } from "./delete-activity-button";
 
 const ICON: Record<InteractionType, React.ComponentType<{ className?: string }>> = {
   ligacao: Phone,
@@ -20,8 +23,9 @@ const ICON: Record<InteractionType, React.ComponentType<{ className?: string }>>
   sistema: Bot,
 };
 
-export function Timeline({ rows, showContext }: { rows: TimelineRow[]; showContext?: boolean }) {
+export async function Timeline({ rows, showContext }: { rows: Pick<TimelineRow, "i" | "userName" | "quotationCode" | "companyName">[]; showContext?: boolean }) {
   if (!rows.length) return <p className="py-6 text-center text-sm text-muted">Nenhuma movimentação registrada.</p>;
+  const user = await getCurrentUser();
   return (
     <ol className="relative ml-3 border-l border-border">
       {rows.map(({ i, userName, quotationCode, companyName }) => {
@@ -47,6 +51,11 @@ export function Timeline({ rows, showContext }: { rows: TimelineRow[]; showConte
                       {companyName}
                     </Link>
                   ) : null}
+                </span>
+              )}
+              {user && canDeleteActivity(user, i) && (
+                <span className="ml-auto">
+                  <DeleteActivityButton id={i.id} label={`${INTERACTION_TYPE_LABELS[i.type]} de ${formatDateTimeBR(i.occurredAt)}`} />
                 </span>
               )}
             </div>

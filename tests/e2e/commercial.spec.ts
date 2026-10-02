@@ -65,6 +65,30 @@ test.describe.serial("Módulo comercial", () => {
     expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("Joana");
   });
 
+  test("atividade registrada pode ser excluída da linha do tempo; notificações podem ser limpas", async ({ page }) => {
+    await login(page, "corretor@besmart.local");
+    await go(page, `/crm?q=${encodeURIComponent(CLIENT)}&view=tabela`);
+    await go(page, (await page.getByRole("link", { name: CLIENT }).getAttribute("href"))!);
+    const note = `Ligação E2E ${RUN} para excluir`;
+    await page.getByLabel("O que aconteceu").fill(note);
+    await page.getByRole("button", { name: "Registrar" }).click();
+    const item = page.getByRole("listitem").filter({ hasText: note });
+    await expect(item).toBeVisible();
+    await item.getByRole("button", { name: "Excluir atividade" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Excluir" }).click();
+    await expect(page.getByText("Atividade excluída")).toBeVisible();
+    await expect(page.getByText(note)).toHaveCount(0);
+
+    await page.getByRole("button", { name: /Notificações/ }).click();
+    const clear = page.getByRole("button", { name: "Limpar todas" });
+    if (await clear.isVisible()) {
+      await clear.click();
+      await expect(page.getByText("Notificações excluídas")).toBeVisible();
+      await page.getByRole("button", { name: /Notificações/ }).click();
+      await expect(page.getByText("Nenhuma notificação")).toBeVisible();
+    }
+  });
+
   test("reunião: roteiro de perguntas, ata, WhatsApp e tarefa de retorno", async ({ page }) => {
     await login(page, "corretor@besmart.local");
     await go(page, `/crm?q=${encodeURIComponent(CLIENT)}&view=tabela`);

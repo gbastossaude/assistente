@@ -1,5 +1,5 @@
 "use client";
-import { Bell, Building2, CalendarPlus, CheckSquare, FileSpreadsheet, LogOut, Plus, Search, KeyRound, FilePlus2, Target } from "lucide-react";
+import { Bell, Building2, CalendarPlus, CheckSquare, FileSpreadsheet, LogOut, Plus, Search, KeyRound, FilePlus2, Target, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -11,7 +11,7 @@ import { useAction } from "@/components/ui/use-action";
 import { ROLE_LABELS, type Role } from "@/lib/domain/constants";
 import { formatDateTimeBR } from "@/lib/domain/dates";
 import { changePasswordAction, logoutAction } from "@/server/actions/auth";
-import { markNotificationReadAction } from "@/server/actions/notifications";
+import { dismissNotificationAction, markNotificationReadAction } from "@/server/actions/notifications";
 
 interface Notif {
   id: string;
@@ -102,28 +102,45 @@ export function Header({
           <DropdownContent className="w-80">
             <div className="flex items-center justify-between px-2 py-1">
               <DropdownLabel className="px-0">Notificações</DropdownLabel>
-              {unread > 0 && (
-                <button className="text-xs text-primary hover:underline" onClick={() => run(() => markNotificationReadAction(), { success: false })}>
-                  Marcar todas como lidas
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {unread > 0 && (
+                  <button className="text-xs text-primary hover:underline" onClick={() => run(() => markNotificationReadAction(), { success: false })}>
+                    Marcar todas como lidas
+                  </button>
+                )}
+                {notifications.length > 0 && (
+                  <button className="text-xs text-muted hover:text-red-600 hover:underline" onClick={() => run(() => dismissNotificationAction(), { success: "Notificações excluídas" })}>
+                    Limpar todas
+                  </button>
+                )}
+              </div>
             </div>
             <DropdownSeparator />
             <div className="max-h-96 overflow-y-auto">
               {notifications.length === 0 && <p className="px-2 py-4 text-center text-xs text-muted">Nenhuma notificação</p>}
               {notifications.map((n) => (
-                <DropdownItem
-                  key={n.id}
-                  className="flex-col items-start gap-0.5"
-                  onSelect={() => {
-                    if (!n.readAt) void run(() => markNotificationReadAction(n.id), { success: false });
-                    if (n.link) router.push(n.link);
-                  }}
-                >
-                  <span className={n.readAt ? "text-muted" : "font-medium"}>{n.title}</span>
-                  {n.body && <span className="text-xs text-muted">{n.body}</span>}
-                  <span className="text-[10px] text-muted">{formatDateTimeBR(n.createdAt)}</span>
-                </DropdownItem>
+                <div key={n.id} className="flex items-start gap-1">
+                  <DropdownItem
+                    className="min-w-0 flex-1 flex-col items-start gap-0.5"
+                    onSelect={() => {
+                      if (!n.readAt) void run(() => markNotificationReadAction(n.id), { success: false });
+                      if (n.link) router.push(n.link);
+                    }}
+                  >
+                    <span className={n.readAt ? "text-muted" : "font-medium"}>{n.title}</span>
+                    {n.body && <span className="text-xs text-muted">{n.body}</span>}
+                    <span className="text-[10px] text-muted">{formatDateTimeBR(n.createdAt)}</span>
+                  </DropdownItem>
+                  <button
+                    type="button"
+                    aria-label={`Excluir notificação: ${n.title}`}
+                    title="Excluir"
+                    className="mt-1.5 shrink-0 rounded p-1 text-muted hover:bg-surface-2 hover:text-red-600"
+                    onClick={() => run(() => dismissNotificationAction(n.id), { success: false })}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           </DropdownContent>

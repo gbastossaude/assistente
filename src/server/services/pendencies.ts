@@ -21,7 +21,7 @@ import {
   specialCases,
   users,
 } from "../db/schema";
-import { NotFoundError } from "../errors";
+import { BusinessError, NotFoundError } from "../errors";
 import { getRule } from "../settings";
 
 interface DesiredPendency {
@@ -311,4 +311,13 @@ export async function setPendencyStatus(id: string, status: "aberta" | "em_andam
     .set({ status, resolvedAt: status === "resolvida" || status === "cancelada" ? new Date() : null })
     .where(eq(pendencies.id, id));
   await audit({ userId, action: "status_change", entityType: "pendency", entityId: id, summary: `Pendência "${cur.title}": ${cur.status} → ${status}` });
+}
+
+/** Exclui uma pendência criada manualmente. As automáticas voltariam na sincronização: para elas, use "Cancelada". */
+export async function deletePendency(id: string, userId: string) {
+  const [cur] = await db.select().from(pendencies).where(eq(pendencies.id, id));
+  if (!cur) throw new NotFoundError("Pendência");
+  if (cur.origin !== "manual") throw new BusinessError("Pendências automáticas não podem ser excluídas — marque como “Cancelada” para que não reabram.");
+  await db.delete(pendencies).where(eq(pendencies.id, id));
+  await audit({ userId, action: "delete", entityType: "pendency", entityId: id, summary: `Pendência excluída: ${cur.title}` });
 }

@@ -1,9 +1,10 @@
 "use client";
-import { Bot, Pencil, Plus } from "lucide-react";
+import { Bot, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/inputs";
 import { EmptyState } from "@/components/ui/misc";
@@ -12,7 +13,7 @@ import { useAction } from "@/components/ui/use-action";
 import { PENDENCY_CATEGORIES, PENDENCY_CATEGORY_LABELS, PENDENCY_STATUSES, PENDENCY_STATUS_LABELS, PRIORITIES, PRIORITY_LABELS, type PendencyCategory, type PendencyStatus, type Priority } from "@/lib/domain/constants";
 import { formatDateBR, relativeDays, todayISO } from "@/lib/domain/dates";
 import { cn } from "@/lib/utils";
-import { savePendencyAction, setPendencyStatusAction } from "@/server/actions/pendencies";
+import { deletePendencyAction, savePendencyAction, setPendencyStatusAction } from "@/server/actions/pendencies";
 
 export interface PendencyView {
   id: string;
@@ -125,9 +126,22 @@ export function PendenciesBoard({ rows, users, quotations, canWrite, defaultQuot
                     </td>
                     <td className="px-3 py-2">
                       {canWrite && p.origin === "manual" && (
-                        <Button size="icon-sm" variant="ghost" aria-label="Editar" onClick={() => setEdit(p)}>
-                          <Pencil />
-                        </Button>
+                        <div className="flex">
+                          <Button size="icon-sm" variant="ghost" aria-label="Editar" onClick={() => setEdit(p)}>
+                            <Pencil />
+                          </Button>
+                          <ConfirmButton
+                            title="Excluir pendência?"
+                            description={`“${p.title}” será excluída. A exclusão fica registrada na auditoria.`}
+                            confirmLabel="Excluir"
+                            size="icon-sm"
+                            className="text-muted hover:text-red-600"
+                            ariaLabel="Excluir pendência"
+                            onConfirm={() => run(() => deletePendencyAction(p.id))}
+                          >
+                            <Trash2 />
+                          </ConfirmButton>
+                        </div>
                       )}
                     </td>
                   </tr>

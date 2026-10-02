@@ -15,6 +15,7 @@ export function ConfirmButton({
   size = "sm",
   disabled,
   className,
+  ariaLabel,
 }: {
   children: React.ReactNode;
   title: string;
@@ -26,12 +27,14 @@ export function ConfirmButton({
   size?: "sm" | "default" | "icon-sm" | "icon";
   disabled?: boolean;
   className?: string;
+  /** Nome acessível do botão (para botões só com ícone). */
+  ariaLabel?: string;
 }) {
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button type="button" variant={triggerVariant} size={size} onClick={() => setOpen(true)} disabled={disabled} className={className}>
+      <Button type="button" variant={triggerVariant} size={size} onClick={() => setOpen(true)} disabled={disabled} className={className} aria-label={ariaLabel} title={ariaLabel}>
         {children}
       </Button>
       <DialogContent title={title} size="sm">

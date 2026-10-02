@@ -7,7 +7,9 @@ import { audit } from "../audit";
 import type { CurrentUser } from "../auth";
 import { db } from "../db";
 import { companies, interactions, quotations, users } from "../db/schema";
-import { BusinessError } from "../errors";
+import { canDeleteActivity } from "@/lib/auth/permissions";
+import { formatDateTimeBR } from "@/lib/domain/dates";
+import { BusinessError, ForbiddenError, NotFoundError } from "../errors";
 import { addTimeline } from "../timeline";
 import { createTask } from "./tasks";
 
@@ -75,3 +77,19 @@ export async function listTimeline(f: { companyId?: string | null; quotationId?:
     .limit(f.limit ?? 200);
 }
 export type TimelineRow = Awaited<ReturnType<typeof listTimeline>>[number];
+
+/** Exclui uma atividade da linha do tempo. Fica registrado na auditoria (sem o texto, que pode ter dados pessoais). */
+export async function deleteInteraction(id: string, user: CurrentUser) {
+  const [i] = await db.select().from(interactions).where(eq(interactions.id, id));
+  if (!i) throw new NotFoundError("Atividade");
+  if (!canDeleteActivity(user, i)) throw new ForbiddenError("Você só pode excluir atividades que você mesmo registrou.");
+  await db.delete(interactions).where(eq(interactions.id, id));
+  await audit({
+    userId: user.id,
+    action: "delete",
+    entityType: "interaction",
+    entityId: id,
+    summary: `Atividade excluída: ${INTERACTION_TYPE_LABELS[i.type]} de ${formatDateTimeBR(i.occurredAt)}`,
+  });
+  return { companyId: i.companyId, quotationId: i.quotationId, opportunityId: i.opportunityId };
+}

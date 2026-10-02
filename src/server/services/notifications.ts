@@ -14,15 +14,17 @@ export async function notify(
     .onConflictDoNothing();
 }
 
+const visible = (userId: string) => and(eq(notifications.userId, userId), isNull(notifications.dismissedAt));
+
 export async function listNotifications(userId: string, limit = 30) {
-  return db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(limit);
+  return db.select().from(notifications).where(visible(userId)).orderBy(desc(notifications.createdAt)).limit(limit);
 }
 
 export async function unreadCount(userId: string) {
   const [r] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(notifications)
-    .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
+    .where(and(visible(userId), isNull(notifications.readAt)));
   return r?.n ?? 0;
 }
 
@@ -31,4 +33,16 @@ export async function markRead(userId: string, id?: string) {
     .update(notifications)
     .set({ readAt: new Date() })
     .where(and(eq(notifications.userId, userId), isNull(notifications.readAt), id ? eq(notifications.id, id) : undefined));
+}
+
+/**
+ * Exclui da lista do usuário (uma ou todas). A linha é mantida como "dispensada" para o dedupeKey impedir que a
+ * rotina horária recrie o mesmo alerta; a limpeza periódica (retenção LGPD) apaga as antigas de vez.
+ */
+export async function dismissNotifications(userId: string, id?: string) {
+  const now = new Date();
+  await db
+    .update(notifications)
+    .set({ dismissedAt: now, readAt: sql`coalesce(${notifications.readAt}, ${now})` })
+    .where(and(visible(userId), id ? eq(notifications.id, id) : undefined));
 }

@@ -1,5 +1,5 @@
 /** RBAC: papéis → permissões. Granular e pronto para expansão (basta acrescentar permissões/papéis). */
-import type { Role } from "@/lib/domain/constants";
+import { MANUAL_INTERACTION_TYPES, type InteractionType, type Role } from "@/lib/domain/constants";
 
 export const PERMISSIONS = [
   "read", // ler registros operacionais
@@ -81,4 +81,13 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 export function can(role: Role | undefined | null, permission: Permission): boolean {
   if (!role) return false;
   return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}
+
+/**
+ * Exclusão de atividade da linha do tempo: quem tem "delete" (head/admin) exclui qualquer uma; os demais, só as
+ * atividades manuais (ligação, e-mail, WhatsApp, reunião, nota, cobrança) que eles mesmos registraram.
+ */
+export function canDeleteActivity(user: { id: string; role: Role }, activity: { userId: string | null; type: InteractionType }): boolean {
+  if (can(user.role, "delete")) return true;
+  return activity.userId === user.id && MANUAL_INTERACTION_TYPES.includes(activity.type);
 }
