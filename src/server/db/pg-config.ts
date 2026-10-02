@@ -36,6 +36,8 @@ export function pgConfig(rawUrl: string | undefined, extra: PoolConfig = {}): Po
     ssl: wantsSsl ? (ca ? { ca, rejectUnauthorized: true } : { rejectUnauthorized: false }) : undefined,
     // Aguardado pelo pool antes de entregar a conexão; se falhar, a conexão é descartada (nunca usada sem o schema).
     ...(searchPath ? { onConnect: async (client: ClientBase) => void (await client.query(searchPath)) } : {}),
+    // Sem limite, uma conexão que não responde (rede/pooler) deixaria o processo esperando para sempre.
+    connectionTimeoutMillis: Number(process.env.DB_CONNECT_TIMEOUT_MS ?? 15_000),
     ...extra,
   } as PoolConfig;
 }

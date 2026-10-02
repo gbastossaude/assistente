@@ -10,6 +10,7 @@ import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { pgConfig } from "../src/server/db/pg-config";
+import { runResilient } from "./script-timeout";
 import { CHECKLIST_CATALOG } from "../src/lib/domain/checklist-catalog";
 import { DEFAULT_TEMPLATES } from "../src/lib/domain/messages";
 import { PLAYBOOK_DEFAULTS } from "../src/lib/playbook/content";
@@ -109,8 +110,5 @@ export async function bootstrap(url = process.env.DATABASE_URL) {
 }
 
 if (process.argv[1]?.endsWith("bootstrap.ts")) {
-  bootstrap().catch((e) => {
-    console.error(e);
-    process.exit(1);
-  });
+  void runResilient("Bootstrap", () => bootstrap());
 }

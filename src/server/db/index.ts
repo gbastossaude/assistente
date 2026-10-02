@@ -16,8 +16,6 @@ function createPool() {
       // voltas — caro com o banco em outra região. O padrão do pg fecha após 10 s ociosa.
       idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS ?? 300_000),
       keepAlive: true,
-      // Sem limite, uma requisição esperaria para sempre por conexão livre; com limite, vira erro visível no log.
-      connectionTimeoutMillis: Number(process.env.DB_CONNECT_TIMEOUT_MS ?? 15_000),
     }),
   );
 }

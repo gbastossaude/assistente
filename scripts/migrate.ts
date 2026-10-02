@@ -6,6 +6,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { dbSchema, describeConnection, pgConfig } from "../src/server/db/pg-config";
+import { runResilient } from "./script-timeout";
 
 /**
  * Aplica as migrations de drizzle/. Com DATABASE_SCHEMA (ex.: "besmart"), tudo é criado nesse schema —
@@ -37,8 +38,16 @@ async function main() {
     await pool.end();
   }
 }
-main().catch((e) => {
-  console.error(e);
-  console.error(`Conexão usada: ${describeConnection(process.env.DATABASE_URL)}`);
-  process.exit(1);
-});
+// Primeira instalação aplica todas as migrations pelo pooler (mais lenta): prazo maior por tentativa.
+void runResilient(
+  "Migração",
+  async () => {
+    try {
+      await main();
+    } catch (e) {
+      console.error(`Conexão usada: ${describeConnection(process.env.DATABASE_URL)}`);
+      throw e;
+    }
+  },
+  { timeoutMs: Number(process.env.DB_SCRIPT_TIMEOUT_MS ?? 300_000) },
+);
