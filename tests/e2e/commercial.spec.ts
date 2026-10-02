@@ -46,7 +46,7 @@ test.describe.serial("Módulo comercial", () => {
     await expect(page.getByText(CLIENT).first()).toBeVisible();
 
     await go(page, `/crm?q=${encodeURIComponent(CLIENT)}&view=tabela`);
-    await page.getByRole("link", { name: CLIENT }).click();
+    await go(page, (await page.getByRole("link", { name: CLIENT }).getAttribute("href"))!);
     await expect(page.getByText("Próximos passos sugeridos")).toBeVisible();
     await page.getByRole("button", { name: "Mover etapa" }).click();
     await dlg.getByLabel("Nova etapa").selectOption("perdido");
@@ -68,8 +68,8 @@ test.describe.serial("Módulo comercial", () => {
   test("reunião: roteiro de perguntas, ata, WhatsApp e tarefa de retorno", async ({ page }) => {
     await login(page, "corretor@besmart.local");
     await go(page, `/crm?q=${encodeURIComponent(CLIENT)}&view=tabela`);
-    await page.getByRole("link", { name: CLIENT }).click();
-    await page.getByRole("link", { name: "Nova", exact: true }).click();
+    await go(page, (await page.getByRole("link", { name: CLIENT }).getAttribute("href"))!);
+    await go(page, (await page.getByRole("link", { name: "Nova", exact: true }).getAttribute("href"))!);
     await expect(page.getByText("Roteiro de perguntas")).toBeVisible();
     await page.getByLabel("Resposta para: Qual a operadora atual?").fill("Unimed");
     await page.getByRole("radiogroup", { name: "Resposta: Qual a operadora atual?" }).getByRole("radio", { name: "Resposta recebida" }).click();

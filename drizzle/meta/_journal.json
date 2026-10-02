@@ -29,6 +29,13 @@
       "when": 1790948353096,
       "tag": "0003_comercial",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790952630103,
+      "tag": "0004_seguranca_supabase",
+      "breakpoints": true
     }
   ]
 }

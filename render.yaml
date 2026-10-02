@@ -19,6 +19,9 @@ services:
         sync: false
       - key: DATABASE_CA_CERT
         sync: false
+      # "besmart" ao dividir um projeto Supabase existente; vazio = public
+      - key: DATABASE_SCHEMA
+        sync: false
       - key: AUTH_SECRET
         generateValue: true
       - key: CRON_SECRET
@@ -29,8 +32,9 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      # "besmart-documentos" ao dividir um projeto Supabase existente
       - key: SUPABASE_STORAGE_BUCKET
-        value: documentos
+        sync: false
       - key: UPLOAD_MAX_MB
         value: "25"
       - key: ADMIN_EMAIL

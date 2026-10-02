@@ -32,10 +32,25 @@
 5. (Opcional, recomendado) **Project Settings → Database → SSL Configuration → Download certificate**: o conteúdo
    do arquivo vai em `DATABASE_CA_CERT` para o sistema também verificar o certificado do servidor.
 
+### Alternativa — usar um projeto Supabase que já existe (ex.: "Erbe")
+
+O sistema pode morar no mesmo banco de outro sistema sem tocar nas tabelas dele. Tudo fica num schema
+separado (`besmart`) e num bucket separado (`besmart-documentos`):
+
+- Configure `DATABASE_SCHEMA=besmart` e `SUPABASE_STORAGE_BUCKET=besmart-documentos`.
+- `DATABASE_URL`: URL **Session pooler** (porta 5432) ou conexão direta do projeto existente — o modo
+  *Transaction* (porta 6543) não serve, porque o sistema define o `search_path` por conexão.
+- `npm run db:migrate` cria o schema, as tabelas e o histórico de migrations dentro de `besmart`
+  (o `search_path` não inclui `public`, então o sistema nunca lê nem altera as tabelas do outro sistema).
+- **Não** acrescente `besmart` em *Project Settings → API → Exposed schemas*: o schema fica fora da API pública,
+  com RLS ativo e sem permissões para os papéis `anon`/`authenticated` (migration `0004`). O sistema conecta
+  como dono das tabelas e não depende da API REST.
+- A hospedagem do outro sistema (ex.: Netlify) não muda — este sistema é publicado separadamente (Render).
+
 ## Passo 2 — Código no GitHub
 
 O Render publica a partir do GitHub. Use o branch principal (`main`) — faça o merge do pull request deste
-trabalho — ou, temporariamente, selecione o branch `claude/gerar-esse-sistema-w8z8aw` no Render.
+trabalho — ou, temporariamente, selecione o branch `claude/beautiful-ptolemy-xjeaf5` no Render.
 
 ## Passo 3 — Render (aplicação)
 

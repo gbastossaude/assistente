@@ -1,4 +1,4 @@
-import type { PoolConfig } from "pg";
+import type { ClientBase, PoolConfig } from "pg";
 
 /**
  * Configuração de conexão PostgreSQL (usada pela aplicação e pelos scripts).
@@ -14,9 +14,32 @@ export function pgConfig(rawUrl: string | undefined, extra: PoolConfig = {}): Po
   url.searchParams.delete("ssl");
   const wantsSsl = process.env.DATABASE_SSL === "true" || (sslmode !== null && sslmode !== "disable") || /supabase\.(co|com)$/.test(url.hostname);
   const ca = process.env.DATABASE_CA_CERT?.replace(/\\n/g, "\n");
+  const searchPath = searchPathSql();
   return {
     connectionString: url.toString(),
     ssl: wantsSsl ? (ca ? { ca, rejectUnauthorized: true } : { rejectUnauthorized: false }) : undefined,
+    // Aguardado pelo pool antes de entregar a conexão; se falhar, a conexão é descartada (nunca usada sem o schema).
+    ...(searchPath ? { onConnect: async (client: ClientBase) => void (await client.query(searchPath)) } : {}),
     ...extra,
-  };
+  } as PoolConfig;
+}
+
+/**
+ * Schema PostgreSQL do sistema (DATABASE_SCHEMA). Padrão "public". Use outro nome (ex.: "besmart") para
+ * instalar no mesmo banco de outro sistema (ex.: um projeto Supabase já existente) sem colidir com as tabelas dele.
+ */
+export function dbSchema(): string {
+  const s = (process.env.DATABASE_SCHEMA ?? "").trim() || "public";
+  if (!/^[a-z_][a-z0-9_]{0,62}$/.test(s)) throw new Error("DATABASE_SCHEMA inválido: use letras minúsculas, números e _ (ex.: besmart)");
+  return s;
+}
+
+/**
+ * Com schema próprio, toda conexão usa `search_path = <schema>, extensions` — sem "public": um nome de tabela
+ * não encontrado no schema do sistema gera erro em vez de cair numa tabela homônima do outro sistema.
+ * Requer conexão direta ou "Session pooler" (o modo transação do pooler não preserva o search_path).
+ * Aplicado em `pgConfig` via `onConnect` do pg-pool.
+ */
+export function searchPathSql(schema = dbSchema()): string | null {
+  return schema === "public" ? null : `set search_path to "${schema}", extensions`;
 }
