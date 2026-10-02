@@ -26,12 +26,14 @@ export async function getMyDay(owner: string | string[] | null) {
   const oc = (col: Parameters<typeof eq>[0]) => (owner === null ? undefined : Array.isArray(owner) ? (owner.length ? inArray(col, owner) : sql`false`) : eq(col, owner));
   const ownerId = owner;
   const today = todayISO();
-  const staleDays = (await getRule("stale_process")).params.dias ?? 7;
-  const criticalDays = await getSetting("critical_deadline_days");
   const taskOwner = oc(tasks.ownerId);
   const qOwner = oc(quotations.ownerId);
 
-  const [taskRows, quotationRows, followupRows, renewalRows, pendencyRows] = await Promise.all([
+  // Tudo em paralelo: com o banco em outra região, cada consulta sequencial custa uma ida e volta inteira.
+  const [staleRule, criticalDays, timeline, taskRows, quotationRows, followupRows, renewalRows, pendencyRows] = await Promise.all([
+    getRule("stale_process"),
+    getSetting("critical_deadline_days"),
+    listTimeline({ limit: 15, userIds: Array.isArray(ownerId) ? ownerId : null }),
     db
       .select({ t: tasks, companyName, quotationCode: quotations.code, lives: quotations.estimatedLives })
       .from(tasks)
@@ -82,6 +84,7 @@ export async function getMyDay(owner: string | string[] | null) {
       .orderBy(asc(pendencies.dueDate)),
   ]);
 
+  const staleDays = staleRule.params.dias ?? 7;
   const tasksToday = taskRows.filter((r) => (r.t.dueDate ?? r.t.scheduledDate) === today);
   const tasksOverdue = taskRows.filter((r) => r.t.dueDate && r.t.dueDate < today);
   const qs = quotationRows.map((r) => ({ ...r, completeness: r.reqTotal ? Math.floor((r.reqDone / r.reqTotal) * 100) : 100, idleDays: diffDays(r.q.lastActivityAt.toISOString().slice(0, 10), today) }));
@@ -159,7 +162,6 @@ export async function getMyDay(owner: string | string[] | null) {
     })),
   ];
   const priorities = rankPriorities(candidates, today).slice(0, 15);
-  const timeline = await listTimeline({ limit: 15, userIds: Array.isArray(ownerId) ? ownerId : null });
 
   return {
     today,

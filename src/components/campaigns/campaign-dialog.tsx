@@ -1,6 +1,6 @@
 "use client";
 import { Pencil, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/inputs";
@@ -40,8 +40,11 @@ export function CampaignDialog({ value, users, trigger }: { value?: CampaignForm
   const { run, pending, fieldErrors } = useAction();
   const [open, setOpen] = useState(false);
   const [v, setV] = useState<CampaignFormValue>(value ?? blankCampaign());
+  // Reinicia só ao abrir: dados que chegam com o diálogo aberto não apagam o que o usuário digitou.
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (open) setV(value ?? blankCampaign());
+    if (open && !wasOpen.current) setV(value ?? blankCampaign());
+    wasOpen.current = open;
   }, [open, value]);
   const set = <K extends keyof CampaignFormValue>(k: K, val: CampaignFormValue[K]) => setV((s) => ({ ...s, [k]: val }));
   return (

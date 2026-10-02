@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/inputs";
@@ -14,13 +14,17 @@ export function StageDialog({ open, onOpenChange, opportunityId, clientName, cur
   const [note, setNote] = useState("");
   const [lostReason, setLostReason] = useState("");
   const [followup, setFollowup] = useState("");
+  // Reinicia o formulário só ao abrir: se os dados da página chegarem com o diálogo aberto (rede lenta),
+  // a escolha do usuário não é desfeita.
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpen.current) {
       setStage(initialTarget ?? current);
       setNote("");
       setLostReason("");
       setFollowup("");
     }
+    wasOpen.current = open;
   }, [open, initialTarget, current]);
   const back = OPPORTUNITY_STAGES.indexOf(stage) < OPPORTUNITY_STAGES.indexOf(current) && stage !== "perdido";
   return (

@@ -1,5 +1,6 @@
 import { AlarmClock, ArrowRight, BadgeDollarSign, Building2, CalendarClock, CalendarDays, CheckSquare, ClipboardList, FileWarning, Handshake, Hourglass, Inbox, Megaphone, Percent, RefreshCw, Send, Siren, Star, Target, Users } from "lucide-react";
 import Link from "next/link";
+import { after } from "next/server";
 import { Timeline } from "@/components/crm/timeline";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,8 +27,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const dataScope = await getScope(user);
   const canTeam = user.role !== "corretor";
   const scope = canTeam && sp((await searchParams).escopo) === "equipe" ? "equipe" : "meu";
-  // Rotina de alertas/automações (no máximo 1x por hora); falha não impede o painel.
-  await maybeRunSweep().catch((e) => logTechnicalError("sweep", e));
+  // Rotina de alertas/automações (no máximo 1x por hora): roda depois da resposta, sem atrasar o painel.
+  after(() => maybeRunSweep().catch((e) => logTechnicalError("sweep", e)));
   const owner = scope === "meu" ? (isScoped ? [user.id] : user.id) : dataScope.all ? null : dataScope.ownerIds;
   const viewScope = scope === "meu" ? { all: false as const, ownerIds: [user.id] } : dataScope;
   const [d, c] = await Promise.all([getMyDay(owner), getCommercialOverview(viewScope)]);

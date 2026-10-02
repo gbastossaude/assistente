@@ -66,6 +66,15 @@ separado (`besmart`) e num bucket separado (`besmart-documentos`):
 | `self-signed certificate in certificate chain` | `DATABASE_CA_CERT` não corresponde ao pooler | deixe `DATABASE_CA_CERT` vazio (a conexão segue criptografada) |
 - A hospedagem do outro sistema (ex.: Netlify) não muda — este sistema é publicado separadamente (Render).
 
+### Desempenho
+
+- **Plano do Render:** no *Free* o serviço hiberna após ~15 min sem acesso (o primeiro acesso depois disso leva
+  ~1 min) e tem 0,1 CPU. O *Starter* não hiberna e tem 5× mais CPU — é o ganho mais perceptível no dia a dia.
+- **Distância app ↔ banco:** o Render não tem região no Brasil; com o banco em São Paulo (sa-east-1), cada consulta
+  faz uma ida e volta Virginia ↔ São Paulo (~120 ms). O sistema já agrupa consultas em paralelo e mantém as conexões
+  abertas (`DB_IDLE_TIMEOUT_MS`), mas o mínimo por tela fica em ~0,3 s. Para ~0,05 s, hospede a aplicação em
+  São Paulo (ex.: Fly.io região `gru`, Google Cloud Run `southamerica-east1`, AWS `sa-east-1`).
+
 ## Passo 2 — Código no GitHub
 
 O Render publica a partir do GitHub. Use o branch principal (`main`) — faça o merge do pull request deste

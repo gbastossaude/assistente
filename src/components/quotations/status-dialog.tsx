@@ -1,6 +1,6 @@
 "use client";
 import { AlertTriangle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Select, Textarea } from "@/components/ui/inputs";
@@ -31,13 +31,16 @@ export function StatusDialog({
   const [note, setNote] = useState("");
   const [override, setOverride] = useState("");
   const [lost, setLost] = useState("");
+  // Reinicia só ao abrir: dados que chegam com o diálogo aberto não apagam o que o usuário digitou.
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpen.current) {
       setTo(initialTarget ?? current);
       setNote("");
       setOverride("");
       setLost("");
     }
+    wasOpen.current = open;
   }, [open, initialTarget, current]);
   const needsOverride = requiresReadiness(current, to) && pendingRequired > 0;
   return (

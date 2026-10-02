@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/inputs";
@@ -73,8 +73,11 @@ export function blankOpportunity(over: Partial<OpportunityFormValue> = {}): Oppo
 export function OpportunityDialog({ open, onOpenChange, value, options, onSaved }: { open: boolean; onOpenChange: (o: boolean) => void; value: OpportunityFormValue | null; options: CrmOptions; onSaved?: (id: string) => void }) {
   const { run, pending, fieldErrors } = useAction();
   const [v, setV] = useState<OpportunityFormValue>(value ?? blankOpportunity());
+  // Reinicia só ao abrir: dados que chegam com o diálogo aberto não apagam o que o usuário digitou.
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (open) setV(value ?? blankOpportunity());
+    if (open && !wasOpen.current) setV(value ?? blankOpportunity());
+    wasOpen.current = open;
   }, [open, value]);
   const set = <K extends keyof OpportunityFormValue>(k: K, val: OpportunityFormValue[K]) => setV((s) => ({ ...s, [k]: val }));
   const qs = v.companyId ? options.quotations.filter((q) => q.companyId === v.companyId) : options.quotations;

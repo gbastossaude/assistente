@@ -1,6 +1,6 @@
 "use client";
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/inputs";
@@ -71,8 +71,11 @@ export function TaskDialog({ open, onOpenChange, value, options }: { open: boole
   const { run, pending, fieldErrors } = useAction();
   const [v, setV] = useState<TaskFormValue>(value ?? blankTask());
   const [item, setItem] = useState("");
+  // Reinicia só ao abrir: dados que chegam com o diálogo aberto não apagam o que o usuário digitou.
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (open) setV(value ?? blankTask());
+    if (open && !wasOpen.current) setV(value ?? blankTask());
+    wasOpen.current = open;
   }, [open, value]);
   const set = <K extends keyof TaskFormValue>(k: K, val: TaskFormValue[K]) => setV((s) => ({ ...s, [k]: val }));
   const qs = v.companyId ? options.quotations.filter((q) => q.companyId === v.companyId) : options.quotations;

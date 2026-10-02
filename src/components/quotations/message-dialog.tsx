@@ -1,6 +1,6 @@
 "use client";
 import { Copy, Mail, MessageCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
@@ -42,12 +42,15 @@ export function MessageDialog({
   const [msg, setMsg] = useState<{ subject: string; body: string; to: string; missing: string[]; channel: string } | null>(null);
   const tpl = templates.find((t) => t.key === key);
 
+  // Reinicia só ao abrir: dados que chegam com o diálogo aberto não apagam o que o usuário digitou.
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpen.current) {
       setKey(defaultTemplate ?? templates[0]?.key ?? "");
       setQi(defaultInsurerId ?? "");
       setMsg(null);
     }
+    wasOpen.current = open;
   }, [open, defaultTemplate, defaultInsurerId, templates]);
 
   const generate = async () => {
