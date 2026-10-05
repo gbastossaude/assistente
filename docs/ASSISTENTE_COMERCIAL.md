@@ -43,6 +43,7 @@ PostgreSQL (Drizzle ORM, migrations versionadas em drizzle/) · storage privado 
 | | **Campanhas** | Campanhas do mês com produto, período, público, metas, mensagem, canais, responsáveis, status e resultados; leads/vendas/follow-ups calculados do CRM; **lembretes automáticos** de início, meio, últimos dias e encerramento; ativação automática na data de início. |
 | | **Mensagens prontas** | 24 mensagens em 11 categorias com variáveis `{{cliente}}`, `{{empresa}}`, `{{operadora}}`, `{{valor}}`, `{{data}}`, `{{horario}}`, `{{consultor}}`…; preencher variáveis uma vez, **copiar**, abrir no WhatsApp, **editar**, **duplicar**, restaurar original. |
 | | **Respostas rápidas** | 16 temas (carência, coparticipação, acomodação, rede, reembolso, PME, empresarial, individual, familiar, redução de custo, portabilidade, vigência, documentos, dependentes, cancelamento, implantação) — editáveis, com copiar e a ressalva de que as condições variam por operadora, contrato, região e análise. |
+| | **Calendário editorial** | 30 dias de posts para Instagram, LinkedIn, TikTok, Facebook ou YouTube (1x/dia, 5x ou 3x por semana): dia, dia da semana, **pilar** (50% educativo, 20% conexão, 15% venda, 15% engajamento), formato, tema, resumo da legenda (2 frases) e CTA; vendas concentradas na **semana de lançamento** (com aquecimento antes e últimas chamadas depois); **datas importantes** (sugestão automática de feriados e campanhas de saúde do período); resumo semanal, 5 ideias de Stories, 3 de Reels e dicas de horário. Textos escritos pelo Claude quando há `ANTHROPIC_API_KEY` (dias, pilares e formatos continuam calculados pelo sistema); sem chave, banco de temas local. Copiar em Markdown, CSV e impressão/PDF. |
 | | Empresas | Cadastro de clientes/prospects (agora com endereço). |
 | Cotações | Cotações / Grandes Contas +99 | Wizard, checklist NEW/RENEW, base de vidas, operadoras, propostas, comparativo — e o novo painel **"Pendências de dados antes do envio às operadoras"** (empresa, cotação, contrato atual e documentos, campo a campo), com acomodação, abrangência, titulares/dependentes, início desejado e prazo do cliente. |
 | | Pendências, Operadoras, Comparativos, Documentos, Renovações | Retaguarda (visão global; não disponível para Corretor/Supervisor). |
@@ -68,6 +69,7 @@ dados do sistema por ferramentas tipadas, respeitando o escopo do usuário. Coma
 | "Quais os próximos passos para o cliente X?" | `resumo_oportunidade` |
 | "Resumo do dia" / "Resumo semanal" | `resumo_diario` / `resumo_semanal` |
 | "Relatório de vendas do mês" | `relatorio_vendas` |
+| "Crie um calendário editorial de novembro para o Instagram" | `calendario_editorial` (30 dias de posts) |
 
 Além das ferramentas de cotações já existentes (resumo, pendências, renovações, operadoras sem resposta,
 histórico, agenda, e-mails/WhatsApp de cobrança, playbook). Corretor e Supervisor só acessam as ferramentas que

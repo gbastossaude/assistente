@@ -1,7 +1,7 @@
 # BeSmart Health Cockpit
 
 Central de comando comercial e operacional + assistente de IA para o **Head de Planos de Saúde da BeSmart** e sua
-equipe — **CRM multi-produto, reuniões com ata automática, campanhas do mês, mensagens prontas, respostas rápidas,
+equipe — **CRM multi-produto, reuniões com ata automática, campanhas do mês, calendário editorial de redes sociais, mensagens prontas, respostas rápidas,
 hierarquia (Supervisor/Corretor/Assistente)**, cotações
 empresariais (foco em +99 vidas), checklist automático NEW/RENEW, importação e validação da base de vidas,
 documentos com storage privado, operadoras e propostas, comparativo, tarefas, agenda, pendências, renovações,

@@ -75,6 +75,12 @@ export function routeCommercial(text: string, today: string): RoutedIntent | { c
     const start = /mes/.test(t) ? `${today.slice(0, 7)}-01` : "";
     return { tool: "relatorio_vendas", input: { de: start, ate: "" } };
   }
+  if (/calendario (editorial|de (conteudo|posts?|postage(m|ns)))|planejamento (editorial|de conteudo|de posts?)|\b30 posts\b|posts? (do|para o) mes/.test(t)) {
+    const plataforma = /linkedin/.test(t) ? "linkedin" : /tiktok/.test(t) ? "tiktok" : /facebook/.test(t) ? "facebook" : /youtube/.test(t) ? "youtube" : "instagram";
+    const frequencia = /(todo dia|todos os dias|diari|1x (por|ao) dia)/.test(t) ? "diaria" : /3x|tres vezes/.test(t) ? "3x_semana" : "5x_semana";
+    const lancamento = t.match(/lancamento na semana (\d)/);
+    return { tool: "calendario_editorial", input: { mes: monthRef(text, today) ?? "", plataforma, frequencia, semana_lancamento: lancamento ? Number(lancamento[1]) : 0, produto: "", publico: "" } };
+  }
   if (/\bcampanhas?\b/.test(t) && /(crie|criar|sugira|sugerir|monte|montar|planeje|planejar|proponha|propor)/.test(t)) {
     const foco = /\bpme\b|pequenas empresas/.test(t) ? "pme" : /(pessoa fisica|individual|familiar|\bpf\b|familias)/.test(t) ? "pf" : "empresarial";
     return { tool: "propor_campanha", input: { produto: productOf(t), mes: monthRef(text, today) ?? today.slice(0, 7), foco } };

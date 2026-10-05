@@ -16,7 +16,8 @@ import {
 } from "@/lib/domain/commercial";
 import { SCOPED_ROLES } from "@/lib/domain/constants";
 import { documentChecklist, followupState, opportunityFollowupMessage, suggestNextSteps } from "@/lib/domain/crm";
-import { addDays, formatDateBR, formatDateTimeBR, todayISO } from "@/lib/domain/dates";
+import { addDays, formatDateBR, formatDateTimeBR, isValidISODate, todayISO } from "@/lib/domain/dates";
+import { buildEditorialCalendar, defaultEditorialStart, EDITORIAL_PLATFORMS, editorialMarkdown, POSTING_FREQUENCIES, suggestImportantDates, type EditorialPlatform, type PostingFrequency } from "@/lib/domain/editorial-calendar";
 import { fillVariables } from "@/lib/domain/library";
 import { buildMeetingOutputs, DEFAULT_MEETING_QUESTIONS } from "@/lib/domain/meetings";
 import { formatMoney, formatPct } from "@/lib/utils";
@@ -325,5 +326,39 @@ const relatorioVendas: ToolDef<z.ZodObject<{ de: z.ZodString; ate: z.ZodString }
   },
 };
 
-export const COMMERCIAL_TOOLS = [listarOportunidades, resumoOportunidade, mensagemFollowup, resumirReuniao, roteiroReuniao, checklistDocumentos, proporCampanha, resumoDiario, resumoSemanal, relatorioVendas] as ToolDef<z.ZodTypeAny>[];
+const calendarioEditorial: ToolDef<z.ZodObject<{ mes: z.ZodString; plataforma: z.ZodString; frequencia: z.ZodString; semana_lancamento: z.ZodNumber; produto: z.ZodString; publico: z.ZodString }>> = {
+  name: "calendario_editorial",
+  description:
+    "Gera um calendário editorial de 30 dias para redes sociais (planos de saúde): dia, dia da semana, pilar (50% educativo, 20% conexão, 15% venda, 15% engajamento), formato, tema, resumo da legenda e CTA, mais resumo semanal, 5 ideias de Stories, 3 de Reels e dicas de horário. mes AAAA-MM (vazio = próximo mês); plataforma instagram | linkedin | tiktok | facebook | youtube; frequencia diaria | 5x_semana | 3x_semana; semana_lancamento 0 a 4 (0 = sem lançamento).",
+  schema: z.object({ mes: z.string(), plataforma: z.string(), frequencia: z.string(), semana_lancamento: z.number().int(), produto: z.string(), publico: z.string() }),
+  jsonSchema: obj({
+    mes: str("Mês AAAA-MM ou vazio"),
+    plataforma: str("instagram | linkedin | tiktok | facebook | youtube"),
+    frequencia: str("diaria | 5x_semana | 3x_semana"),
+    semana_lancamento: int("Semana do lançamento (1 a 4) ou 0"),
+    produto: str("Produto/serviço dos posts de venda ou vazio"),
+    publico: str("Público-alvo ou vazio"),
+  }),
+  scopeSafe: true,
+  async run({ mes, plataforma, frequencia, semana_lancamento, produto, publico }) {
+    const startDate = isValidISODate(`${mes}-01`) ? `${mes}-01` : defaultEditorialStart(todayISO());
+    const platform: EditorialPlatform = (EDITORIAL_PLATFORMS as readonly string[]).includes(plataforma) ? (plataforma as EditorialPlatform) : "instagram";
+    const niche = "Planos de saúde (corretora)";
+    const cal = buildEditorialCalendar({
+      startDate,
+      niche,
+      platform,
+      audience: publico.trim() || "Sócios, RH e gestores de empresas e famílias que querem pagar menos sem perder rede",
+      frequency: (POSTING_FREQUENCIES as readonly string[]).includes(frequencia) ? (frequencia as PostingFrequency) : "5x_semana",
+      pillars: null,
+      objectives: null,
+      product: produto.trim() || null,
+      launchWeek: semana_lancamento >= 1 && semana_lancamento <= 4 ? semana_lancamento : 0,
+      importantDates: suggestImportantDates(startDate, niche),
+    });
+    return { text: `${editorialMarkdown(cal, platform)}\n\nPersonalize nicho, objetivos e datas e exporte em CSV em /calendario-editorial.` };
+  },
+};
+
+export const COMMERCIAL_TOOLS = [listarOportunidades, resumoOportunidade, mensagemFollowup, resumirReuniao, roteiroReuniao, checklistDocumentos, proporCampanha, resumoDiario, resumoSemanal, relatorioVendas, calendarioEditorial] as ToolDef<z.ZodTypeAny>[];
 

@@ -25,6 +25,7 @@ import {
   UFS,
   CHECKLIST_STATUSES,
 } from "@/lib/domain/constants";
+import { EDITORIAL_PLATFORMS, POSTING_FREQUENCIES } from "@/lib/domain/editorial-calendar";
 import { SPECIAL_CASE_KINDS } from "@/lib/domain/special-cases";
 import {
   ANSWER_STATUSES,
@@ -634,3 +635,17 @@ export const anonymizeSchema = z.object({
   opportunityIds: z.array(z.string().uuid()).max(200).default([]),
   meetingIds: z.array(z.string().uuid()).max(200).default([]),
 });
+
+export const editorialCalendarSchema = z.object({
+  startDate: reqDate("Início do calendário"),
+  niche: reqStr("Nicho/área", 200),
+  platform: enumOf(EDITORIAL_PLATFORMS, "Plataforma"),
+  audience: reqStr("Público-alvo", 500),
+  frequency: enumOf(POSTING_FREQUENCIES, "Frequência"),
+  pillars: optStr(500),
+  objectives: optStr(1000),
+  product: optStr(300),
+  launchWeek: optNum({ min: 0, max: 4, int: true, label: "Semana do lançamento" }).transform((v) => v ?? 0),
+  importantDates: optStr(2000),
+});
+export type EditorialCalendarFormInput = z.input<typeof editorialCalendarSchema>;
