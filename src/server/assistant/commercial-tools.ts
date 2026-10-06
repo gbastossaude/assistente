@@ -18,6 +18,7 @@ import { SCOPED_ROLES } from "@/lib/domain/constants";
 import { documentChecklist, followupState, opportunityFollowupMessage, suggestNextSteps } from "@/lib/domain/crm";
 import { addDays, formatDateBR, formatDateTimeBR, isValidISODate, todayISO } from "@/lib/domain/dates";
 import { buildEditorialCalendar, defaultEditorialStart, EDITORIAL_PLATFORMS, editorialMarkdown, POSTING_FREQUENCIES, suggestImportantDates, type EditorialPlatform, type PostingFrequency } from "@/lib/domain/editorial-calendar";
+import { buildCarousel, CAROUSEL_DEFAULT_SLIDES, CAROUSEL_LIMITS, CAROUSEL_MAX_SLIDES, CAROUSEL_MIN_SLIDES, CAROUSEL_TEMPLATES, carouselMarkdown } from "@/lib/domain/instagram-carousel";
 import { fillVariables } from "@/lib/domain/library";
 import { buildMeetingOutputs, DEFAULT_MEETING_QUESTIONS } from "@/lib/domain/meetings";
 import { formatMoney, formatPct } from "@/lib/utils";
@@ -360,5 +361,29 @@ const calendarioEditorial: ToolDef<z.ZodObject<{ mes: z.ZodString; plataforma: z
   },
 };
 
-export const COMMERCIAL_TOOLS = [listarOportunidades, resumoOportunidade, mensagemFollowup, resumirReuniao, roteiroReuniao, checklistDocumentos, proporCampanha, resumoDiario, resumoSemanal, relatorioVendas, calendarioEditorial] as ToolDef<z.ZodTypeAny>[];
+const carrosselInstagram: ToolDef<z.ZodObject<{ tema: z.ZodString; slides: z.ZodNumber; palavra_chave: z.ZodString }>> = {
+  name: "carrossel_instagram",
+  description:
+    "Monta o roteiro de um carrossel para Instagram (planos de saúde): capa, slides de conteúdo e CTA com palavra-chave para comentar, mais a legenda. Usa os modelos prontos da corretora quando o tema corresponde (coparticipação, carência, portabilidade, PME/MEI, reajuste, erros ao contratar, enfermaria x apartamento); para outros temas devolve a estrutura com textos entre colchetes para completar. As imagens PNG 1080×1080 e o ZIP são gerados na tela /carrossel. tema vazio = lista os modelos prontos; slides 3 a 10 (0 = padrão); palavra_chave vazia = sugerida pelo tema.",
+  schema: z.object({ tema: z.string(), slides: z.number().int(), palavra_chave: z.string() }),
+  jsonSchema: obj({ tema: str("Tema do carrossel ou vazio"), slides: int("Quantidade de slides (3 a 10) ou 0"), palavra_chave: str("Palavra-chave do CTA ou vazio") }),
+  scopeSafe: true,
+  async run({ tema, slides, palavra_chave }) {
+    const topic = tema.trim().slice(0, CAROUSEL_LIMITS.topic);
+    if (!topic) return { text: `Modelos prontos de carrossel: ${CAROUSEL_TEMPLATES.map((t) => t.label).join(" · ")}.\n\nDiga o tema (ex.: “carrossel sobre portabilidade”) ou abra /carrossel para escrever o seu.` };
+    const carousel = buildCarousel({
+      topic,
+      audience: null,
+      slideCount: slides >= CAROUSEL_MIN_SLIDES && slides <= CAROUSEL_MAX_SLIDES ? slides : CAROUSEL_DEFAULT_SLIDES,
+      keyword: palavra_chave.replace(/\s+/g, "").slice(0, CAROUSEL_LIMITS.keyword) || null,
+      brand: "BeSmart",
+      handle: "",
+      palette: "besmart",
+      accent: "dourado",
+    });
+    return { text: `${carouselMarkdown(carousel)}\n\nPara editar os textos, escolher a paleta e baixar os PNGs 1080×1080 (ZIP), abra /carrossel?tema=${encodeURIComponent(topic)}.` };
+  },
+};
+
+export const COMMERCIAL_TOOLS = [listarOportunidades, resumoOportunidade, mensagemFollowup, resumirReuniao, roteiroReuniao, checklistDocumentos, proporCampanha, resumoDiario, resumoSemanal, relatorioVendas, calendarioEditorial, carrosselInstagram] as ToolDef<z.ZodTypeAny>[];
 

@@ -1,5 +1,6 @@
 "use client";
-import { CalendarPlus, Download, Printer, Sparkles } from "lucide-react";
+import { CalendarPlus, Download, GalleryHorizontalEnd, Printer, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -186,7 +187,14 @@ export function EditorialPlanner({ initial, aiEnabled }: { initial: FormValue; a
                       <Badge tone={PILLAR_TONES[p.pillar]}>{EDITORIAL_PILLAR_LABELS[p.pillar]}</Badge>
                       {p.launch && <Badge tone="red" className="ml-1">Lançamento</Badge>}
                     </Td>
-                    <Td className="whitespace-nowrap">{p.format}</Td>
+                    <Td className="whitespace-nowrap">
+                      {p.format}
+                      {/carrossel/i.test(p.format) && (
+                        <Link href={`/carrossel?tema=${encodeURIComponent(p.theme)}`} className="mt-0.5 flex items-center gap-1 text-xs text-primary hover:underline print:hidden">
+                          <GalleryHorizontalEnd className="size-3" /> Criar carrossel
+                        </Link>
+                      )}
+                    </Td>
                     <Td className="min-w-56 font-medium">
                       {p.theme}
                       {p.occasion && <div className="mt-0.5 text-xs font-normal text-amber-700 dark:text-amber-300">📅 {p.occasion}</div>}

@@ -1,7 +1,7 @@
 # BeSmart Health Cockpit
 
 Central de comando comercial e operacional + assistente de IA para o **Head de Planos de Saúde da BeSmart** e sua
-equipe — **CRM multi-produto, reuniões com ata automática, campanhas do mês, calendário editorial de redes sociais, mensagens prontas, respostas rápidas,
+equipe — **CRM multi-produto, reuniões com ata automática, campanhas do mês, calendário editorial de redes sociais, carrossel para Instagram (PNG 1080×1080), mensagens prontas, respostas rápidas,
 hierarquia (Supervisor/Corretor/Assistente)**, cotações
 empresariais (foco em +99 vidas), checklist automático NEW/RENEW, importação e validação da base de vidas,
 documentos com storage privado, operadoras e propostas, comparativo, tarefas, agenda, pendências, renovações,
@@ -107,6 +107,7 @@ Detalhes em [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) e [`doc
 | `/crm` | Pipeline de 11 etapas (Kanban/tabela), próximos passos sugeridos, mensagem de follow-up e checklist de documentos |
 | `/reunioes` | Ficha com roteiro de 17 perguntas → ata, pendências, WhatsApp de follow-up e tarefa de retorno |
 | `/campanhas` | Campanhas do mês com metas e lembretes de início, meio, últimos dias e resultado |
+| `/carrossel` | Carrossel para Instagram: capa, conteúdo e CTA com palavra-chave, prévia ao vivo, checklist e ZIP com os PNGs 1080×1080 e a legenda |
 | `/mensagens` · `/respostas` | Biblioteca com variáveis e botão copiar · respostas rápidas sobre planos de saúde |
 | `/tarefas?modo=kanban` · `/agenda` | Kanban de tarefas · agenda com status, assessor/comercial e lembrete |
 | `/relatorios` | Aba Comercial + exportação CSV/PDF |

@@ -20,6 +20,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/mensagens", label: "Mensagens prontas", icon: "message" },
   { href: "/respostas", label: "Respostas rápidas", icon: "zap" },
   { href: "/calendario-editorial", label: "Calendário editorial", icon: "calendarPlus", permission: "content:write" },
+  { href: "/carrossel", label: "Carrossel Instagram", icon: "images", permission: "content:write" },
   { href: "/empresas", label: "Empresas", icon: "building" },
   { href: "/cotacoes", label: "Cotações", icon: "kanban", section: "Cotações" },
   { href: "/grandes-contas", label: "Grandes Contas +99", icon: "star", permission: "operations:read" },

@@ -26,6 +26,18 @@ import {
   CHECKLIST_STATUSES,
 } from "@/lib/domain/constants";
 import { EDITORIAL_PLATFORMS, POSTING_FREQUENCIES } from "@/lib/domain/editorial-calendar";
+import {
+  CAROUSEL_ACCENTS,
+  CAROUSEL_DEFAULT_SLIDES,
+  CAROUSEL_LIMITS,
+  CAROUSEL_MAX_SLIDES,
+  CAROUSEL_MIN_SLIDES,
+  CAROUSEL_PALETTES,
+  CAROUSEL_PHOTO_MAX_CHARS,
+  SLIDE_KINDS,
+  normalizeHandle,
+  normalizeKeyword,
+} from "@/lib/domain/instagram-carousel";
 import { SPECIAL_CASE_KINDS } from "@/lib/domain/special-cases";
 import {
   ANSWER_STATUSES,
@@ -649,3 +661,74 @@ export const editorialCalendarSchema = z.object({
   importantDates: optStr(2000),
 });
 export type EditorialCalendarFormInput = z.input<typeof editorialCalendarSchema>;
+
+// ─── Carrossel para Instagram ───
+const HANDLE_RE = /^@[\w.]{1,30}$/;
+const handleField = z
+  .union([z.string(), z.null()])
+  .optional()
+  .transform((v) => normalizeHandle(v ?? ""))
+  .refine((v) => v === "" || HANDLE_RE.test(v), { message: "@ do perfil: use até 30 letras, números, ponto ou _" });
+const keywordField = optStr(CAROUSEL_LIMITS.keyword)
+  .transform((v) => (v === null ? null : normalizeKeyword(v)))
+  .refine((v) => v === null || !/\s/.test(v), { message: "Palavra-chave: use uma palavra só" });
+
+export const carouselBriefSchema = z.object({
+  topic: reqStr("Tema", CAROUSEL_LIMITS.topic),
+  audience: optStr(CAROUSEL_LIMITS.audience),
+  slideCount: optNum({ min: CAROUSEL_MIN_SLIDES, max: CAROUSEL_MAX_SLIDES, int: true, label: "Quantidade de slides" }).transform((v) => v ?? CAROUSEL_DEFAULT_SLIDES),
+  keyword: keywordField,
+  brand: optStr(CAROUSEL_LIMITS.brand).transform((v) => v ?? ""),
+  handle: handleField,
+  palette: enumOf(CAROUSEL_PALETTES, "Paleta"),
+  accent: enumOf(CAROUSEL_ACCENTS, "Cor de destaque"),
+});
+export type CarouselBriefInput = z.input<typeof carouselBriefSchema>;
+
+const slideText = (label: string, max: number) =>
+  z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => (v ?? "").trim())
+    .refine((v) => v.length <= max, { message: `${label}: máximo de ${max} caracteres` });
+
+export const carouselSlideSchema = z.object({
+  kind: enumOf(SLIDE_KINDS, "Tipo de slide"),
+  eyebrow: slideText("Rótulo", CAROUSEL_LIMITS.eyebrow),
+  title: slideText("Título", CAROUSEL_LIMITS.title),
+  highlight: slideText("Destaque", CAROUSEL_LIMITS.highlight),
+  body: slideText("Texto", CAROUSEL_LIMITS.body),
+  bullets: z
+    .array(slideText("Item da lista", CAROUSEL_LIMITS.bullet))
+    .max(CAROUSEL_LIMITS.bullets, { message: `Lista: máximo de ${CAROUSEL_LIMITS.bullets} itens` })
+    .optional()
+    .transform((v) => (v ?? []).filter(Boolean)),
+  keyword: slideText("Palavra-chave", CAROUSEL_LIMITS.keyword).transform((v) => normalizeKeyword(v)),
+});
+
+export const carouselSchema = z.object({
+  topic: slideText("Tema", CAROUSEL_LIMITS.topic),
+  brand: slideText("Marca", CAROUSEL_LIMITS.brand),
+  handle: handleField,
+  palette: enumOf(CAROUSEL_PALETTES, "Paleta"),
+  accent: enumOf(CAROUSEL_ACCENTS, "Cor de destaque"),
+  slides: z
+    .array(carouselSlideSchema)
+    .min(CAROUSEL_MIN_SLIDES, { message: `O carrossel precisa de pelo menos ${CAROUSEL_MIN_SLIDES} slides` })
+    .max(CAROUSEL_MAX_SLIDES, { message: `Máximo de ${CAROUSEL_MAX_SLIDES} slides` }),
+  caption: slideText("Legenda", CAROUSEL_LIMITS.caption),
+  photo: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => v || null)
+    .refine((v) => v === null || (v.length <= CAROUSEL_PHOTO_MAX_CHARS && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(v)), { message: "Foto da capa inválida ou grande demais" }),
+});
+
+export const carouselRenderSchema = z.object({
+  carousel: carouselSchema,
+  /** Slides a renderizar (vazio/ausente = todos). */
+  indexes: z
+    .array(z.number().int().min(0).max(CAROUSEL_MAX_SLIDES - 1))
+    .max(CAROUSEL_MAX_SLIDES)
+    .optional(),
+});

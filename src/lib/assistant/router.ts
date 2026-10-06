@@ -64,6 +64,16 @@ export function productOf(t: string): string {
   return PRODUCT_WORDS.find(([re]) => re.test(t))?.[1] ?? "plano_saude";
 }
 
+/** Tema de um pedido de carrossel: "carrossel (para o Instagram) (de 5 slides) sobre|de X (com 6 slides)". */
+export function carouselTopic(text: string): string {
+  const m = text.match(/carross(?:el|éis|eis)\b(?:\s+(?:para|no|do)\s+(?:o\s+)?instagram)?(?:\s+(?:de|com)\s+[\wÀ-ú]+\s+slides?)?\s*(?:sobre|de|do|da|com o tema|:)\s+(.+)$/i);
+  if (!m) return "";
+  return m[1]
+    .replace(/[?.!]+$/, "")
+    .replace(/\s+(?:com|de|em)\s+[\wÀ-ú]+\s+slides?$/i, "")
+    .trim();
+}
+
 /** Comandos do módulo comercial (CRM, reuniões, campanhas, resumos). Retorna null se não for um deles. */
 export function routeCommercial(text: string, today: string): RoutedIntent | { clarify: string } | null {
   const t = norm(text);
@@ -74,6 +84,10 @@ export function routeCommercial(text: string, today: string): RoutedIntent | { c
   if (/relatorio de vendas|vendas (do|deste|no) mes|vendas por (corretor|produto)|quanto (vendemos|vendi)/.test(t)) {
     const start = /mes/.test(t) ? `${today.slice(0, 7)}-01` : "";
     return { tool: "relatorio_vendas", input: { de: start, ate: "" } };
+  }
+  if (/\bcarross(el|eis)\b|\bcarousel\b/.test(t)) {
+    const slides = numberAfter(text, /(\d+|\w+)\s+slides?\b/);
+    return { tool: "carrossel_instagram", input: { tema: carouselTopic(text), slides: slides ?? 0, palavra_chave: "" } };
   }
   if (/calendario (editorial|de (conteudo|posts?|postage(m|ns)))|planejamento (editorial|de conteudo|de posts?)|\b30 posts\b|posts? (do|para o) mes/.test(t)) {
     const plataforma = /linkedin/.test(t) ? "linkedin" : /tiktok/.test(t) ? "tiktok" : /facebook/.test(t) ? "facebook" : /youtube/.test(t) ? "youtube" : "instagram";
