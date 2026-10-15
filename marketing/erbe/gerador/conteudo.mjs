@@ -130,17 +130,17 @@ Se você tem plano de saúde e ficou com dúvida sobre a rede ou sobre o que est
       { t: 'statement', title: 'Não existe resposta pronta. <em>Existe comparação feita para o seu caso.</em>', big: true },
       ctaBox('Seu CNPJ pode abrir <em>outras opções.</em>', 'Responda com PME e receba um estudo para o seu CNPJ.', 'A gente compara e explica cada detalhe antes de você decidir.'),
     ],
-    legenda: `Você tem CNPJ, mas o plano de saúde ainda está no seu CPF?
+    legenda: `Você tem CNPJ. Seu plano de saúde ainda é de pessoa física?
 
-MEIs e pequenas empresas podem contratar planos empresariais — os chamados planos PME. Isso pode mudar as operadoras disponíveis, os valores, as regras para dependentes e a forma de reajuste.
+MEIs e pequenas empresas podem contratar planos empresariais, os chamados planos PME. Isso pode mudar as operadoras disponíveis, os valores, as regras para incluir dependentes e a forma de reajuste.
 
-Mas cada operadora tem as suas exigências: tempo mínimo de CNPJ ativo, número mínimo de vidas e vínculo dos beneficiários com a empresa.
+Mas cada operadora tem as suas exigências: tempo mínimo de CNPJ ativo, número mínimo de vidas e vínculo dos beneficiários com a empresa. E o reajuste do PME segue regras diferentes do individual.
 
-Por isso, não existe resposta pronta. Existe comparação feita para o seu caso.
+Por isso, não existe resposta pronta. Existe comparação feita para o seu caso. A gente estuda antes de indicar.
 
-Hoje, 5 de outubro, é Dia Nacional da Micro e Pequena Empresa. Um bom dia para revisar isso.
+Hoje, 5 de outubro, é Dia Nacional da Micro e Pequena Empresa. Um bom dia para olhar para isso.
 
-📲 Responda com PME (aqui nos comentários ou no WhatsApp do link na bio) e receba um estudo para o seu CNPJ.`,
+💬 Responda com PME (aqui nos comentários ou no WhatsApp do link na bio) e receba um estudo para o seu CNPJ.`,
     hashtags: [...H.marca, '#PlanoPME', '#MEI', '#PlanoDeSaudeEmpresarial', '#PequenasEmpresas', '#Empreendedorismo'],
   },
   // ───────────────────────────── 06
@@ -159,15 +159,17 @@ Hoje, 5 de outubro, é Dia Nacional da Micro e Pequena Empresa. Um bom dia para 
       'Aluguel, salários e fornecedores continuam.',
       'Lucros cessantes e despesas fixas podem estar na apólice.',
       'Se ela for montada assim.',
-      'Comente EMPRESA e receba o checklist.',
+      'Comente EMPRESA e receba um estudo.',
     ],
-    legenda: `Incêndio, alagamento, pane elétrica. O prejuízo não é só o que quebrou. É o que sua empresa deixa de faturar enquanto conserta — com aluguel, salários e fornecedores vencendo normalmente.
+    legenda: `Se a sua empresa fechasse por 60 dias, quem pagaria as contas?
+
+Incêndio, alagamento, pane elétrica. O prejuízo não é só o que quebrou. É o que a empresa deixa de faturar enquanto conserta, com aluguel, salários e fornecedores vencendo normalmente.
 
 O seguro empresarial pode incluir cobertura de lucros cessantes e despesas fixas. Mas só se a apólice for desenhada assim.
 
 A diferença está na hora de montar a proteção, não na hora do sinistro.
 
-💬 Comente EMPRESA e receba o checklist de coberturas para o seu negócio.`,
+💬 Comente EMPRESA (ou responda no WhatsApp do link na bio) e receba um estudo das coberturas que fazem sentido para o seu negócio.`,
     hashtags: [...H.marca, '#SeguroEmpresarial', '#LucrosCessantes', '#GestaoDeRiscos', '#Empresarios'],
   },
   // ───────────────────────────── 07
@@ -181,16 +183,21 @@ A diferença está na hora de montar a proteção, não na hora do sinistro.
       { t: 'list', kicker: 'Consórcio', title: 'Para quem planeja.', items: ['Sem juros, com taxa de administração', 'Crédito na contemplação, por sorteio ou lance', 'Parcelas corrigidas por índice previsto em contrato'] },
       { t: 'compare', title: 'Lado a lado', heads: ['Financiamento', 'Consórcio'], rows: [['Quando recebe', 'Na hora', 'Na contemplação'], ['Custo', 'Juros', 'Taxa de administração'], ['Indicado para', 'Urgência', 'Planejamento'], ['Previsibilidade da data', 'Total', 'Depende de sorteio ou lance']] },
       { t: 'statement', title: 'Nenhum é melhor em tudo.', body: 'A escolha certa depende de prazo, fluxo de caixa e objetivo.', big: true },
-      cta('Compare o custo total <em>antes de decidir.</em>', 'Fale com a ERBE', 'Simule o consórcio para o seu objetivo.'),
+      ctaBox('Compare o custo total <em>antes de decidir.</em>', 'Responda com CONSÓRCIO e receba uma simulação para o seu objetivo.', 'Com o custo total na mesa, a escolha fica mais clara.'),
     ],
-    legenda: `Consórcio ou financiamento? Antes de comparar taxas, responda: quando você precisa do bem?
+    legenda: `Consórcio ou financiamento? A resposta começa com outra pergunta: quando você precisa do bem?
 
-Financiamento entrega o crédito na hora, com juros.
-Consórcio não tem juros, tem taxa de administração — e o crédito vem na contemplação, por sorteio ou lance.
+Arraste para ver os dois lado a lado:
 
-Nenhum é melhor em tudo. Urgência pede uma solução. Planejamento permite outra.
+• Financiamento: crédito na hora, com juros sobre o valor financiado.
+• Consórcio: sem juros, com taxa de administração. O crédito vem na contemplação, por sorteio ou lance, e as parcelas são corrigidas pelo índice previsto em contrato.
 
-Fale com a ERBE e compare o custo total antes de decidir. Link na bio.`,
+Nenhum é melhor em tudo. Urgência pede uma solução. Planejamento permite outra. O que decide é prazo, fluxo de caixa e objetivo.
+
+📌 Salve para comparar com calma.
+💬 Responda com CONSÓRCIO e receba uma simulação com o custo total para o seu objetivo.
+
+Administradoras autorizadas e fiscalizadas pelo Banco Central do Brasil. A ERBE atua como representante.`,
     hashtags: [...H.marca, '#Consorcio', '#Financiamento', '#CartaDeCredito', '#PlanejamentoFinanceiro'],
   },
   // ───────────────────────────── 08
@@ -202,24 +209,23 @@ Fale com a ERBE e compare o custo total antes de decidir. Link na bio.`,
       { t: 'step', n: 1, total: 5, kicker: 'Etapa 1', title: 'Diagnóstico', body: 'Entendemos quem você protege, o que já tem e onde está exposto.' },
       { t: 'step', n: 2, total: 5, kicker: 'Etapa 2', title: 'Análise de mercado', body: 'Comparamos operadoras, seguradoras e administradoras.' },
       { t: 'step', n: 3, total: 5, kicker: 'Etapa 3', title: 'Estudo escrito', body: 'As opções lado a lado, o que cada uma cobre e o motivo da recomendação.' },
-      { t: 'step', n: 4, total: 5, kicker: 'Etapa 4', title: 'Implantação', body: 'Cuidamos da documentação e dos prazos.' },
+      { t: 'step', n: 4, total: 5, kicker: 'Etapa 4', title: 'Implantação', body: 'Cuidamos da documentação e dos prazos com você.' },
       { t: 'step', n: 5, total: 5, kicker: 'Etapa 5', title: 'Acompanhamento', body: 'Você continua falando com a gente depois de assinar: reajustes, renovações e sinistros.' },
-      cta('Quer começar <em>pelo diagnóstico?</em>'),
+      ctaBox('Quer começar <em>pelo diagnóstico?</em>', 'Responda com SAÚDE, SEGUROS ou CONSÓRCIO e receba um estudo.', 'Você continua falando com a gente depois de assinar.'),
     ],
-    legenda: `Já pediu uma cotação e recebeu só uma tabela de preços?
+    legenda: `Preço sem diagnóstico é chute. Por isso a gente pergunta antes de mandar preço.
 
-Na ERBE, a gente faz perguntas antes. Porque preço sem diagnóstico é chute.
+Já pediu uma cotação e recebeu só uma tabela? Na ERBE, o caminho é outro:
 
-Nosso método:
-1. Diagnóstico
-2. Análise de mercado
-3. Estudo escrito, com as opções lado a lado e o motivo da recomendação
-4. Implantação
-5. Acompanhamento
+1. Diagnóstico: quem você protege, o que já tem e onde está exposto
+2. Análise de mercado: operadoras, seguradoras e administradoras comparadas
+3. Estudo escrito: as opções lado a lado e o motivo da recomendação
+4. Implantação: documentação e prazos com a gente
+5. Acompanhamento: reajustes, renovações e sinistros
 
-Proteção bem feita não termina na assinatura. Ela continua nas renovações, nos reajustes e no dia em que você precisa usar.
+Proteção bem feita não termina na assinatura. Você continua falando com a gente depois.
 
-Quer começar pelo diagnóstico? Fale com a ERBE pelo link na bio.`,
+💬 Responda com SAÚDE, SEGUROS ou CONSÓRCIO (aqui nos comentários ou no WhatsApp do link na bio) e comece pelo diagnóstico.`,
     hashtags: [...H.marca, '#Consultoria', '#CorretoraDeSeguros', '#PlanoDeSaude', '#Consorcio'],
   },
   // ───────────────────────────── 09
@@ -236,18 +242,21 @@ Quer começar pelo diagnóstico? Fale com a ERBE pelo link na bio.`,
       '3. Regras de elegibilidade indefinidas',
       '4. Ler a cláusula de reajuste só na renovação',
       '5. Não acompanhar a utilização',
-      'Se reconheceu algum? Fale com a ERBE.',
+      'Reconheceu algum? Responda com SAÚDE.',
     ],
-    legenda: `Plano de saúde empresarial não pesa só pelo preço. Pesa pelas decisões tomadas — ou não tomadas — ao longo do contrato.
+    legenda: `5 erros que pesam no plano de saúde da sua empresa. E quase ninguém percebe.
 
-5 erros comuns:
+O plano empresarial não pesa só pelo preço. Pesa pelas decisões tomadas, ou não tomadas, ao longo do contrato:
+
 1. Escolher só pela mensalidade do primeiro ano
 2. Contratar uma rede que não atende onde a equipe mora
-3. Não definir regras de elegibilidade (dependentes, agregados)
+3. Não definir regras de elegibilidade (dependentes e agregados)
 4. Ler a cláusula de reajuste só na renovação
 5. Não acompanhar a utilização ao longo do ano
 
-Se reconheceu pelo menos um, vale uma conversa antes da próxima renovação. Fale com a ERBE pelo link na bio.`,
+Reconheceu pelo menos um? Vale uma conversa antes da próxima renovação.
+
+💬 Responda com SAÚDE (aqui nos comentários ou no WhatsApp do link na bio) e receba um estudo do contrato da sua empresa.`,
     hashtags: [...H.marca, '#PlanoDeSaudeEmpresarial', '#RH', '#BeneficiosCorporativos', '#GestaoDePessoas'],
   },
   // ───────────────────────────── 10
@@ -257,13 +266,13 @@ Se reconheceu pelo menos um, vale uma conversa antes da próxima renovação. Fa
     slides: [
       { t: 'poster', kicker: 'Seguro residencial', title: 'Cano estourado no domingo. <em>Seu seguro resolve?</em>', size: 88, body: 'Muitas apólices incluem assistências como encanador, chaveiro e eletricista — além de coberturas para incêndio, danos elétricos e roubo. Depende do que foi contratado.', icons: ['drop', 'key', 'bolt', 'fire'], line: 'Envie sua apólice para a ERBE analisar.' },
     ],
-    legenda: `Domingo, 8 da manhã. Um cano estoura na cozinha.
+    legenda: `Cano estourado no domingo. Seu seguro resolve?
 
-Muita gente não sabe, mas várias apólices de seguro residencial incluem assistências como encanador, chaveiro e eletricista — além das coberturas para incêndio, danos elétricos e roubo.
+Muita gente não sabe, mas várias apólices de seguro residencial incluem assistências como encanador, chaveiro e eletricista, além das coberturas para incêndio, danos elétricos e roubo.
 
 Tudo depende do que foi contratado. E é justamente aí que pouca gente olha.
 
-Não sabe o que o seu cobre? Envie sua apólice para a ERBE analisar. Link na bio.`,
+📩 Não sabe o que o seu cobre? Envie sua apólice pelo WhatsApp do link na bio. A gente analisa e explica, em linguagem clara, o que está e o que não está coberto.`,
     hashtags: [...H.marca, '#SeguroResidencial', '#Casa', '#Assistencia24h', '#ProtecaoFamiliar'],
   },
   // ───────────────────────────── 11
@@ -284,15 +293,20 @@ Não sabe o que o seu cobre? Envie sua apólice para a ERBE analisar. Link na bi
       'E você compra o bem à vista.',
       'Sem juros. Com planejamento.',
     ],
-    legenda: `Consórcio é um grupo de pessoas com o mesmo objetivo, contribuindo todo mês.
+    legenda: `Como você recebe o crédito no consórcio? Explicado em 30 segundos.
 
-A cada assembleia, há contemplações por sorteio e por lance. O lance é antecipar parte das parcelas — e as regras (livre, fixo ou embutido) variam conforme a administradora.
+Consórcio é um grupo de pessoas com o mesmo objetivo, contribuindo todo mês.
+
+A cada assembleia, há contemplações por sorteio e por lance. O lance é antecipar parte das parcelas, e as regras (livre, fixo ou embutido) variam conforme a administradora.
 
 Contemplado, o crédito passa por análise e você compra o bem à vista.
 
 Sem juros. Com planejamento.
 
-Salve para consultar depois — e, quando quiser simular, fale com a ERBE.`,
+📌 Salve para consultar depois.
+💬 Quando quiser simular, responda com CONSÓRCIO.
+
+Administradoras autorizadas e fiscalizadas pelo Banco Central do Brasil. A ERBE atua como representante.`,
     hashtags: [...H.marca, '#Consorcio', '#Contemplacao', '#CartaDeCredito', '#ConsorcioImobiliario'],
   },
   // ───────────────────────────── 12
