@@ -96,10 +96,11 @@ export function buildDemoPortal(now = Date.now()) {
   const departments = [
     { ID: '10', NAME: 'Comercial', PARENT: '1' }, { ID: '20', NAME: 'Operacional', PARENT: '1' }, { ID: '30', NAME: 'Assessores', PARENT: '1' }
   ];
-  const types = [{ id: 7, entityTypeId: 1036, title: 'Pós-venda e Assessoria', isCategoriesEnabled: true, isStagesEnabled: true, customSectionId: 3 }];
+  const types = [{ id: 7, entityTypeId: 1036, title: 'be.smart Saúde (fictício)', isCategoriesEnabled: true, isStagesEnabled: true, customSectionId: 3 }];
   const categories = {
     2: [{ id: 0, name: 'Comercial PME', sort: 100, entityTypeId: 2, isDefault: true }, { id: 3, name: 'Operacional – Implantação', sort: 200, entityTypeId: 2, isDefault: false }],
-    1036: [{ id: 7, name: 'Atendimento ao cliente', sort: 100, entityTypeId: 1036, isDefault: true }]
+    1036: [{ id: 7, name: 'Atendimento ao cliente', sort: 100, entityTypeId: 1036, isDefault: true },
+      { id: 8, name: 'Pós-venda', sort: 200, entityTypeId: 1036, isDefault: false }]
   };
   const st = (ENTITY_ID, list) => list.map(([STATUS_ID, NAME, SEM], i) => ({ ID: String(i + 1), ENTITY_ID, STATUS_ID, NAME, SORT: String((i + 1) * 10),
     SEMANTICS: SEM === 'P' ? null : SEM, EXTRA: { SEMANTICS: SEM === 'S' ? 'success' : SEM === 'F' ? 'failure' : 'process' } }));
@@ -110,7 +111,8 @@ export function buildDemoPortal(now = Date.now()) {
     ...st('DEAL_STAGE_3', [['C3:NEW', 'Em digitação', 'P'], ['C3:PREPARATION', 'Pendência de documentos', 'P'], ['C3:EXECUTING', 'Em análise', 'P'],
       ['C3:UC_BOLETO', 'Aguardando boleto', 'P'], ['C3:UC_IMPL', 'Aguardando implantação', 'P'], ['C3:WON', 'Implantado', 'S'], ['C3:LOSE', 'Cancelado', 'F']]),
     ...st('DYNAMIC_1036_STAGE_7', [['DT1036_7:NEW', 'Solicitação recebida', 'P'], ['DT1036_7:PREPARATION', 'Em atendimento', 'P'],
-      ['DT1036_7:CLIENT', 'Aguardando operadora', 'P'], ['DT1036_7:SUCCESS', 'Concluído', 'S'], ['DT1036_7:FAIL', 'Cancelado', 'F']])
+      ['DT1036_7:CLIENT', 'Aguardando operadora', 'P'], ['DT1036_7:SUCCESS', 'Concluído', 'S'], ['DT1036_7:FAIL', 'Cancelado', 'F']]),
+    ...st('DYNAMIC_1036_STAGE_8', [['DT1036_8:NEW', 'Solicitação de pós-venda', 'P'], ['DT1036_8:SUCCESS', 'Concluído', 'S'], ['DT1036_8:FAIL', 'Cancelado', 'F']])
   ];
   const fields = {
     2: {
@@ -120,13 +122,15 @@ export function buildDemoPortal(now = Date.now()) {
       opportunity: { type: 'double', title: 'Valor' }, closedate: { type: 'date', title: 'Data prevista de fechamento' },
       ufCrm_PRAZO_PROPOSTA: { type: 'date', title: 'Prazo da proposta (fictício)' },
       ufCrm_TIPO_ATEND: { type: 'enumeration', title: 'Tipo de atendimento (fictício)', items: [{ ID: '101', VALUE: 'Novo contrato' }, { ID: '102', VALUE: 'Inclusão de vidas' }, { ID: '103', VALUE: 'Urgente' }] },
-      ufCrm_AGUARD_CLIENTE: { type: 'boolean', title: 'Aguardando cliente (fictício)' }
+      ufCrm_AGUARD_CLIENTE: { type: 'boolean', title: 'Aguardando cliente (fictício)' },
+      ufCrm_EMAIL_ESPECIALISTA: { type: 'string', title: 'E-mail do especialista' }
     },
     1: { id: { type: 'integer', title: 'ID' }, title: { type: 'string', title: 'Nome' }, stageId: { type: 'crm_status', title: 'Status' } },
     1036: { id: { type: 'integer', title: 'ID' }, title: { type: 'string', title: 'Nome' }, stageId: { type: 'crm_status', title: 'Etapa' },
       assignedById: { type: 'user', title: 'Responsável' }, createdBy: { type: 'user', title: 'Criado por' },
       ufCrm7_PRIORIDADE: { type: 'enumeration', title: 'Prioridade (fictício)', items: [{ ID: '1', VALUE: 'Normal' }, { ID: '2', VALUE: 'Alta' }] },
-      ufCrm7_COMERCIAL: { type: 'user', title: 'Comercial', isMultiple: false } }
+      ufCrm7_COMERCIAL: { type: 'user', title: 'Comercial', isMultiple: false },
+      ufCrm7_EMAIL_ESPECIALISTA: { type: 'string', title: 'E-mail do especialista' } }
   };
 
   // ---- cenários: [etid, cat, título, responsável, valor, caminho [[etapa, dias atrás]], extras]
@@ -247,6 +251,8 @@ export function buildDemoPortal(now = Date.now()) {
     acts: [{ subj: 'Cobrar operadora', deadlineIn: -5, createdAgo: 8 }], fields: { ufCrm7_PRIORIDADE: '2' } });
   add(1036, 7, 'Troca de plano — Empresa Fictícia D', '32', 0, [['DT1036_7:NEW', 1.5], ['DT1036_7:PREPARATION', 1.2]], { acts: [fut('Simular troca', 1)], comments: [{ ago: 0.3 }] });
   add(1036, 7, 'Cancelamento — Empresa Fictícia E', '31', 0, [['DT1036_7:NEW', 9], ['DT1036_7:SUCCESS', 7]]);
+  // funil de pós-venda: excluído do monitoramento por padrão
+  const posVenda = add(1036, 8, 'Pós-venda — Empresa Fictícia F', '32', 0, [['DT1036_8:NEW', 4]], { acts: [{ subj: 'Pendência antiga', deadlineIn: -3, createdAgo: 4 }] });
 
   // --- Leads (não monitorados na configuração de demonstração)
   add(1, 0, 'Lead fictício — site', '11', 0, [['NEW', 1]]);
@@ -274,6 +280,12 @@ export function buildDemoPortal(now = Date.now()) {
   meeting(2, 506, 'Reunião com a diretoria', -40, true, '13');
   meeting(1036, 901, 'Reunião de pós-venda', -1, true, '31');
   meeting(2, 510, 'Ligar para o cliente', -1, true, '11', 'CRM_TODO'); // não é reunião
+  meeting(1036, posVenda, 'Reunião de pós-venda', -2, true, '31'); // funil excluído: não entra no ranking
+
+  // E-mail do especialista (fictício) em parte dos cards; os demais usam quem abriu o card.
+  const especialistas = ['joana.matos@exemplo-ficticio.com.br', 'rafael.dias@exemplo-ficticio.com.br', 'maria.da.silva@exemplo-ficticio.com.br'];
+  items[2].forEach((it, i) => { it.ufCrm_EMAIL_ESPECIALISTA = i % 4 === 3 ? '' : especialistas[i % 3]; });
+  items[1036].forEach((it, i) => { it.ufCrm7_EMAIL_ESPECIALISTA = i % 2 ? especialistas[(i + 1) % 3] : ''; });
 
   // Comercial (campo de usuário) nos cards do processo 1036; um card fica sem comercial.
   items[1036].forEach((it, i) => { it.ufCrm7_COMERCIAL = i === 3 ? null : ['11', '12', '13'][i % 3]; });

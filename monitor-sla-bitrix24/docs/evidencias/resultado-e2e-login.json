@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-26T18:45:15.959Z",
+  "at": "2026-10-26T19:19:27.260Z",
   "results": [
     {
       "name": "Aba \"SLA\" aparece dentro do Bitrix ao entrar",
@@ -19,7 +19,7 @@
     {
       "name": "Análise feita com os dados do portal pela sessão",
       "ok": true,
-      "detail": "Cards monitorados 13 8 com algum alerta Cards com atraso 6 prazo, atividade, SLA ou parado SLA vencido 2 2 eta"
+      "detail": "Cards monitorados 13 10 com algum alerta Cards com atraso 8 prazo, atividade, SLA ou parado SLA vencido 4 4 et"
     },
     {
       "name": "Consultas feitas só pela sessão, sem webhook",
@@ -34,12 +34,12 @@
     {
       "name": "Contador na aba \"SLA\" atualizado",
       "ok": true,
-      "detail": "{\"cls\":\"warn\",\"text\":\"6\",\"title\":\"Monitor de SLA — 6 card(s) precisam de atenção\"}"
+      "detail": "{\"cls\":\"\",\"text\":\"8\",\"title\":\"Monitor de SLA — 8 card(s) precisam de atenção\"}"
     },
     {
       "name": "Link do card aponta para o portal e abre na própria página",
       "ok": true,
-      "detail": "http://127.0.0.1:8790/crm/deal/details/501/ (_top)"
+      "detail": "http://127.0.0.1:8790/crm/deal/details/512/ (_top)"
     },
     {
       "name": "Ao entrar de novo no Bitrix, a análise atualiza sozinha",

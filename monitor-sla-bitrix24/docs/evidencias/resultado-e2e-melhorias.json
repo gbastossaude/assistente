@@ -1,18 +1,23 @@
 [
   {
-    "name": "Fila tem colunas separadas de Responsável e Comercial (abriu o card)",
+    "name": "Fila tem colunas separadas de Assessor e Comercial",
     "ok": true,
-    "detail": "Prioridade Card · criado em Etapa Responsável Comercial (abriu o card) Maior atraso Valor"
+    "detail": "Prioridade Card · criado em Etapa Assessor Comercial Maior atraso Valor"
   },
   {
-    "name": "Cada card mostra o comercial (quem abriu o card)",
+    "name": "Comercial com e-mail do especialista mostra nome e sobrenome tirados do e-mail",
     "ok": true,
-    "detail": "18 cards"
+    "detail": "maria.da.silva@exemplo-ficticio.com.br → Maria da Silva | maria.da.silva@exemplo-ficticio.com.br → Maria da Silva"
   },
   {
-    "name": "Responsável e comercial podem ser pessoas diferentes",
+    "name": "Sem e-mail do especialista, o comercial é quem abriu o card",
     "ok": true,
-    "detail": "Elisa Prado (fictícia) × Carla Nunes (fictícia)"
+    "detail": "5 card(s)"
+  },
+  {
+    "name": "Assessor e comercial podem ser pessoas diferentes",
+    "ok": true,
+    "detail": ""
   },
   {
     "name": "Coluna do comercial visível na largura da gaveta (1040 px)",
@@ -20,9 +25,24 @@
     "detail": ""
   },
   {
+    "name": "Funil \"Pós-venda\" excluído (nenhum card dele aparece)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "Sem horário comercial: nenhum tempo em \"úteis\"",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "Sem aviso de confirmação de expediente",
+    "ok": true,
+    "detail": ""
+  },
+  {
     "name": "Cada card mostra data de criação e há quantos dias foi criado",
     "ok": true,
-    "detail": "Criado em 26/09/2026 · há 30 dias"
+    "detail": "Criado em 16/09/2026 · há 40 dias"
   },
   {
     "name": "Idade calculada corretamente (Hotel Mirante criado há 30 dias)",
@@ -30,12 +50,22 @@
     "detail": "Criado em 26/09/2026 · há 30 dias"
   },
   {
-    "name": "Ordenar por \"criados há mais tempo\"",
+    "name": "Ordem padrão: data de criação, mais antigos primeiro",
     "ok": true,
     "detail": "40, 30, 25, 20, 20, 15"
   },
   {
-    "name": "Detalhe do card traz \"Criado em\" e o comercial",
+    "name": "Botão inverte: mais recentes primeiro",
+    "ok": true,
+    "detail": "0, 1, 2, 3, 4, 7"
+  },
+  {
+    "name": "A ordem escolhida é lembrada ao reabrir o painel",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "Detalhe do card traz \"Criado em\", assessor e comercial",
     "ok": true,
     "detail": ""
   },
@@ -55,14 +85,24 @@
     "detail": "Valor: R$ 174.400 = 174400"
   },
   {
-    "name": "Tabela da etapa tem Responsável, Comercial, Criado em e Valor",
+    "name": "Tabela da etapa tem Assessor, Comercial, Criado em e Valor",
     "ok": true,
-    "detail": "Card Responsável Comercial (abriu o card) Criado em Valor Na etapa há SLA da etapa Próxima atividade Alertas "
+    "detail": "Card Assessor Comercial Criado em Valor Na etapa há SLA da etapa Próxima atividade Alertas "
   },
   {
-    "name": "Ranking (últimos 30 dias) liderado por quem mais realizou reuniões",
+    "name": "Cards de cada etapa em ordem de criação",
     "ok": true,
-    "detail": "🥇 1º Bruno Teixeira (fictício) 5 0 0 4 5"
+    "detail": "20261012 20261022 20261024 20261025 20261026"
+  },
+  {
+    "name": "Etapas não mostram o funil Pós-venda",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "Ranking por comercial usa o nome tirado do e-mail do especialista",
+    "ok": true,
+    "detail": "🥇 1º Rafael Dias 3 | 🥈 2º Bruno Teixeira (fictício) 2 | 🥈 2º Joana Matos 2 | 🥈 2º Maria da Silva 2 | 5º Ana Ribeiro (fictícia) 1 | 6º Carla Nunes (fictícia) 0"
   },
   {
     "name": "Totais do período: realizadas, agendadas e pendentes",
@@ -77,7 +117,7 @@
   {
     "name": "Exportação CSV do ranking (sem células de fórmula)",
     "ok": true,
-    "detail": "1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;26/09/2026 15:45;26/10/2026 15:44"
+    "detail": "1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;26/09/2026 16:19;26/10/2026 16:18"
   },
   {
     "name": "Configuração \"contar cards ganhos/perdidos\" altera o ranking",

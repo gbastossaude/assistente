@@ -245,29 +245,40 @@ test('página de foco: aceita URL completa, caminho ou link de card', async () =
   assert.equal(normalizeFocusPage('https://crm.hub-bnk.com/stream/'), null);
 });
 
-test('comercial: por padrão é quem abriu o card (createdBy), em campo separado do responsável', async () => {
-  const { commercialFieldFor } = await import('../src/core/config.js');
+test('comercial: e-mail do especialista vira nome e sobrenome; sem e-mail, quem abriu o card; pós-venda excluído', async () => {
+  const { commercialFieldFor, specialistFieldFor, nameFromEmail } = await import('../src/core/config.js');
   const mock = createMockPortal({ now: NOW });
   const cfg = demoConfig(NOW);
   const { ds } = await syncData({ client: fastClient(mock), config: cfg, ds: emptyDataset(), now: NOW });
-  assert.equal(commercialFieldFor(cfg, ds.meta, 1036).field, 'createdBy');
   assert.equal(commercialFieldFor(cfg, ds.meta, 2).field, 'createdBy');
-  assert.ok(mock.state.methods['crm.item.list'] > 0);
+  assert.equal(specialistFieldFor(cfg, ds.meta, 2).field, 'ufCrm_EMAIL_ESPECIALISTA', 'campo "E-mail do especialista" detectado sozinho');
+  assert.equal(specialistFieldFor(cfg, ds.meta, 1036).field, 'ufCrm7_EMAIL_ESPECIALISTA');
   const a = analyze(ds, cfg, NOW);
+  let porEmail = 0, porCriador = 0;
   for (const c of a.cards) {
     const raw = mock.data.items[c.entityTypeId].find(r => r.id === c.id);
-    assert.deepEqual(c.commercialIds, [raw.createdBy], `card ${c.key}: comercial = criador`);
-    assert.equal(c.commercialIsCreator, true);
-    assert.notEqual(c.commercialName, 'Sem comercial');
+    const email = raw.ufCrm_EMAIL_ESPECIALISTA || raw.ufCrm7_EMAIL_ESPECIALISTA;
+    if (email) {
+      porEmail++;
+      assert.equal(c.commercialEmail, email);
+      assert.equal(c.commercialName, nameFromEmail(email));
+      assert.equal(c.commercialSource, 'especialista');
+    } else {
+      porCriador++;
+      assert.deepEqual(c.commercialIds, [raw.createdBy], `card ${c.key}: sem e-mail, comercial = criador`);
+      assert.equal(c.commercialIsCreator, true);
+    }
   }
-  assert.ok(a.cards.some(c => c.commercialIds[0] !== c.responsibleId), 'há cards com comercial diferente do responsável');
-  assert.ok(a.distributions.byCommercial.length > 0);
-  // escolha manual de outro campo de usuário e desativação
-  const manual = { ...cfg, commercialFields: { 1036: { field: 'ufCrm7_COMERCIAL', label: 'Comercial' } } };
-  assert.deepEqual(commercialFieldFor(manual, ds.meta, 1036), { field: 'ufCrm7_COMERCIAL', label: 'Comercial', auto: false, creator: false });
+  assert.ok(porEmail > 5 && porCriador > 2, `${porEmail} por e-mail, ${porCriador} pelo criador`);
+  assert.ok(a.cards.some(c => c.commercialName === 'Maria da Silva'));
+  // funil "Pós-venda" excluído pelo nome: o card dele não é lido nem analisado
+  assert.ok(!a.cards.some(c => c.title.includes('Pós-venda')));
+  assert.ok(!Object.values(ds.cards).some(c => c.categoryId === 8));
+  assert.ok(a.distributions.byCommercial.some(d => d.name === 'Joana Matos'));
+  // escolha manual de outro campo de usuário (sem e-mail de especialista) e desativação
+  const manual = { ...cfg, specialistFields: { 1036: { field: '' } }, commercialFields: { 1036: { field: 'ufCrm7_COMERCIAL', label: 'Comercial' } } };
   const r2 = await syncData({ client: fastClient(mock), config: manual, ds, now: NOW + 60000 });
-  const a2 = analyze(r2.ds, manual, NOW + 60000);
-  const spa = a2.cards.filter(c => c.entityTypeId === 1036);
+  const spa = analyze(r2.ds, manual, NOW + 60000).cards.filter(c => c.entityTypeId === 1036);
   assert.ok(spa.some(c => c.commercialName === 'Ana Ribeiro (fictícia)'));
   assert.ok(spa.some(c => c.commercialName === 'Sem comercial'));
   assert.equal(commercialFieldFor({ ...cfg, commercialFields: { 1036: { field: '' } } }, ds.meta, 1036), null);

@@ -2,351 +2,375 @@ TAP version 13
 # Subtest: webhook: exige HTTPS e formato /rest/ID/CÓDIGO/
 ok 1 - webhook: exige HTTPS e formato /rest/ID/CÓDIGO/
   ---
-  duration_ms: 1.523611
+  duration_ms: 1.439712
   type: 'test'
   ...
 # Subtest: batch: codificação http_build_query é lida corretamente pelo servidor
 ok 2 - batch: codificação http_build_query é lida corretamente pelo servidor
   ---
-  duration_ms: 1.617302
+  duration_ms: 1.240139
   type: 'test'
   ...
 # Subtest: somente leitura: métodos de escrita são bloqueados no cliente
 ok 3 - somente leitura: métodos de escrita são bloqueados no cliente
   ---
-  duration_ms: 4.420117
+  duration_ms: 3.448802
   type: 'test'
   ...
 # Subtest: sincronização completa no portal simulado: estrutura, cards, histórico, atividades, sem escrita
 ok 4 - sincronização completa no portal simulado: estrutura, cards, histórico, atividades, sem escrita
   ---
-  duration_ms: 37.04613
+  duration_ms: 32.035668
   type: 'test'
   ...
 # Subtest: análise da demonstração: alertas esperados por cenário
 ok 5 - análise da demonstração: alertas esperados por cenário
   ---
-  duration_ms: 39.376453
+  duration_ms: 41.411782
   type: 'test'
   ...
 # Subtest: sincronização incremental: só busca mudanças e detecta mudança de etapa
 ok 6 - sincronização incremental: só busca mudanças e detecta mudança de etapa
   ---
-  duration_ms: 12.09503
+  duration_ms: 16.64291
   type: 'test'
   ...
 # Subtest: limites da API: QUERY_LIMIT_EXCEEDED é refeito com espera
 ok 7 - limites da API: QUERY_LIMIT_EXCEEDED é refeito com espera
   ---
-  duration_ms: 10.963999
+  duration_ms: 13.690033
   type: 'test'
   ...
 # Subtest: perda de autenticação: mantém dados anteriores e informa erro (não "zero pendências")
 ok 8 - perda de autenticação: mantém dados anteriores e informa erro (não "zero pendências")
   ---
-  duration_ms: 22.21621
+  duration_ms: 21.003442
   type: 'test'
   ...
 # Subtest: histórico indisponível para um tipo: alerta de cobertura e cálculo por movedTime
 ok 9 - histórico indisponível para um tipo: alerta de cobertura e cálculo por movedTime
   ---
-  duration_ms: 11.031105
+  duration_ms: 13.045856
   type: 'test'
   ...
 # Subtest: departamentos sem escopo: segue funcionando com aviso
 ok 10 - departamentos sem escopo: segue funcionando com aviso
   ---
-  duration_ms: 8.595935
+  duration_ms: 8.217518
   type: 'test'
   ...
 # Subtest: alertas: deduplicação, silenciamento, janela de horário e vencimento durante ausência
 ok 11 - alertas: deduplicação, silenciamento, janela de horário e vencimento durante ausência
   ---
-  duration_ms: 12.552895
+  duration_ms: 27.39293
   type: 'test'
   ...
 # Subtest: silenciamento expira e o alerta volta a poder notificar
 ok 12 - silenciamento expira e o alerta volta a poder notificar
   ---
-  duration_ms: 0.180522
+  duration_ms: 0.140583
   type: 'test'
   ...
 # Subtest: espaço digital: sem acesso de administrador, o processo é adicionado pelo link de um card
 ok 13 - espaço digital: sem acesso de administrador, o processo é adicionado pelo link de um card
   ---
-  duration_ms: 10.911045
+  duration_ms: 9.421176
   type: 'test'
   ...
 # Subtest: link de card: formatos aceitos e recusados
 ok 14 - link de card: formatos aceitos e recusados
   ---
-  duration_ms: 0.32267
+  duration_ms: 0.291089
   type: 'test'
   ...
 # Subtest: página de foco: aceita URL completa, caminho ou link de card
 ok 15 - página de foco: aceita URL completa, caminho ou link de card
   ---
-  duration_ms: 0.737912
+  duration_ms: 0.672401
   type: 'test'
   ...
-# Subtest: comercial: por padrão é quem abriu o card (createdBy), em campo separado do responsável
-ok 16 - comercial: por padrão é quem abriu o card (createdBy), em campo separado do responsável
+# Subtest: comercial: e-mail do especialista vira nome e sobrenome; sem e-mail, quem abriu o card; pós-venda excluído
+ok 16 - comercial: e-mail do especialista vira nome e sobrenome; sem e-mail, quem abriu o card; pós-venda excluído
   ---
-  duration_ms: 26.796735
+  duration_ms: 20.774808
   type: 'test'
   ...
 # Subtest: o que conta como reunião
 ok 17 - o que conta como reunião
   ---
-  duration_ms: 0.947774
+  duration_ms: 1.061984
   type: 'test'
   ...
 # Subtest: períodos no fuso de Brasília (semana de segunda a domingo, viradas de mês)
 ok 18 - períodos no fuso de Brasília (semana de segunda a domingo, viradas de mês)
   ---
-  duration_ms: 14.766776
+  duration_ms: 13.897108
   type: 'test'
   ...
-# Subtest: ranking a partir da sincronização: inclui cards ganhos/perdidos, comercial = quem abriu o card
-ok 19 - ranking a partir da sincronização: inclui cards ganhos/perdidos, comercial = quem abriu o card
+# Subtest: ranking a partir da sincronização: inclui cards ganhos/perdidos, comercial pelo e-mail do especialista
+ok 19 - ranking a partir da sincronização: inclui cards ganhos/perdidos, comercial pelo e-mail do especialista
   ---
-  duration_ms: 48.083626
+  duration_ms: 47.430808
   type: 'test'
   ...
 # Subtest: ranking atualizado na sincronização incremental (reunião concluída e reunião nova)
 ok 20 - ranking atualizado na sincronização incremental (reunião concluída e reunião nova)
   ---
-  duration_ms: 17.852237
+  duration_ms: 23.623662
   type: 'test'
   ...
 # Subtest: empates dividem a posição e cards fora do funil monitorado não contam
 ok 21 - empates dividem a posição e cards fora do funil monitorado não contam
   ---
-  duration_ms: 1.30947
+  duration_ms: 0.936491
   type: 'test'
   ...
 # Subtest: fuso com cache = Intl, inclusive em horário de verão e fusos de 30/45 min
 ok 22 - fuso com cache = Intl, inclusive em horário de verão e fusos de 30/45 min
   ---
-  duration_ms: 1535.758387
+  duration_ms: 1313.529382
   type: 'test'
   ...
 # Subtest: expediente com cache: mesmos minutos em consultas repetidas e cruzando feriados
 ok 23 - expediente com cache: mesmos minutos em consultas repetidas e cruzando feriados
   ---
-  duration_ms: 31.407416
+  duration_ms: 31.442594
   type: 'test'
   ...
 # Subtest: limite de requisições: rajada inicial sem espera e depois no ritmo do plano
 ok 24 - limite de requisições: rajada inicial sem espera e depois no ritmo do plano
   ---
-  duration_ms: 2.446268
+  duration_ms: 2.015403
   type: 'test'
   ...
 # Subtest: SLA da etapa vencido no limite exato: 2 dias úteis desde segunda 15:00 vencem quarta 15:00
 ok 25 - SLA da etapa vencido no limite exato: 2 dias úteis desde segunda 15:00 vencem quarta 15:00
   ---
-  duration_ms: 15.828864
+  duration_ms: 15.96859
   type: 'test'
   ...
 # Subtest: SLA em tempo corrido conta o fim de semana
 ok 26 - SLA em tempo corrido conta o fim de semana
   ---
-  duration_ms: 0.481074
+  duration_ms: 0.504749
   type: 'test'
   ...
 # Subtest: Retorno à etapa: reiniciar × acumular × manter original
 ok 27 - Retorno à etapa: reiniciar × acumular × manter original
   ---
-  duration_ms: 0.655126
+  duration_ms: 0.681375
   type: 'test'
   ...
 # Subtest: Pausa por campo: intervalo pausado não conta e card pausado não vence
 ok 28 - Pausa por campo: intervalo pausado não conta e card pausado não vence
   ---
-  duration_ms: 0.566041
+  duration_ms: 0.748482
   type: 'test'
   ...
 # Subtest: "Aguardando documentos" NÃO é pausa automática
 ok 29 - "Aguardando documentos" NÃO é pausa automática
   ---
-  duration_ms: 0.276887
+  duration_ms: 0.300414
   type: 'test'
   ...
 # Subtest: updateObservation registra início e fim de pausa
 ok 30 - updateObservation registra início e fim de pausa
   ---
-  duration_ms: 0.283366
+  duration_ms: 0.341638
   type: 'test'
   ...
 # Subtest: Exceção por campo: tipo urgente usa outro prazo; tipo X sem SLA
 ok 31 - Exceção por campo: tipo urgente usa outro prazo; tipo X sem SLA
   ---
-  duration_ms: 0.283016
+  duration_ms: 0.306958
   type: 'test'
   ...
 # Subtest: Sem histórico: usa movedTime (não a última alteração genérica)
 ok 32 - Sem histórico: usa movedTime (não a última alteração genérica)
   ---
-  duration_ms: 0.228273
+  duration_ms: 0.155189
   type: 'test'
   ...
 # Subtest: Sem histórico e sem movedTime: início do acompanhamento e cálculo parcial
 ok 33 - Sem histórico e sem movedTime: início do acompanhamento e cálculo parcial
   ---
-  duration_ms: 0.536353
+  duration_ms: 0.46282
   type: 'test'
   ...
 # Subtest: SLA total do processo com etapa de pausa
 ok 34 - SLA total do processo com etapa de pausa
   ---
-  duration_ms: 0.980737
+  duration_ms: 1.024556
   type: 'test'
   ...
 # Subtest: Parado na etapa (independente do SLA)
 ok 35 - Parado na etapa (independente do SLA)
   ---
-  duration_ms: 0.490657
+  duration_ms: 0.491084
   type: 'test'
   ...
 # Subtest: subtractIntervals
 ok 36 - subtractIntervals
   ---
-  duration_ms: 0.82808
+  duration_ms: 0.674165
   type: 'test'
   ...
 # Subtest: Múltiplos alertas no mesmo card, cada um com evidência própria
 ok 37 - Múltiplos alertas no mesmo card, cada um com evidência própria
   ---
-  duration_ms: 1.527097
+  duration_ms: 1.747809
   type: 'test'
   ...
 # Subtest: Atividade sem prazo não conta como atividade futura
 ok 38 - Atividade sem prazo não conta como atividade futura
   ---
-  duration_ms: 0.26034
+  duration_ms: 0.185031
   type: 'test'
   ...
 # Subtest: Atividade com prazo futuro evita "sem atividade futura"; atividade vencida não
 ok 39 - Atividade com prazo futuro evita "sem atividade futura"; atividade vencida não
   ---
-  duration_ms: 0.278798
+  duration_ms: 0.369489
   type: 'test'
   ...
 # Subtest: Cards concluídos ou perdidos saem da fila atual
 ok 40 - Cards concluídos ou perdidos saem da fila atual
   ---
-  duration_ms: 3.214626
+  duration_ms: 3.456613
   type: 'test'
   ...
 # Subtest: Atraso atual × vencimento histórico: passagens antigas não entram na fila
 ok 41 - Atraso atual × vencimento histórico: passagens antigas não entram na fila
   ---
-  duration_ms: 1.290805
+  duration_ms: 1.675283
   type: 'test'
   ...
 # Subtest: Valor em atraso não duplica card com vários alertas
 ok 42 - Valor em atraso não duplica card com vários alertas
   ---
-  duration_ms: 0.76869
+  duration_ms: 0.914498
   type: 'test'
   ...
 # Subtest: Prioridade: explicação soma a pontuação e respeita faixas configuradas
 ok 43 - Prioridade: explicação soma a pontuação e respeita faixas configuradas
   ---
-  duration_ms: 0.672783
+  duration_ms: 0.765193
   type: 'test'
   ...
 # Subtest: Resumo operacional usa apenas números calculados
 ok 44 - Resumo operacional usa apenas números calculados
   ---
-  duration_ms: 0.59377
+  duration_ms: 0.573337
   type: 'test'
   ...
 # Subtest: expediente: dentro do mesmo dia
 ok 45 - expediente: dentro do mesmo dia
   ---
-  duration_ms: 14.138663
+  duration_ms: 16.455353
   type: 'test'
   ...
 # Subtest: expediente: início antes e fim depois do horário contam só o expediente
 ok 46 - expediente: início antes e fim depois do horário contam só o expediente
   ---
-  duration_ms: 0.25789
+  duration_ms: 0.279258
   type: 'test'
   ...
 # Subtest: expediente: intervalo de almoço não conta
 ok 47 - expediente: intervalo de almoço não conta
   ---
-  duration_ms: 0.217346
+  duration_ms: 0.336986
   type: 'test'
   ...
 # Subtest: fim de semana: sexta 17:00 até segunda 10:00 = 2h úteis
 ok 48 - fim de semana: sexta 17:00 até segunda 10:00 = 2h úteis
   ---
-  duration_ms: 0.343104
+  duration_ms: 0.409244
   type: 'test'
   ...
 # Subtest: fim de semana: sábado inteiro não conta
 ok 49 - fim de semana: sábado inteiro não conta
   ---
-  duration_ms: 0.124544
+  duration_ms: 0.159171
   type: 'test'
   ...
 # Subtest: feriado: 2/11 (Finados) não conta
 ok 50 - feriado: 2/11 (Finados) não conta
   ---
-  duration_ms: 0.443999
+  duration_ms: 0.512276
   type: 'test'
   ...
 # Subtest: vencimento: 2 dias úteis a partir de segunda 15:00 vencem quarta 15:00
 ok 51 - vencimento: 2 dias úteis a partir de segunda 15:00 vencem quarta 15:00
   ---
-  duration_ms: 1.591619
+  duration_ms: 0.463428
   type: 'test'
   ...
 # Subtest: vencimento: entrada fora do expediente começa a contar na abertura
 ok 52 - vencimento: entrada fora do expediente começa a contar na abertura
   ---
-  duration_ms: 0.268362
+  duration_ms: 2.068442
   type: 'test'
   ...
 # Subtest: vencimento: 8h úteis a partir de sexta 16:00 com feriado na segunda
 ok 53 - vencimento: 8h úteis a partir de sexta 16:00 com feriado na segunda
   ---
-  duration_ms: 0.533663
+  duration_ms: 0.658702
   type: 'test'
   ...
 # Subtest: fuso horário: cálculo em outro fuso (Manaus, UTC-4)
 ok 54 - fuso horário: cálculo em outro fuso (Manaus, UTC-4)
   ---
-  duration_ms: 0.853982
+  duration_ms: 1.146615
   type: 'test'
   ...
 # Subtest: zonedToUtc e janela de notificação
 ok 55 - zonedToUtc e janela de notificação
   ---
-  duration_ms: 0.322489
+  duration_ms: 0.559016
   type: 'test'
   ...
 # Subtest: prazo sentinela do Bitrix (atividade sem prazo)
 ok 56 - prazo sentinela do Bitrix (atividade sem prazo)
   ---
-  duration_ms: 0.111846
+  duration_ms: 0.243191
   type: 'test'
   ...
 # Subtest: feriados nacionais 2026 incluem Sexta-feira Santa e Consciência Negra
 ok 57 - feriados nacionais 2026 incluem Sexta-feira Santa e Consciência Negra
   ---
-  duration_ms: 0.401388
+  duration_ms: 0.53787
   type: 'test'
   ...
-1..57
-# tests 57
+# Subtest: e-mail do especialista vira nome e sobrenome
+ok 58 - e-mail do especialista vira nome e sobrenome
+  ---
+  duration_ms: 1.186787
+  type: 'test'
+  ...
+# Subtest: comercial: e-mail do especialista primeiro, senão quem abriu o card
+ok 59 - comercial: e-mail do especialista primeiro, senão quem abriu o card
+  ---
+  duration_ms: 1.41113
+  type: 'test'
+  ...
+# Subtest: pós-venda excluído pelo nome, em qualquer grafia
+ok 60 - pós-venda excluído pelo nome, em qualquer grafia
+  ---
+  duration_ms: 1.068248
+  type: 'test'
+  ...
+# Subtest: sem expediente: regras salvas em horário comercial passam a tempo corrido
+ok 61 - sem expediente: regras salvas em horário comercial passam a tempo corrido
+  ---
+  duration_ms: 0.355158
+  type: 'test'
+  ...
+1..61
+# tests 61
 # suites 0
-# pass 57
+# pass 61
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 1648.630928
+# duration_ms 1414.659147

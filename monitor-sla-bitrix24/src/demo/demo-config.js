@@ -8,7 +8,7 @@ export function demoConfig(now = Date.now()) {
   const d = (value, unit = 'd') => ({ value, unit });
   c.portalOrigin = 'https://demo-ficticio.bitrix24.invalid';
   c.focusPage = null; // a demonstração mostra vários funis; no modo real o foco é a página be.smart Saúde
-  c.monitored = [{ entityTypeId: 2, categoryIds: [0, 3] }, { entityTypeId: 1036, categoryIds: [7] }];
+  c.monitored = [{ entityTypeId: 2, categoryIds: [0, 3] }, { entityTypeId: 1036, categoryIds: [7, 8] }]; // o funil 8 (Pós-venda) é excluído pelo nome
   c.calendar = { timezone: 'America/Sao_Paulo', workdays: [1, 2, 3, 4, 5],
     intervals: [{ start: '08:30', end: '12:00' }, { start: '13:00', end: '18:00' }],
     holidays: [...brazilHolidays(y), ...brazilHolidays(y + 1)], dayMinutes: null, confirmed: true };

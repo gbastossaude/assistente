@@ -1,7 +1,7 @@
 // Ranking automático de reuniões. Módulo puro: recebe as reuniões já lidas do Bitrix24 e monta o
 // ranking por período e por agrupamento. Recalculado a cada sincronização, sem nenhuma ação manual.
 import { zonedParts, zonedToUtc, isSentinelDeadline } from './time.js';
-import { commercialFieldFor, commercialIdsOf, effectiveMonitored } from './config.js';
+import { commercialOfCard, effectiveMonitored, nameFromEmail } from './config.js';
 
 export const DEFAULT_MEETINGS = {
   enabled: true,
@@ -17,7 +17,7 @@ export const PERIODS = [
 ];
 
 export const GROUPS = [
-  ['comercial', 'Comercial (quem abriu o card)'], ['responsavel_reuniao', 'Responsável pela reunião'], ['responsavel_card', 'Responsável do card']
+  ['comercial', 'Comercial (especialista)'], ['responsavel_reuniao', 'Responsável pela reunião'], ['responsavel_card', 'Assessor do card']
 ];
 
 export function meetingConfig(config) {
@@ -77,7 +77,7 @@ export function buildMeetingRankings(ds, config, now = Date.now()) {
   const meta = ds.meta || {};
   const tz = config.calendar?.timezone || 'America/Sao_Paulo';
   const scope = new Map();
-  const monitored = ds.mode === 'demo' ? (config.monitored || []) : effectiveMonitored(config);
+  const monitored = effectiveMonitored(config, meta);
   for (const m of monitored) scope.set(Number(m.entityTypeId), new Set(m.categoryIds.map(Number)));
   const coverage = { total: 0, foraDoEscopo: 0, encerrados: 0, semCard: 0, semData: 0, windowStart: ds.sync?.meetingsWindowStart || null };
 
@@ -94,8 +94,7 @@ export function buildMeetingRankings(ds, config, now = Date.now()) {
     if (closed) coverage.encerrados++;
     const time = meetingTime(m);
     if (time == null) { coverage.semData++; continue; }
-    const cf = commercialFieldFor(config, meta, Number(m.ownerTypeId));
-    items.push({ m, key, time, owner, commercialIds: commercialIdsOf(owner, cf) });
+    items.push({ m, key, time, owner, commercialIds: commercialOfCard(owner, config, meta, Number(m.ownerTypeId)).ids });
   }
 
   const groupKeys = {
@@ -103,7 +102,7 @@ export function buildMeetingRankings(ds, config, now = Date.now()) {
     responsavel_reuniao: it => [it.m.responsibleId || '-'],
     responsavel_card: it => [it.owner.assignedById || '-']
   };
-  const nameOf = id => (id === '-' ? 'Sem identificação' : userName(meta, id));
+  const nameOf = id => (id === '-' ? 'Sem identificação' : id.startsWith('email:') ? nameFromEmail(id.slice(6)) : userName(meta, id));
 
   const periods = {};
   for (const [pid, label] of PERIODS) {

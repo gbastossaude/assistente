@@ -4,7 +4,7 @@
 // LAST_UPDATED das atividades). Uma sincronização completa periódica reconcilia exclusões.
 import { loadStructure, loadFields, loadUsers, loadDepartments } from './bitrix-api.js';
 import { isFatal } from './bitrix-client.js';
-import { effectiveMonitored, commercialFieldFor, commercialIdsOf, CREATOR_FIELD } from '../core/config.js';
+import { effectiveMonitored, commercialFieldFor, commercialIdsOf, specialistFieldFor, CREATOR_FIELD } from '../core/config.js';
 import { parseBitrixDate } from '../core/time.js';
 import { updateObservation } from '../core/sla.js';
 import { meetingConfig, isMeeting, normalizeMeeting, meetingTime } from '../core/meetings.js';
@@ -36,6 +36,8 @@ export function referencedFields(config, etid, meta) {
   const set = new Set();
   const cf = commercialFieldFor(config, meta, etid);
   if (cf?.field && cf.field !== CREATOR_FIELD) set.add(cf.field);
+  const sf = specialistFieldFor(config, meta, etid);
+  if (sf?.field) set.add(sf.field);
   const df = config.deadlineFields?.[etid];
   if (df?.field) set.add(df.field);
   for (const r of config.slaRules || []) {
@@ -90,9 +92,9 @@ function commentEntityType(etid) {
 
 function configSignature(config, meta) {
   return JSON.stringify({
-    m: effectiveMonitored(config).map(m => [m.entityTypeId, [...m.categoryIds].sort()]),
-    f: effectiveMonitored(config).map(m => referencedFields(config, m.entityTypeId, meta)),
-    cb: effectiveMonitored(config).map(m => commercialFieldFor(config, meta, m.entityTypeId)?.field || ''),
+    m: effectiveMonitored(config, meta).map(m => [m.entityTypeId, [...m.categoryIds].sort()]),
+    f: effectiveMonitored(config, meta).map(m => referencedFields(config, m.entityTypeId, meta)),
+    cb: effectiveMonitored(config, meta).map(m => commercialFieldFor(config, meta, m.entityTypeId)?.field || ''),
     c: !!config.interaction?.countComments, l: config.interaction?.lookbackDays,
     r: (({ enabled, providers, todoKeywords, lookbackDays }) => [enabled, providers, todoKeywords, lookbackDays])(meetingConfig(config))
   });
@@ -122,7 +124,7 @@ export async function syncData({ client, config, ds: dsIn, now = Date.now(), for
   s.errors = [];
   s.warnings = [];
   const warn = (msg) => { s.warnings.push(msg); report.warnings.push(msg); };
-  const monitored = effectiveMonitored(config);
+  let monitored = effectiveMonitored(config, ds.meta);
   const req0 = client.stats.requests;
 
   try {
@@ -133,9 +135,11 @@ export async function syncData({ client, config, ds: dsIn, now = Date.now(), for
       ds.meta = { ...ds.meta, ...meta };
       warnings.forEach(warn);
     }
-    // Cards de tipos fora do escopo (ex.: leads de versões anteriores) saem do cache.
-    const scope = new Set(monitored.map(m => Number(m.entityTypeId)));
-    for (const k of Object.keys(ds.cards)) if (!scope.has(ds.cards[k].entityTypeId)) delete ds.cards[k];
+    // Funis excluídos pelo nome (ex.: pós-venda) dependem dos nomes lidos agora.
+    monitored = effectiveMonitored(config, ds.meta);
+    // Cards fora do escopo (leads de versões anteriores, funis excluídos) saem do cache.
+    const scope = new Set(monitored.flatMap(m => m.categoryIds.map(c => `${Number(m.entityTypeId)}:${Number(c)}`)));
+    for (const k of Object.keys(ds.cards)) if (!scope.has(`${ds.cards[k].entityTypeId}:${ds.cards[k].categoryId}`)) delete ds.cards[k];
     if (!monitored.length) {
       s.status = config.focusPage && !config.focusEntityTypeId ? 'aguardando_pagina' : 'sem_configuracao';
       report.steps.push('Nenhum funil selecionado para monitoramento.');
@@ -388,18 +392,18 @@ export async function syncData({ client, config, ds: dsIn, now = Date.now(), for
           for (const k of missing) { const [et, id] = k.split(':'); (byEt[et] = byEt[et] || []).push(Number(id)); }
           const cmds = {};
           for (const [et, ids] of Object.entries(byEt)) {
-            const cf = commercialFieldFor(config, ds.meta, Number(et));
-            const sel = ['id', 'categoryId', 'createdBy', 'assignedById', 'stageId', ...(cf && cf.field !== CREATOR_FIELD ? [cf.field] : [])];
+            const sel = ['id', 'categoryId', 'createdBy', 'assignedById', 'stageId', ...referencedFields(config, Number(et), ds.meta)];
             for (let i = 0; i < ids.length; i += 50) cmds[`o${et}_${i}`] = ['crm.item.list', { entityTypeId: Number(et), filter: { '@id': ids.slice(i, i + 50) }, select: sel }];
           }
           const r = await client.batch(cmds);
           for (const [ck, res] of Object.entries(r.result)) {
             const et = ck.slice(1).split('_')[0];
-            const cf = commercialFieldFor(config, ds.meta, Number(et));
+            const extra = referencedFields(config, Number(et), ds.meta);
             for (const it of res?.items || []) {
+              const fields = {};
+              for (const f of extra) if (it[f] !== undefined) fields[f] = it[f];
               ds.meetingOwners[`${et}:${it.id}`] = { categoryId: Number(it.categoryId ?? 0), assignedById: it.assignedById != null ? String(it.assignedById) : null,
-                createdById: it.createdBy != null ? String(it.createdBy) : null, stageId: it.stageId ?? null,
-                fields: cf && cf.field !== CREATOR_FIELD && it[cf.field] !== undefined ? { [cf.field]: it[cf.field] } : {} };
+                createdById: it.createdBy != null ? String(it.createdBy) : null, stageId: it.stageId ?? null, fields };
             }
           }
           const errs = Object.values(r.errors);

@@ -39,7 +39,7 @@ test('períodos no fuso de Brasília (semana de segunda a domingo, viradas de m�
   assert.equal(periodRange('mes', late, SP).from, zonedToUtc(2026, 10, 1, 0, 0, SP));
 });
 
-test('ranking a partir da sincronização: inclui cards ganhos/perdidos, comercial = quem abriu o card', async () => {
+test('ranking a partir da sincronização: inclui cards ganhos/perdidos, comercial pelo e-mail do especialista', async () => {
   const mock = createMockPortal({ now: NOW });
   const cfg = demoConfig(NOW);
   const { ds } = await syncData({ client: fastClient(mock), config: cfg, ds: emptyDataset(), now: NOW });
@@ -49,17 +49,20 @@ test('ranking a partir da sincronização: inclui cards ganhos/perdidos, comerci
   // cards encerrados (514 ganho, 515 perdido) entram pelo cadastro mínimo dos cards
   assert.ok(ds.meetingOwners['2:514'] && ds.meetingOwners['2:515']);
   assert.equal(ds.meetingOwners['2:514'].createdById, '12');
+  assert.equal(ds.meetingOwners['2:514'].fields.ufCrm_EMAIL_ESPECIALISTA, 'rafael.dias@exemplo-ficticio.com.br');
   // nada de assunto armazenado
   assert.ok(Object.values(ds.meetings).every(m => !('subject' in m)));
 
   const r = analyze(ds, cfg, NOW).meetings;
   const p30 = r.periods['30d'];
+  // a reunião do funil "Pós-venda" (excluído) não entra
   assert.deepEqual(p30.totals, { realizadas: 10, agendadas: 0, pendentes: 1 });
   const com = p30.byGroup.comercial;
-  assert.equal(com[0].key, '12');
-  assert.equal(com[0].realizadas, 5);
+  assert.equal(com.reduce((n, x) => n + x.realizadas, 0), 10, 'cada reunião conta para um único comercial');
+  // card ganho 514 tem "E-mail do especialista" rafael.dias@…: as 2 reuniões dele vão para Rafael Dias
+  const rafael = com.find(x => x.name === 'Rafael Dias');
+  assert.ok(rafael && rafael.realizadas >= 2 && rafael.key === 'email:rafael.dias@exemplo-ficticio.com.br');
   assert.equal(com[0].pos, 1);
-  assert.equal(com[0].name, 'Bruno Teixeira (fictício)');
   const resp = p30.byGroup.responsavel_reuniao;
   assert.equal(resp[0].key, '12');
   assert.equal(resp[0].realizadas, 4);

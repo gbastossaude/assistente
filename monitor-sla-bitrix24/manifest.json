@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Monitor de SLA – Bitrix24",
   "short_name": "SLA Bitrix24",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Monitora cards do Bitrix24 (somente leitura) e mostra, dentro do próprio Bitrix, atrasos, SLAs vencidos, atividades pendentes e cards sem acompanhamento.",
   "minimum_chrome_version": "116",
   "action": {

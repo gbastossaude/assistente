@@ -4,8 +4,8 @@ import { PERIODS, GROUPS, DEFAULT_MEETINGS } from '../src/core/meetings.js';
 import { ALERT_TYPES } from '../src/core/detect.js';
 import { DEFAULT_PRIORITY } from '../src/core/priority.js';
 import { PROVIDER_LABELS, DEFAULT_RELEVANT_PROVIDERS } from '../src/core/interactions.js';
-import { brazilHolidays, newId, defaultConfig, mergeConfig, DEFAULT_PORTAL, DEFAULT_FOCUS_PAGE, normalizeFocusPage, effectiveMonitored, commercialFieldFor } from '../src/core/config.js';
-import { fmtMinutes, businessMinutesBetween, normalizeCalendar, durationToMinutes } from '../src/core/time.js';
+import { newId, defaultConfig, mergeConfig, DEFAULT_PORTAL, DEFAULT_FOCUS_PAGE, normalizeFocusPage, effectiveMonitored, commercialFieldFor, specialistFieldFor, isExcludedName, DEFAULT_EXCLUDE_NAMES } from '../src/core/config.js';
+import { fmtMinutes } from '../src/core/time.js';
 import { parseWebhook, normalizePortal } from '../src/integration/bitrix-client.js';
 
 let S = null;          // estado vindo do service worker
@@ -14,7 +14,8 @@ let dirty = false;
 const QUEUE_PAGE = 150; // linhas desenhadas por vez na fila (o restante sob demanda)
 const ui = {
   tab: 'painel', cfgTab: 'conexao', expanded: new Set(), queueLimit: QUEUE_PAGE, mt: { period: 'mes', group: null },
-  f: { q: '', resp: '', com: '', team: '', cat: '', stage: '', type: '', level: '', snoozed: false }, sort: 'prioridade'
+  f: { q: '', resp: '', com: '', team: '', cat: '', stage: '', type: '', level: '', snoozed: false }, sort: 'criacao',
+  dir: (() => { try { return localStorage.getItem('ordemCriacao') === 'recentes' ? 'recentes' : 'antigos'; } catch { return 'antigos'; } })()
 };
 const $ = s => document.querySelector(s);
 const EMBED = new URLSearchParams(location.search).get('embed') === '1';
@@ -98,11 +99,6 @@ function banners() {
       <div class="small">${gap ? `Sem sincronização entre ${fmtDT(gap.from, tz())} e ${fmtDT(gap.to, tz())} (Chrome fechado ou computador desligado).` : ''}
       Veja em <button class="link" data-act="tab" data-tab="alertas">Central de alertas</button>.</div></div></div>`);
   }
-  if (S.mode === 'real' && !S.config.calendar?.confirmed) {
-    out.push(`<div class="banner warn"><div><div class="t">Confirme o expediente e os feriados.</div>
-      <div class="small">Regras em horário comercial usam o expediente padrão (seg–sex, 09:00–18:00, sem feriados) até você confirmar.
-      <button class="link" data-act="goto-cfg" data-cfg="expediente">Configurar expediente</button></div></div></div>`);
-  }
   return out.join('');
 }
 
@@ -140,11 +136,23 @@ function cardsFiltered() {
     etapa: (a, b) => a.categoryName.localeCompare(b.categoryName) || a.stageSort - b.stageSort,
     responsavel: (a, b) => a.responsibleName.localeCompare(b.responsibleName),
     comercial: (a, b) => (a.commercialName || '~').localeCompare(b.commercialName || '~'),
-    antigos: (a, b) => (a.createdTime ?? Infinity) - (b.createdTime ?? Infinity),
-    novos: (a, b) => (b.createdTime ?? -Infinity) - (a.createdTime ?? -Infinity),
+    criacao: byCreation,
     recente: (a, b) => Math.max(0, ...b.vis.map(x => x.firstSeen || 0)) - Math.max(0, ...a.vis.map(x => x.firstSeen || 0))
   };
-  return list.sort(sorters[ui.sort] || sorters.prioridade);
+  return list.sort(sorters[ui.sort] || byCreation);
+}
+
+/** Ordem por data de criação do card: mais antigos primeiro (padrão) ou mais recentes primeiro. Sem data vai para o fim. */
+function byCreation(a, b) {
+  const ta = a.createdTime ?? null, tb = b.createdTime ?? null;
+  if (ta == null || tb == null) return (ta == null) - (tb == null);
+  return ui.dir === 'recentes' ? tb - ta : ta - tb;
+}
+
+/** Botão que inverte a ordem de criação (vale para a fila, as etapas e a central de alertas). */
+function orderToggle() {
+  const old = ui.dir !== 'recentes';
+  return `<button class="btn sm" data-act="ordem" title="Inverter a ordem por data de criação">${old ? '↑ Mais antigos primeiro' : '↓ Mais recentes primeiro'} · inverter</button>`;
 }
 
 /** Foco definido, mas o processo da página ainda não foi identificado: nada é monitorado. */
@@ -199,7 +207,7 @@ function renderPainel() {
     <div class="panel"><h2>Etapas com mais pendências</h2>${topStages.length ? bars(topStages, x => x.name, 'stage') : '<p class="muted">Nenhuma etapa com pendências.</p>'}</div>
   </section>
   <section class="grid3">
-    <div class="panel"><h2>Por responsável</h2>${bars(A.distributions.byResponsible.filter(x => x.comAlerta).slice(0, 8), x => x.name, 'resp')}</div>
+    <div class="panel"><h2>Por assessor</h2>${bars(A.distributions.byResponsible.filter(x => x.comAlerta).slice(0, 8), x => x.name, 'resp')}</div>
     ${(A.distributions.byCommercial || []).length ? `<div class="panel"><h2>Por comercial</h2>${bars(A.distributions.byCommercial.filter(x => x.comAlerta).slice(0, 8), x => x.name, 'com')}</div>` : ''}
     <div class="panel"><h2>Por funil</h2>${bars(A.distributions.byCategory, x => x.name, 'cat')}</div>
     <div class="panel"><h2>Por prioridade</h2>${levelBars(k.porNivel)}</div>
@@ -269,17 +277,17 @@ function filtersHtml() {
   const stages = [...new Map(A.cards.filter(c => !f.cat || c.categoryKey === f.cat).sort((a, b) => a.stageSort - b.stageSort)
     .map(c => [c.stageKey, `${c.stageName} · ${c.categoryName}`])).entries()];
   return `<div class="filters">
-    <input type="search" placeholder="Buscar card, ID, responsável, etapa…" data-filter="q" value="${esc(f.q)}">
-    <select data-filter="resp"><option value="">Todos os responsáveis</option>${opts(resp, f.resp)}</select>
+    <input type="search" placeholder="Buscar card, ID, assessor, comercial, etapa…" data-filter="q" value="${esc(f.q)}">
+    <select data-filter="resp"><option value="">Todos os assessores</option>${opts(resp, f.resp)}</select>
     ${A.cards.some(c => c.commercialField) ? `<select data-filter="com"><option value="">Todos os comerciais</option>${opts(coms, f.com)}</select>` : ''}
     <select data-filter="team"><option value="">Todas as equipes</option>${opts(teams, f.team)}</select>
     <select data-filter="cat"><option value="">Todos os funis</option>${opts(cats, f.cat)}</select>
     <select data-filter="stage"><option value="">Todas as etapas</option>${opts(stages, f.stage)}</select>
     <select data-filter="type"><option value="">Todos os tipos de alerta</option>${opts(Object.entries(ALERT_TYPES).map(([k, v]) => [k, v.label]), f.type)}</select>
     <select data-filter="level"><option value="">Todas as gravidades</option>${opts(Object.entries(LEVELS), f.level)}</select>
-    <select data-sort><option value="prioridade">Ordenar: prioridade</option>${opts([['atraso', 'Ordenar: maior atraso'], ['valor', 'Ordenar: valor'],
-      ['etapa', 'Ordenar: funil e etapa'], ['responsavel', 'Ordenar: responsável'], ['comercial', 'Ordenar: comercial'], ['antigos', 'Ordenar: criados há mais tempo'],
-      ['novos', 'Ordenar: criados recentemente'], ['recente', 'Ordenar: detectado recentemente']], ui.sort)}</select>
+    <select data-sort><option value="criacao">Ordenar: data de criação</option>${opts([['prioridade', 'Ordenar: prioridade'], ['atraso', 'Ordenar: maior atraso'], ['valor', 'Ordenar: valor'],
+      ['etapa', 'Ordenar: funil e etapa'], ['responsavel', 'Ordenar: assessor'], ['comercial', 'Ordenar: comercial'], ['recente', 'Ordenar: detectado recentemente']], ui.sort)}</select>
+    ${orderToggle()}
     <label><input type="checkbox" data-filter="snoozed" ${f.snoozed ? 'checked' : ''}> incluir silenciados</label>
     <span id="clearFilters">${clearFiltersHtml()}</span>
   </div>`;
@@ -294,8 +302,8 @@ function queueHtml(list = cardsFiltered()) {
   }
   if (!list.length) return `<div class="empty"><h3>Nenhum card corresponde aos filtros</h3><button class="link" data-act="clear-filters">limpar filtros</button></div>`;
   const shown = list.slice(0, ui.queueLimit);
-  const cols = `<div class="qcols" aria-hidden="true"><span>Prioridade</span><span>Card · criado em</span><span>Etapa</span><span>Responsável</span>
-    <span>Comercial (abriu o card)</span><span>Maior atraso</span><span>Valor</span><span></span></div>`;
+  const cols = `<div class="qcols" aria-hidden="true"><span>Prioridade</span><span>Card · criado em</span><span>Etapa</span><span>Assessor</span>
+    <span>Comercial</span><span>Maior atraso</span><span>Valor</span><span></span></div>`;
   return `<div class="queue">${cols}${shown.map(rowHtml).join('')}</div>${list.length > shown.length
     ? `<div class="row" style="justify-content:center;margin-top:10px"><span class="small muted">Mostrando ${shown.length} de ${list.length}.</span>
       <button class="btn sm" data-act="more">Mostrar mais ${Math.min(QUEUE_PAGE, list.length - shown.length)}</button></div>` : ''}`;
@@ -312,15 +320,20 @@ function rowHtml(c) {
       <div style="min-width:0"><div class="title" title="${esc(c.title)}">${esc(c.title)}</div>
         <div class="sub">#${c.id} · ${esc(c.entityName)}${c.partial ? ' · <span class="pill partial">cálculo parcial</span>' : ''}${c.returned ? ' · <span class="pill neutral">retornou de etapa</span>' : ''}</div>
         <div class="sub created">${createdHtml(c)}</div>
-        <div class="c-mobile sub">${esc(c.stageName)} · Resp.: <b>${esc(c.responsibleName)}</b>${c.commercialField ? ` · Comercial: <b>${esc(c.commercialName)}</b>` : ''}</div>
+        <div class="c-mobile sub">${esc(c.stageName)} · Assessor: <b>${esc(c.responsibleName)}</b>${c.commercialField ? ` · Comercial: <b>${esc(c.commercialName)}</b>` : ''}</div>
         <div class="chips">${chips}</div></div>
       <div class="c-stage" style="min-width:0"><div>${esc(c.stageName)}</div><div class="sub">${esc(c.categoryName)}</div></div>
-      <div class="c-resp" style="min-width:0"><div title="Responsável atual">${esc(c.responsibleName)}</div><div class="sub">${esc(c.teams.join(', ') || 'responsável')}</div></div>
-      <div class="c-com" style="min-width:0">${c.commercialField ? `<div title="${esc(c.commercialField)}">${esc(c.commercialName)}</div><div class="sub">${c.commercialIsCreator ? 'abriu o card' : esc(c.commercialField)}</div>` : '<span class="faint">—</span>'}</div>
+      <div class="c-resp" style="min-width:0"><div title="Assessor (responsável pelo card no Bitrix)">${esc(c.responsibleName)}</div><div class="sub">${esc(c.teams.join(', ') || 'assessor')}</div></div>
+      <div class="c-com" style="min-width:0">${c.commercialField ? `<div title="${esc(c.commercialField)}">${esc(c.commercialName)}</div><div class="sub" title="${esc(c.commercialEmail || '')}">${esc(comSource(c))}</div>` : '<span class="faint">—</span>'}</div>
       <div class="c-over"><div class="num">${worst?.overdueText ? esc(worst.overdueText) : '—'}</div><div class="sub">maior atraso</div></div>
       <div class="c-val num">${c.opportunity ? fmtMoney(c.opportunity, c.currency) : '<span class="faint">—</span>'}</div>
       <div>${c.link ? `<a class="btn sm" href="${esc(c.link)}" target="${LT}" rel="noopener noreferrer">Abrir no Bitrix ↗</a>` : ''}</div>
     </div>${open ? detailHtml(c) : ''}</div>`;
+}
+
+/** Origem do comercial mostrada abaixo do nome: o e-mail do especialista, "abriu o card" ou o campo escolhido. */
+function comSource(c) {
+  return c.commercialEmail || (c.commercialIsCreator ? 'abriu o card' : c.commercialField || '');
 }
 
 /** "Criado em 12/10/2026 · há 14 dias" (dias de calendário no fuso configurado). */
@@ -365,8 +378,8 @@ function detailHtml(c) {
         <dt>Entrada na etapa</dt><dd>${fmtDT(c.entryTime, t, true)} <span class="faint">(${esc({ historico: 'histórico de etapas', movedTime: 'movedTime do card', acompanhamento: 'início do acompanhamento — parcial' }[c.entrySource])})</span></dd>
         ${c.returned ? `<dt>Retorno</dt><dd>Voltou para esta etapa vindo de ${esc(S.meta.stages?.[`${c.entityTypeId}:${c.returned.fromStageId}`]?.name || c.returned.fromStageId)}</dd>` : ''}
         <dt>Criado em</dt><dd>${c.createdTime != null ? `${fmtDT(c.createdTime, t, true)} <span class="faint">(${esc(fmtAge(c.ageDays))})</span>` : '<span class="faint">não informado</span>'}</dd>
-        <dt>Responsável</dt><dd>${esc(c.responsibleName)}</dd>
-        ${c.commercialField ? `<dt>Comercial</dt><dd>${esc(c.commercialName)} <span class="faint small">(${c.commercialIsCreator ? 'quem abriu o card' : 'campo ' + esc(c.commercialField)})</span></dd>` : ''}
+        <dt>Assessor</dt><dd>${esc(c.responsibleName)}</dd>
+        ${c.commercialField ? `<dt>Comercial</dt><dd>${esc(c.commercialName)} <span class="faint small">(${esc(c.commercialEmail ? 'e-mail do especialista: ' + c.commercialEmail : c.commercialIsCreator ? 'quem abriu o card' : 'campo ' + c.commercialField)})</span></dd>` : ''}
         <dt>Última interação</dt><dd>${li ? `${esc(li.desc)} — ${fmtDT(li.time, t, true)} por ${esc(li.authorName)}` : '<span class="faint">nenhuma relevante nos dados consultados</span>'}</dd>
         <dt>Próxima atividade</dt><dd>${na ? `${esc(PROVIDER_LABELS[na.providerId] || 'Atividade')}${na.subject ? ` "${esc(na.subject)}"` : ''} — ${fmtDT(na.deadline, t, true)} (${esc(na.responsibleName)})` : '<span class="faint">nenhuma agendada</span>'}</dd>
         <dt>Valor</dt><dd>${c.opportunity ? fmtMoney(c.opportunity, c.currency) : '<span class="faint">não informado</span>'}</dd>
@@ -382,16 +395,15 @@ function renderEtapas() {
   const A = S.analysis;
   if (!A || !S.sync?.lastSuccess) return html + '<div class="empty"><h3>Sem dados ainda</h3><p class="muted">Sincronize para ver as etapas.</p></div>';
   const now = Date.now(), t = tz();
-  const calRaw = S.config.calendar || {};
-  const cal = normalizeCalendar(calRaw);
-  const scope = S.mode === 'demo' ? (S.config.monitored || []) : effectiveMonitored(S.config);
+  const scope = effectiveMonitored(S.config, S.meta);
   const funnels = [];
   for (const m of scope) for (const cid of m.categoryIds) funnels.push({ etid: Number(m.entityTypeId), cid: Number(cid) });
   const histAvg = Object.fromEntries((A.historical?.stageAvg || []).map(x => [x.stageKey, x]));
+  html += `<div class="row" style="margin-bottom:10px"><span class="small muted">Cards de cada etapa por data de criação:</span>${orderToggle()}</div>`;
   const ruleText = r => {
     if (!r) return null;
     const u = { min: 'min', h: 'h', d: Number(r.duration.value) === 1 ? ' dia' : ' dias' }[r.duration.unit];
-    return `${r.duration.value}${u} ${r.mode === 'util' ? 'úteis' : 'corridos'}`;
+    return `${r.duration.value}${u} corridos`;
   };
   const SLA_PILL = { vencido: ['critica', 'SLA vencido'], aviso: ['media', 'perto do vencimento'], pausado: ['neutral', 'pausado'], ok: ['ok', 'no prazo'], ignorado: ['neutral', 'sem SLA (exceção)'] };
   for (const fn of funnels) {
@@ -415,9 +427,8 @@ function renderEtapas() {
     for (const st of stages) {
       const cs = byStage(st).map(c => {
         const corr = c.entryTime ? (now - c.entryTime) / 60000 : null;
-        const util = c.entryTime ? businessMinutesBetween(c.entryTime, now, cal) : null;
-        return { c, corr, util };
-      }).sort((a, b) => (b.corr || 0) - (a.corr || 0));
+        return { c, corr };
+      }).sort((a, b) => byCreation(a.c, b.c));
       const rule = (S.config.slaRules || []).find(r => r.enabled !== false && Number(r.entityTypeId) === fn.etid && Number(r.categoryId) === fn.cid && r.stageId === st.statusId);
       const cnt = k => cs.filter(x => x.c.stageSlaStatus === k).length;
       const avg = cs.length ? cs.reduce((s, x) => s + (x.corr || 0), 0) / cs.length : null;
@@ -429,15 +440,15 @@ function renderEtapas() {
           ${cs.length ? `<span class="pill neutral num" title="Soma dos valores dos cards abertos nesta etapa">Valor: ${esc(fmtMoneyMap(sumValue(cs.map(x => x.c))))}${semValor(cs.map(x => x.c)) ? ` · ${semValor(cs.map(x => x.c))} sem valor` : ''}</span>` : ''}
           <span class="spacer"></span><span class="small muted">SLA: ${rule ? esc(ruleText(rule)) : '<button class="link" data-act="goto-cfg" data-cfg="sla">definir</button>'}
           ${avg != null ? ` · média atual ${esc(fmtMinutes(avg, 'corrido'))}` : ''}${ha ? ` · histórico ${esc(fmtMinutes(ha.avgMin, 'corrido'))} (${ha.n} passagens)` : ''}</span></div></summary>
-        ${cs.length ? `<div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Card</th><th>Responsável</th><th>Comercial (abriu o card)</th><th>Criado em</th><th class="n">Valor</th><th class="n">Na etapa há</th><th>SLA da etapa</th><th>Próxima atividade</th><th>Alertas</th></tr></thead><tbody>
-          ${cs.map(({ c, corr, util }) => {
+        ${cs.length ? `<div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Card</th><th>Assessor</th><th>Comercial</th><th>Criado em</th><th class="n">Valor</th><th class="n">Na etapa há</th><th>SLA da etapa</th><th>Próxima atividade</th><th>Alertas</th></tr></thead><tbody>
+          ${cs.map(({ c, corr }) => {
             const pill = SLA_PILL[c.stageSlaStatus];
             return `<tr><td data-l="Card">${c.link ? `<a href="${esc(c.link)}" target="${LT}" rel="noopener noreferrer"><b>${esc(c.title)}</b></a>` : `<b>${esc(c.title)}</b>`}<div class="small faint">#${c.id}${c.returned ? ' · voltou de etapa' : ''}</div></td>
-              <td data-l="Responsável">${esc(c.responsibleName)}</td>
-              <td data-l="Comercial">${c.commercialField ? esc(c.commercialName) : '<span class="faint">—</span>'}</td>
+              <td data-l="Assessor">${esc(c.responsibleName)}</td>
+              <td data-l="Comercial">${c.commercialField ? `${esc(c.commercialName)}<div class="small faint">${esc(comSource(c))}</div>` : '<span class="faint">—</span>'}</td>
               <td data-l="Criado em">${c.createdTime != null ? `${fmtDate(c.createdTime, t)}<div class="small faint">${esc(fmtAge(c.ageDays))}</div>` : '<span class="faint">—</span>'}</td>
               <td class="n" data-l="Valor">${c.opportunity > 0 ? fmtMoney(c.opportunity, c.currency) : '<span class="faint">—</span>'}</td>
-              <td class="n" data-l="Na etapa há">${corr != null ? `${esc(fmtMinutes(corr, 'corrido'))}<div class="small faint">${esc(fmtMinutes(util, 'util'))}${c.partial ? ' · parcial' : ''}</div>` : '—'}
+              <td class="n" data-l="Na etapa há">${corr != null ? `${esc(fmtMinutes(corr, 'corrido'))}${c.partial ? '<div class="small faint">parcial</div>' : ''}` : '—'}
                 <div class="small faint">desde ${fmtDT(c.entryTime, t)}</div></td>
               <td data-l="SLA da etapa">${pill ? `<span class="pill ${pill[0]}">${pill[1]}</span>` : '<span class="faint small">sem SLA definido</span>'}</td>
               <td class="small" data-l="Próxima atividade">${c.nextActivity ? `${fmtDT(c.nextActivity.deadline, t)}<div class="faint">${esc(c.nextActivity.subject || '')}</div>` : '<span style="color:var(--high)">nenhuma agendada</span>'}</td>
@@ -446,7 +457,7 @@ function renderEtapas() {
     }
   }
   if (!funnels.length) html += '<div class="empty"><h3>Nenhum funil monitorado</h3></div>';
-  return html + '<p class="small faint">“Na etapa há” usa a entrada na etapa pelo histórico do Bitrix (ou movedTime; “parcial” quando só há o início do acompanhamento). A segunda linha conta só o horário comercial configurado. “Criado em” é a data de criação do card no Bitrix e a idade conta dias de calendário no fuso configurado. Os valores somam o campo Valor dos cards abertos, sem converter moedas.</p>';
+  return html + '<p class="small faint">“Na etapa há” usa a entrada na etapa pelo histórico do Bitrix (ou movedTime; “parcial” quando só há o início do acompanhamento).  Todos os tempos são corridos (24 h por dia, todos os dias). “Criado em” é a data de criação do card no Bitrix e a idade conta dias de calendário no fuso configurado. Os valores somam o campo Valor dos cards abertos, sem converter moedas.</p>';
 }
 
 // ---------------------------------------------------------------- ranking de reuniões
@@ -506,7 +517,7 @@ function renderReunioes() {
     <p class="help" style="margin-top:10px">Ordem: reuniões realizadas; empate por agendadas (mesma posição quando os dois empatam). Conta como reunião: atividades do tipo
       <b>${esc(provLabel || 'nenhum tipo')}</b>${(M.config.todoKeywords || []).length ? ` e atividades "A fazer" com <b>${esc(M.config.todoKeywords.join(', '))}</b> no assunto` : ''}.
       A data é a do início da reunião (ou o prazo). ${M.config.includeClosed ? 'Inclui reuniões de cards já ganhos ou perdidos.' : 'Somente cards abertos.'}
-      Janela lida: últimos ${esc(M.config.lookbackDays)} dias e as agendadas. Comercial = ${esc(S.config.commercialFields && Object.values(S.config.commercialFields).some(x => x.field && x.field !== 'createdBy') ? 'campo escolhido nas configurações' : 'quem abriu o card')}.
+      Janela lida: últimos ${esc(M.config.lookbackDays)} dias e as agendadas. Comercial = nome tirado do e-mail do especialista; sem e-mail, quem abriu o card.
       ${cov.foraDoEscopo ? `${cov.foraDoEscopo} reunião(ões) de funis não monitorados ficaram de fora.` : ''} ${cov.semCard ? `${cov.semCard} sem card identificado.` : ''}
       <button class="link" data-act="goto-cfg" data-cfg="reunioes">Configurar</button></p></section>`;
   return html;
@@ -537,8 +548,8 @@ function renderAlertas() {
     ['Acompanhamento', act.filter(x => ALERT_TYPES[x.a.type].group === 'acompanhamento'), ''],
     ['Silenciados', snoozed, 'Voltam automaticamente ao fim do período, se ainda estiverem ativos.']
   ];
-  const table = list => `<div class="tablewrap"><table><thead><tr><th>Prioridade</th><th>Card</th><th>Alerta</th><th>Motivo</th><th class="n">Atraso</th><th>Responsável</th><th>Comercial</th><th>Criado</th><th>Detectado</th><th></th></tr></thead><tbody>
-    ${list.sort((x, y) => y.c.priority.score - x.c.priority.score).map(({ c, a }) => `<tr>
+  const table = list => `<div class="tablewrap"><table><thead><tr><th>Prioridade</th><th>Card</th><th>Alerta</th><th>Motivo</th><th class="n">Atraso</th><th>Assessor</th><th>Comercial</th><th>Criado</th><th>Detectado</th><th></th></tr></thead><tbody>
+    ${list.sort((x, y) => byCreation(x.c, y.c) || y.c.priority.score - x.c.priority.score).map(({ c, a }) => `<tr>
       <td><span class="pill ${c.priority.level}">${LEVELS[c.priority.level]}</span></td>
       <td>${c.link ? `<a href="${esc(c.link)}" target="${LT}" rel="noopener noreferrer">${esc(c.title)}</a>` : esc(c.title)}<div class="small muted">${esc(c.categoryName)} › ${esc(c.stageName)}</div></td>
       <td>${esc(a.title)}${a.partial ? ' <span class="pill partial">parcial</span>' : ''}</td><td class="small">${esc(a.reason)}</td>
@@ -546,7 +557,8 @@ function renderAlertas() {
       <td class="small">${c.createdTime != null ? `${fmtDate(c.createdTime, t)}<div class="faint">${esc(fmtAge(c.ageDays))}</div>` : '—'}</td><td class="small">${a.firstSeen ? fmtDT(a.firstSeen, t) : '—'}</td>
       <td>${a.snoozedUntil > now ? `<button class="btn sm" data-act="snooze" data-keys="${esc(a.key)}" data-h="0">Reativar</button>`
         : `<button class="btn sm" data-act="snooze" data-keys="${esc(a.key)}" data-h="4">Silenciar 4 h</button>`}</td></tr>`).join('')}</tbody></table></div>`;
-  return banners() + groups.filter(([, l], i) => l.length || i >= 2 && i <= 4).map(([title, list, help]) =>
+  return banners() + `<div class="row" style="margin-bottom:10px"><span class="small muted">Cards por data de criação:</span>${orderToggle()}</div>` +
+    groups.filter(([, l], i) => l.length || i >= 2 && i <= 4).map(([title, list, help]) =>
     `<section class="panel" style="margin-bottom:12px"><div class="hd"><h2>${esc(title)}</h2><span class="pill neutral">${list.length}</span></div>
      ${help ? `<p class="help" style="margin-top:-4px">${esc(help)}</p>` : ''}${list.length ? table(list) : '<p class="muted">Nenhum alerta neste grupo.</p>'}</section>`).join('') +
     `<p class="small faint">As notificações do Chrome são opcionais e respeitam o horário configurado. Nenhuma mensagem é enviada por e-mail, WhatsApp ou comentário no Bitrix.</p>`;
@@ -577,15 +589,15 @@ function renderAnalises() {
       `<p class="muted">Disponível após sincronizações em pelo menos 3 dias diferentes (atualmente ${H.evolutionDays}). A extensão guarda apenas contagens diárias.</p>`}</div>
   </section>
   <section class="grid3">
-    <div class="panel"><h2>Por responsável</h2>${dt(A.distributions.byResponsible, 'Responsável')}</div>
+    <div class="panel"><h2>Por assessor</h2>${dt(A.distributions.byResponsible, 'Assessor')}</div>
     ${(A.distributions.byCommercial || []).length ? `<div class="panel"><h2>Por comercial</h2>${dt(A.distributions.byCommercial, 'Comercial')}</div>` : ''}
     <div class="panel"><h2>Por funil</h2>${dt(A.distributions.byCategory, 'Funil')}</div>
     <div class="panel"><h2>Por etapa</h2>${dt(A.distributions.byStage, 'Etapa')}</div>
   </section>
   <section class="grid2">
     <div class="panel"><h2>Tempo médio por etapa</h2>
-      ${H.stageAvg.length ? `<div class="tablewrap"><table><thead><tr><th>Etapa</th><th class="n">Visitas concluídas</th><th class="n">Média corrida</th><th class="n">Média útil</th></tr></thead><tbody>
-        ${H.stageAvg.map(r => `<tr><td>${esc(r.name)}</td><td class="n">${r.n}</td><td class="n">${fmtMinutes(r.avgMin, 'corrido')}</td><td class="n">${fmtMinutes(r.avgUtil, 'util')}</td></tr>`).join('')}</tbody></table></div>` : ''}
+      ${H.stageAvg.length ? `<div class="tablewrap"><table><thead><tr><th>Etapa</th><th class="n">Visitas concluídas</th><th class="n">Média (tempo corrido)</th></tr></thead><tbody>
+        ${H.stageAvg.map(r => `<tr><td>${esc(r.name)}</td><td class="n">${r.n}</td><td class="n">${fmtMinutes(r.avgMin, 'corrido')}</td></tr>`).join('')}</tbody></table></div>` : ''}
       <p class="help">${H.stageAvg.length ? '' : 'Dados insuficientes. '}Calculado a partir do histórico de etapas dos cards abertos monitorados; exibido só para etapas com pelo menos ${H.minSample} passagens concluídas${H.stageAvgInsufficient ? ` (${H.stageAvgInsufficient} etapa(s) abaixo do mínimo, ocultas)` : ''}.</p></div>
     <div class="panel"><h2>Vencimentos históricos (etapas já concluídas)</h2>
       ${H.breaches.length ? `<div class="tablewrap"><table><thead><tr><th>Etapa</th><th class="n">Passagens</th><th class="n">Acima do SLA</th><th class="n">%</th></tr></thead><tbody>
@@ -604,11 +616,11 @@ function spark(snaps) {
 }
 
 // ---------------------------------------------------------------- configurações
-const CFG_TABS = [['conexao', 'Conexão'], ['funis', 'Funis e etapas'], ['expediente', 'Expediente e feriados'], ['sla', 'Regras de SLA'],
+const CFG_TABS = [['conexao', 'Conexão'], ['funis', 'Funis e etapas'], ['sla', 'Regras de SLA'],
   ['acomp', 'Acompanhamento e prazos'], ['reunioes', 'Ranking de reuniões'], ['prioridade', 'Prioridade'], ['equipes', 'Equipes'], ['notif', 'Notificações e sincronização'], ['dados', 'Dados e privacidade']];
 
 function renderConfig() {
-  const sec = { conexao: cfgConexao, funis: cfgFunis, expediente: cfgExpediente, sla: cfgSla, acomp: cfgAcomp, prioridade: cfgPrioridade,
+  const sec = { conexao: cfgConexao, funis: cfgFunis, sla: cfgSla, acomp: cfgAcomp, prioridade: cfgPrioridade,
     equipes: cfgEquipes, notif: cfgNotif, dados: cfgDados, reunioes: cfgReunioes }[ui.cfgTab];
   return `${S.mode === 'demo' ? '<div class="banner demo"><div class="small"><b>Configuração da demonstração.</b> Os prazos são exemplos fictícios; alterá-los não afeta a configuração real.</div></div>' : ''}
   <div class="cfg"><nav class="cfgnav">${CFG_TABS.map(([k, l]) => `<button class="${ui.cfgTab === k ? 'on' : ''}" data-act="cfgtab" data-cfg="${k}">${l}</button>`).join('')}</nav>
@@ -619,11 +631,10 @@ const sel = (path, options, cur, rerender) => `<select data-bind="${path}" ${rer
 const num = (path, v, attrs = '') => `<input type="number" data-bind="${path}" data-type="number" value="${esc(v ?? '')}" ${attrs}>`;
 const chk = (path, v, label, rerender) => `<label class="check"><input type="checkbox" data-bind="${path}" data-type="bool" ${v ? 'checked' : ''} ${rerender ? 'data-rerender="1"' : ''}> ${label}</label>`;
 const UNITS = [['min', 'min'], ['h', 'horas'], ['d', 'dias']];
-const MODES = [['util', 'horário comercial'], ['corrido', 'tempo corrido']];
 
 function monitoredFunnels() {
   const out = [];
-  for (const m of cfg.monitored || []) for (const cid of m.categoryIds) {
+  for (const m of effectiveMonitored({ ...cfg, focusPage: null }, S.meta)) for (const cid of m.categoryIds) {
     const etid = Number(m.entityTypeId);
     out.push({ etid, cid: Number(cid), name: `${S.meta.entities?.[etid]?.name || etid} › ${S.meta.categories?.[`${etid}:${cid}`]?.name || cid}`,
       stages: Object.entries(S.meta.stages || {}).filter(([k, s]) => k.startsWith(etid + ':') && Number(s.categoryId) === Number(cid)).map(([, s]) => s).sort((a, b) => a.sort - b.sort) });
@@ -687,6 +698,10 @@ function cfgFunis() {
   const focusEt = cfg.focusPage && cfg.focusEntityTypeId ? Number(cfg.focusEntityTypeId) : null;
   const focusEnt = focusEt ? S.meta.entities?.[focusEt] : null;
   const det = S.lastPageTypes && S.lastPageTypes.pagePath === cfg.focusPage ? S.lastPageTypes : null;
+  const exclPanel = `<div class="panel"><h2>Funis excluídos</h2>
+    <p class="help">Funis ou processos cujo nome contém estes termos nunca são monitorados, nem entram nas etapas, alertas e ranking de reuniões
+    (sem diferença de acento, maiúsculas, espaço ou hífen: "pós-venda" exclui "Pós venda", "POS-VENDA" e "Pós-venda e Assessoria").</p>
+    <label class="field"><span>Termos (separe por vírgula)</span><input data-bind="excludeNames" data-type="words" value="${esc((cfg.excludeNames ?? DEFAULT_EXCLUDE_NAMES).join(', '))}" placeholder="pós-venda"></label></div>`;
   const focusPanel = `<div class="panel"><h2>Escopo: somente as oportunidades de uma página</h2>
     <p class="help">Com a página de foco definida, a extensão analisa <b>apenas</b> os cards dessa página do Bitrix e ignora negócios, leads e outros processos.
     O processo é identificado sozinho pelos links dos cards quando você abre a página no Bitrix.</p>
@@ -696,10 +711,11 @@ function cfgFunis() {
     <div style="margin-top:8px">${!cfg.focusPage ? '<span class="pill neutral">sem foco — escolha os funis abaixo</span>'
       : focusEnt ? `<span class="pill ok">monitorando somente</span> <b>${esc(focusEnt.name)}</b> <span class="small muted">(processo ${focusEt}, ${focusEnt.categories.length} funil(is)) · página ${esc(cfg.focusPage)}</span>`
       : `<span class="pill partial">aguardando identificação</span> <span class="small">Abra <a href="${esc(portal + cfg.focusPage)}" target="${LT}" rel="noopener noreferrer">${esc(portal + cfg.focusPage)}</a> no Bitrix (logado) com os cards carregados.${det ? ' Processo encontrado: ' + det.types.map(t => t.entityTypeId).join(', ') + '.' : ''}</span>`}</div></div>`;
-  const comEts = [...new Set(effectiveMonitored(cfg).map(m => Number(m.entityTypeId)))];
+  const comEts = [...new Set(effectiveMonitored(cfg, S.meta).map(m => Number(m.entityTypeId)))];
   const comPanel = comEts.length ? `<div class="panel"><h2>Comercial do card</h2>
-    <p class="help">O <b>comercial</b> aparece em coluna própria, separado do <b>responsável</b> atual, em todas as telas, nos filtros e no ranking de reuniões.
-    Por padrão, o comercial é <b>quem abriu o card</b> (campo nativo "Criado por" do Bitrix). Se a sua operação usa outro campo de usuário para o comercial, escolha-o aqui.</p>
+    <p class="help">O <b>comercial</b> aparece em coluna própria, separado do <b>assessor</b> (o responsável pelo card no Bitrix), em todas as telas, nos filtros e no ranking de reuniões.
+    1º) <b>E-mail do especialista</b>: o e-mail do campo vira nome e sobrenome (ex.: <span class="mono">yago.barbosa@besmart.com.br</span> → <b>Yago Barbosa</b>).
+    2º) Cards sem esse e-mail usam <b>quem abriu o card</b> (campo "Criado por"), ou outro campo de usuário escolhido abaixo.</p>
     ${comEts.map(etid => {
       const f = S.meta.fields?.[etid];
       const cur = commercialFieldFor(cfg, S.meta, etid);
@@ -708,14 +724,26 @@ function cfgFunis() {
       if (!f) return `<div class="row" style="margin:6px 0"><b>${esc(S.meta.entities?.[etid]?.name || etid)}</b> <button class="btn sm" data-act="load-fields" data-etid="${etid}">Carregar campos</button></div>`;
       const userFields = Object.entries(f).filter(([k, v]) => v.type === 'user' && !['createdBy', 'updatedBy', 'movedBy', 'lastActivityBy'].includes(k))
         .sort((a, b) => a[1].title.localeCompare(b[1].title));
+      const spec = specialistFieldFor(cfg, S.meta, etid);
+      const specChosen = cfg.specialistFields?.[etid];
+      const specVal = specChosen ? specChosen.field : '__auto';
+      const textFields = Object.entries(f).filter(([, v]) => !['user', 'date', 'datetime', 'boolean', 'double', 'integer', 'money', 'crm_status', 'crm_category'].includes(v.type))
+        .sort((a, b) => String(a[1].title).localeCompare(String(b[1].title)));
       return `<div class="row" style="margin:6px 0"><b style="min-width:160px">${esc(S.meta.entities?.[etid]?.name || etid)}</b>
+        <span class="small muted">E-mail do especialista:</span>
+        <select data-act="set-specialist-field" data-etid="${etid}">
+          <option value="__auto" ${specVal === '__auto' ? 'selected' : ''}>Automático${!specChosen ? (spec ? ` (${esc(spec.label)})` : ' (nenhum campo encontrado)') : ''}</option>
+          ${textFields.map(([k, v]) => `<option value="${esc(k)}" ${specVal === k ? 'selected' : ''}>${esc(v.title)} (${esc(k)})</option>`).join('')}
+          <option value="" ${specVal === '' ? 'selected' : ''}>Não usar</option></select>
+        ${spec ? `<span class="pill ok">usando: ${esc(spec.label)}</span>` : '<span class="pill neutral">sem campo de e-mail</span>'}</div>
+      <div class="row" style="margin:6px 0 12px"><span style="min-width:160px"></span><span class="small muted">Sem e-mail, usar:</span>
         <select data-act="set-commercial-field" data-etid="${etid}">
           <option value="__auto" ${selVal === '__auto' || selVal === 'createdBy' ? 'selected' : ''}>Quem abriu o card (Criado por) — padrão</option>
           ${userFields.map(([k, v]) => `<option value="${esc(k)}" ${selVal === k ? 'selected' : ''}>${esc(v.title)} (${esc(k)})</option>`).join('')}
           <option value="" ${selVal === '' ? 'selected' : ''}>Não mostrar comercial</option></select>
         ${cur ? `<span class="pill ok">usando: ${esc(cur.label)}</span>` : '<span class="pill neutral">sem campo de comercial</span>'}</div>`;
     }).join('')}</div>` : '';
-  return focusPanel + comPanel + (focusEnt ? '' : `<div class="panel"><h2>O que representa um "card"</h2><p class="help">Escolha os funis monitorados entre negócios, leads e processos inteligentes encontrados no portal.
+  return focusPanel + exclPanel + comPanel + (focusEnt ? '' : `<div class="panel"><h2>O que representa um "card"</h2><p class="help">Escolha os funis monitorados entre negócios, leads e processos inteligentes encontrados no portal.
     Tarefas avulsas do módulo Tarefas não são cards nesta versão — tarefas vinculadas a um card entram como atividades dele.</p></div>
   <div class="panel"><h2>Processo de um espaço digital (ex.: be.smart › Seguros)</h2>
     <p class="help">Cards de espaços digitais (páginas como <span class="mono">${esc(portal)}/page/besmart/seguros/</span>) são processos inteligentes.
@@ -733,39 +761,15 @@ function cfgFunis() {
     (focusEt ? ents.filter(e => Number(e.entityTypeId) === focusEt) : cfg.focusPage ? [] : ents).map(e => `<div class="panel"><div class="hd"><h2>${esc(e.name)}</h2><span class="pill neutral">${e.kind === 'deal' ? 'negócios' : e.kind === 'lead' ? 'leads' : 'processo inteligente'} · tipo ${e.entityTypeId}</span>${e.workspace ? `<span class="pill neutral">espaço digital: ${esc(e.workspace)}</span>` : e.customSectionId ? '<span class="pill neutral">espaço digital</span>' : ''}</div>
       ${(e.categories || []).map(cid => {
         const stages = Object.values(S.meta.stages || {}).filter(s => s.entityTypeId === e.entityTypeId && Number(s.categoryId) === Number(cid)).sort((a, b) => a.sort - b.sort);
-        return `<div style="margin:6px 0 10px"><label class="check"><input type="checkbox" data-act="toggle-cat" data-etid="${e.entityTypeId}" data-cid="${cid}" ${isOn(e.entityTypeId, cid) ? 'checked' : ''}>
-          <b>${esc(S.meta.categories?.[`${e.entityTypeId}:${cid}`]?.name || cid)}</b></label>
+        const catName = S.meta.categories?.[`${e.entityTypeId}:${cid}`]?.name || String(cid);
+        const excl = isExcludedName(catName, cfg.excludeNames ?? DEFAULT_EXCLUDE_NAMES) || isExcludedName(e.name, cfg.excludeNames ?? DEFAULT_EXCLUDE_NAMES);
+        return `<div style="margin:6px 0 10px"><label class="check"><input type="checkbox" data-act="toggle-cat" data-etid="${e.entityTypeId}" data-cid="${cid}" ${isOn(e.entityTypeId, cid) && !excl ? 'checked' : ''} ${excl ? 'disabled' : ''}>
+          <b>${esc(catName)}</b></label>${excl ? ' <span class="pill neutral">excluído do monitoramento</span>' : ''}
           <div class="chips" style="margin-left:24px">${stages.map(s => `<span class="chip">${esc(s.name)} ${s.semantic !== 'P' ? `<span class="stage-sem ${s.semantic}">${s.semantic === 'S' ? 'sucesso' : 'falha'}</span>` : ''}</span>`).join('') || '<span class="faint small">sem etapas lidas</span>'}</div></div>`;
       }).join('')}</div>`).join('') +
     (cfg.focusPage && !focusEt ? `<p class="help">Nenhum outro funil é monitorado enquanto o foco estiver ativo. Abra a página no Bitrix para identificar o processo.</p>` : '') +
     (focusEt ? `<p class="help">Outros tipos de card estão ocultos porque o foco está ativo. Use "Remover foco" para escolher outros funis.</p>` : '') +
     `<p class="help">Etapas finais (sucesso/falha) encerram o card: ele sai da fila de pendências atuais. Ao selecionar um funil, a regra objetiva "sem atividade futura" é ativada; prazos de SLA continuam vazios até você defini-los.</p>`;
-}
-
-function cfgExpediente() {
-  const c = cfg.calendar;
-  const zones = (Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : ['America/Sao_Paulo']).filter(z => z.startsWith('America/'));
-  const y = new Date().getFullYear();
-  return `<div class="panel"><h2>Expediente e fuso horário</h2>
-    <div class="formgrid"><label class="field"><span>Fuso horário</span>${sel('calendar.timezone', zones.map(z => [z, z]), c.timezone)}</label>
-      <label class="field"><span>Minutos por "dia útil" nas regras em dias (opcional)</span>${num('calendar.dayMinutes', c.dayMinutes, 'placeholder="automático: soma do expediente"')}</label></div>
-    <div style="margin-top:10px"><span class="small muted"><b>Dias úteis</b></span><div class="row">${['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d, i) =>
-      `<label class="check"><input type="checkbox" data-act="toggle-day" data-path="calendar.workdays" data-day="${i}" ${c.workdays.includes(i) ? 'checked' : ''}> ${d}</label>`).join('')}</div></div>
-    <div style="margin-top:10px"><span class="small muted"><b>Intervalos de expediente</b> (ex.: 08:30–12:00 e 13:00–18:00)</span>
-      ${c.intervals.map((iv, i) => `<div class="row" style="margin:4px 0"><input type="time" data-bind="calendar.intervals.${i}.start" value="${esc(iv.start)}"> até
-        <input type="time" data-bind="calendar.intervals.${i}.end" value="${esc(iv.end)}"> <button class="btn sm" data-act="rm" data-path="calendar.intervals" data-i="${i}">remover</button></div>`).join('')}
-      <button class="btn sm" data-act="add-interval">+ intervalo</button></div>
-    <p class="help">Em regras por "dias" no horário comercial, 1 dia = duração do expediente (${esc(fmtMinutes(dayMin(), 'corrido'))}). Ex.: 2 dias úteis a partir de segunda 15:00 vencem na quarta 15:00.</p></div>
-  <div class="panel"><h2>Feriados</h2><p class="help">Uma data por linha (AAAA-MM-DD). Inclua feriados estaduais e municipais da sua operação.</p>
-    <textarea id="holidays" rows="8" style="width:100%;font-family:var(--mono)" data-bind="calendar.holidays" data-type="lines">${esc(c.holidays.join('\n'))}</textarea>
-    <div class="row" style="margin-top:6px"><button class="btn sm" data-act="add-holidays" data-y="${y}">+ nacionais ${y}</button><button class="btn sm" data-act="add-holidays" data-y="${y + 1}">+ nacionais ${y + 1}</button>
-      <label class="check small"><input type="checkbox" id="hCarnaval"> incluir Carnaval</label><label class="check small"><input type="checkbox" id="hCorpus"> incluir Corpus Christi</label></div>
-    <p class="help">Nacionais: 1/1, Sexta-feira Santa, 21/4, 1/5, 7/9, 12/10, 2/11, 15/11, 20/11 e 25/12. Carnaval e Corpus Christi são pontos facultativos — inclua se a operação não funcionar.</p></div>
-  <div class="panel">${chk('calendar.confirmed', c.confirmed, '<b>Confirmo que expediente, fuso e feriados refletem a operação</b>')}</div>`;
-}
-function dayMin() {
-  if (cfg.calendar.dayMinutes > 0) return cfg.calendar.dayMinutes;
-  return cfg.calendar.intervals.reduce((a, i) => { const [h1, m1] = i.start.split(':').map(Number), [h2, m2] = i.end.split(':').map(Number); return a + Math.max(0, h2 * 60 + m2 - h1 * 60 - m1); }, 0);
 }
 
 function fieldOptions(etid, filterFn = () => true) {
@@ -806,12 +810,12 @@ function cfgSla() {
       const si = cfg.stagnationRules.findIndex(x => Number(x.entityTypeId) === fn.etid && Number(x.categoryId) === fn.cid && x.stageId === s.statusId);
       const st = cfg.stagnationRules[si];
       const stag = st ? `<span class="inline">${num(`stagnationRules.${si}.limit.value`, st.limit.value, 'min="0"')}${sel(`stagnationRules.${si}.limit.unit`, UNITS, st.limit.unit)}</span>
-        ${sel(`stagnationRules.${si}.mode`, MODES, st.mode)} <button class="btn sm" data-act="rm" data-path="stagnationRules" data-i="${si}">×</button>`
+        <span class="small faint">corridos</span> <button class="btn sm" data-act="rm" data-path="stagnationRules" data-i="${si}">×</button>`
         : `<button class="link small" data-act="add-stag" data-etid="${fn.etid}" data-cid="${fn.cid}" data-stage="${esc(s.statusId)}">definir</button>`;
       if (!r) return `<tr><td><b>${esc(s.name)}</b><div class="mono faint">${esc(s.statusId)}</div></td><td colspan="4"><button class="btn sm" data-act="add-sla" data-etid="${fn.etid}" data-cid="${fn.cid}" data-stage="${esc(s.statusId)}">Definir SLA da etapa</button>
         ${r === undefined ? '<span class="small faint">sem SLA</span>' : ''}</td><td>${stag}</td></tr>`;
       return `<tr><td><b>${esc(s.name)}</b><div class="mono faint">${esc(s.statusId)}</div>${r.example ? '<span class="pill partial">exemplo</span>' : ''}</td>
-        <td><span class="inline">${num(`slaRules.${i}.duration.value`, r.duration.value, 'min="0"')}${sel(`slaRules.${i}.duration.unit`, UNITS, r.duration.unit)}</span><div style="margin-top:4px">${sel(`slaRules.${i}.mode`, MODES, r.mode)}</div></td>
+        <td><span class="inline">${num(`slaRules.${i}.duration.value`, r.duration.value, 'min="0"')}${sel(`slaRules.${i}.duration.unit`, UNITS, r.duration.unit)}</span><div class="small faint" style="margin-top:4px">dias corridos</div></td>
         <td><span class="inline">${num(`slaRules.${i}.warnPercent`, r.warnPercent, 'min="1" max="100" style="width:60px"')}%</span></td>
         <td>${sel(`slaRules.${i}.onReturn`, [['reiniciar', 'reiniciar'], ['acumular', 'acumular'], ['primeira', 'manter original']], r.onReturn)}</td>
         <td style="min-width:260px"><div class="small muted"><b>Pausa</b></div>${condEditor(`slaRules.${i}.pause`, r.pause, fn.etid, false)}
@@ -825,13 +829,12 @@ function cfgSla() {
     const pStages = fn.stages.filter(s => s.semantic === 'P');
     return `<div class="panel"><h2>${esc(fn.name)}</h2><div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Etapa</th><th>SLA da etapa</th><th>Alertar a partir de</th><th>Retorno à etapa</th><th>Pausa e exceções</th><th>Limite parado</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="row" style="margin-top:10px"><b class="small">Limite parado padrão do funil (etapas sem limite próprio):</b>
-        ${ds ? `<span class="inline">${num(`stagnationRules.${di}.limit.value`, ds.limit.value, 'min="0"')}${sel(`stagnationRules.${di}.limit.unit`, UNITS, ds.limit.unit)}</span>${sel(`stagnationRules.${di}.mode`, MODES, ds.mode)}
+        ${ds ? `<span class="inline">${num(`stagnationRules.${di}.limit.value`, ds.limit.value, 'min="0"')}${sel(`stagnationRules.${di}.limit.unit`, UNITS, ds.limit.unit)}</span><span class="small faint">corridos</span>
           <button class="btn sm" data-act="rm" data-path="stagnationRules" data-i="${di}">×</button>` : `<button class="link small" data-act="add-stag" data-etid="${fn.etid}" data-cid="${fn.cid}" data-stage="*">definir</button>`}</div>
       <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><h3>SLA total do processo</h3>
         ${pr ? `<div class="formgrid" style="margin-top:6px">
           <label class="field"><span>Prazo total</span><span class="inline">${num(`processRules.${pi}.duration.value`, pr.duration.value, 'min="0"')}${sel(`processRules.${pi}.duration.unit`, UNITS, pr.duration.unit)}</span></label>
-          <label class="field"><span>Contagem</span>${sel(`processRules.${pi}.mode`, MODES, pr.mode)}</label>
-          <label class="field"><span>Alertar a partir de (%)</span>${num(`processRules.${pi}.warnPercent`, pr.warnPercent, 'min="1" max="100"')}</label>
+            <label class="field"><span>Alertar a partir de (%)</span>${num(`processRules.${pi}.warnPercent`, pr.warnPercent, 'min="1" max="100"')}</label>
           <label class="field"><span>Início da contagem</span>${sel(`processRules.${pi}.startMode`, [['criacao', 'criação do card'], ['entrada_funil', 'entrada neste funil'], ['etapa', 'entrada em uma etapa']], pr.startMode, true)}</label>
           ${pr.startMode === 'etapa' ? `<label class="field"><span>Etapa inicial</span>${sel(`processRules.${pi}.startStageId`, pStages.map(s => [s.statusId, s.name]), pr.startStageId)}</label>` : ''}</div>
           <div style="margin-top:6px"><span class="small muted"><b>Etapas que não contam no prazo total (pausa por etapa):</b></span>
@@ -859,7 +862,7 @@ function cfgAcomp() {
           <div class="row small" style="margin-top:4px"><span class="muted">Não alertar nas etapas:</span>${pst.map(s => `<label class="check"><input type="checkbox" data-act="toggle-in" data-path="noFutureActivityRules.${nfi}.excludeStages" data-v="${esc(s.statusId)}" ${(nf.excludeStages || []).includes(s.statusId) ? 'checked' : ''}> ${esc(s.name)}</label>`).join('')}</div>`
           : `<button class="link small" data-act="add-nf" data-etid="${fn.etid}" data-cid="${fn.cid}">ativar</button>`}</div>
       <div style="margin-top:8px"><b class="small">Sem interação relevante há mais de</b>:
-        ${ni ? `<span class="inline">${num(`noInteractionRules.${nii}.limit.value`, ni.limit.value, 'min="0"')}${sel(`noInteractionRules.${nii}.limit.unit`, UNITS, ni.limit.unit)}</span>${sel(`noInteractionRules.${nii}.mode`, MODES, ni.mode)}
+        ${ni ? `<span class="inline">${num(`noInteractionRules.${nii}.limit.value`, ni.limit.value, 'min="0"')}${sel(`noInteractionRules.${nii}.limit.unit`, UNITS, ni.limit.unit)}</span><span class="small faint">corridos</span>
           ${ni.example ? '<span class="pill partial">exemplo</span>' : ''}<button class="btn sm" data-act="rm" data-path="noInteractionRules" data-i="${nii}">×</button>
           <div class="row small" style="margin-top:4px"><span class="muted">Não alertar nas etapas:</span>${pst.map(s => `<label class="check"><input type="checkbox" data-act="toggle-in" data-path="noInteractionRules.${nii}.excludeStages" data-v="${esc(s.statusId)}" ${(ni.excludeStages || []).includes(s.statusId) ? 'checked' : ''}> ${esc(s.name)}</label>`).join('')}</div>`
           : `<button class="link small" data-act="add-ni" data-etid="${fn.etid}" data-cid="${fn.cid}">definir limite</button>`}</div></div>`;
@@ -970,9 +973,9 @@ function cfgReunioes() {
 
 function cfgDados() {
   return `<div class="panel"><h2>O que fica armazenado neste navegador</h2><ul class="help">
-    <li>Cards abertos dos funis monitorados: ID, título, funil, etapa, responsável, valor, datas de criação/alteração/mudança de etapa e <b>apenas</b> os campos usados nas suas regras.</li>
+    <li>Cards abertos dos funis monitorados: ID, título, funil, etapa, assessor (responsável), comercial, valor, datas de criação/alteração/mudança de etapa e <b>apenas</b> os campos usados nas suas regras.</li>
     <li>Histórico de mudança de etapa, atividades (tipo, prazo, situação, autor e assunto resumido) e comentários (somente data e autor — o texto não é lido).</li>
-    <li>Nome e departamento dos responsáveis. Contagens diárias para a evolução histórica.</li>
+    <li>Nome e departamento dos assessores (responsáveis). Contagens diárias para a evolução histórica.</li>
     <li>Não são lidos contatos, documentos, arquivos, descrições ou dados de beneficiários. A extensão não envia dados para nenhum serviço além do seu portal Bitrix24.</li></ul>
     ${chk('privacy.storeActivitySubject', cfg.privacy.storeActivitySubject !== false, 'Guardar o assunto das atividades (até 80 caracteres) para exibir na fila')}
     <p class="help">Se os assuntos das atividades puderem conter dados de saúde, desmarque e faça uma sincronização completa.</p></div>
@@ -1057,6 +1060,13 @@ main.addEventListener('change', async e => {
     }
     markDirty(true);
   }
+  if (act === 'set-specialist-field') {
+    const etid = el.dataset.etid;
+    cfg.specialistFields = { ...(cfg.specialistFields || {}) };
+    if (el.value === '__auto') delete cfg.specialistFields[etid];
+    else cfg.specialistFields[etid] = { field: el.value, label: el.value ? (S.meta.fields?.[etid]?.[el.value]?.title || el.value) : '' };
+    markDirty(true);
+  }
   if (act === 'set-commercial-field') {
     const etid = el.dataset.etid;
     cfg.commercialFields = { ...(cfg.commercialFields || {}) };
@@ -1091,6 +1101,11 @@ document.addEventListener('click', async e => {
     case 'toggle': if (e.target.closest('a')) return; ui.expanded.has(t.dataset.key) ? ui.expanded.delete(t.dataset.key) : ui.expanded.add(t.dataset.key); render(); break;
     case 'tab': ui.tab = t.dataset.tab; render(); break;
     case 'more': ui.queueLimit += QUEUE_PAGE; refreshQueueOnly(); break;
+    case 'ordem':
+      ui.dir = ui.dir === 'recentes' ? 'antigos' : 'recentes';
+      if (ui.tab === 'painel') ui.sort = 'criacao';
+      try { localStorage.setItem('ordemCriacao', ui.dir); } catch { /* preferência só desta sessão */ }
+      render(); break;
     case 'mt-period': ui.mt.period = t.dataset.v; render(); break;
     case 'mt-csv': exportMeetingsCsv(); break;
     case 'goto-stage': e.preventDefault(); { const d = document.getElementById(`st-${t.dataset.st}`); if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth' }); } } break;
@@ -1145,18 +1160,13 @@ document.addEventListener('click', async e => {
       await send('removeCardType', { entityTypeId: t.dataset.etid }); await load(); break;
     }
     case 'load-fields': { const r = await send('loadFields', { entityTypeId: etid }); if (r.ok) { S.meta.fields = { ...(S.meta.fields || {}), [etid]: r.fields }; render(); } else toast('Falha ao carregar campos: ' + r.error); break; }
-    case 'add-sla': cfg.slaRules.push({ id: newId(), entityTypeId: etid, categoryId: cid, stageId: t.dataset.stage, duration: { value: null, unit: 'd' }, mode: 'util', warnPercent: 80, onReturn: 'reiniciar', pause: [], exceptions: [], enabled: true }); markDirty(true); break;
+    case 'add-sla': cfg.slaRules.push({ id: newId(), entityTypeId: etid, categoryId: cid, stageId: t.dataset.stage, duration: { value: null, unit: 'd' }, mode: 'corrido', warnPercent: 80, onReturn: 'reiniciar', pause: [], exceptions: [], enabled: true }); markDirty(true); break;
     case 'add-stag': cfg.stagnationRules.push({ id: newId(), entityTypeId: etid, categoryId: cid, stageId: t.dataset.stage, limit: { value: null, unit: 'd' }, mode: 'corrido', enabled: true }); markDirty(true); break;
-    case 'add-proc': cfg.processRules.push({ id: newId(), entityTypeId: etid, categoryId: cid, duration: { value: null, unit: 'd' }, mode: 'util', warnPercent: 80, startMode: 'criacao', pauseStages: [], enabled: true }); markDirty(true); break;
+    case 'add-proc': cfg.processRules.push({ id: newId(), entityTypeId: etid, categoryId: cid, duration: { value: null, unit: 'd' }, mode: 'corrido', warnPercent: 80, startMode: 'criacao', pauseStages: [], enabled: true }); markDirty(true); break;
     case 'add-nf': cfg.noFutureActivityRules.push({ id: newId(), entityTypeId: etid, categoryId: cid, excludeStages: [], enabled: true }); markDirty(true); break;
-    case 'add-ni': cfg.noInteractionRules.push({ id: newId(), entityTypeId: etid, categoryId: cid, limit: { value: null, unit: 'd' }, mode: 'util', excludeStages: [], enabled: true }); markDirty(true); break;
+    case 'add-ni': cfg.noInteractionRules.push({ id: newId(), entityTypeId: etid, categoryId: cid, limit: { value: null, unit: 'd' }, mode: 'corrido', excludeStages: [], enabled: true }); markDirty(true); break;
     case 'add-cond': { const arr = getPath(cfg, t.dataset.path) || []; arr.push(t.dataset.with === '1' ? { field: '', op: 'eq', value: '', action: 'prazo', duration: { value: null, unit: 'h' } } : { field: '', op: 'eq', value: '' }); setPath(cfg, t.dataset.path, arr); markDirty(true); break; }
     case 'rm': { const arr = getPath(cfg, t.dataset.path); arr.splice(Number(t.dataset.i), 1); markDirty(true); break; }
-    case 'add-interval': cfg.calendar.intervals.push({ start: '13:00', end: '18:00' }); markDirty(true); break;
-    case 'add-holidays': {
-      const hs = brazilHolidays(Number(t.dataset.y), { carnaval: $('#hCarnaval')?.checked, corpusChristi: $('#hCorpus')?.checked });
-      cfg.calendar.holidays = [...new Set([...cfg.calendar.holidays, ...hs])].sort(); markDirty(true); break;
-    }
     case 'add-team': cfg.teams.push({ id: newId(), name: 'Nova equipe', userIds: [] }); markDirty(true); break;
     case 'reset-priority': cfg.priority = { ...structuredClone(DEFAULT_PRIORITY), stageWeights: cfg.priority.stageWeights }; markDirty(true); break;
     case 'export': {
@@ -1175,8 +1185,6 @@ function validateCfg(c) {
   c.stagnationRules.forEach(r => chkDur(r.limit, 'Limite parado'));
   c.noInteractionRules.forEach(r => chkDur(r.limit, 'Sem interação'));
   c.slaRules.forEach(r => [...(r.pause || []), ...(r.exceptions || [])].forEach(x => { if (!x.field) errs.push('Há condição de pausa/exceção sem campo selecionado.'); }));
-  c.calendar.intervals.forEach(i => { if (!(i.start < i.end)) errs.push(`Intervalo de expediente inválido: ${i.start}–${i.end}.`); });
-  if (!c.calendar.workdays.length) errs.push('Selecione ao menos um dia útil.');
   const ml = Number(c.meetings?.lookbackDays);
   if (c.meetings && !(ml >= 7 && ml <= 400)) errs.push('Ranking de reuniões: a janela deve ter entre 7 e 400 dias.');
   return [...new Set(errs)];

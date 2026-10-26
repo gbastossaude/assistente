@@ -33,7 +33,7 @@ async function render() {
     return `<div class="item ${c.priority.level}"><div class="row"><span class="pill ${c.priority.level}">${LEVELS[c.priority.level]}</span>
       <span class="t" title="${esc(c.title)}" style="flex:1;min-width:0">${esc(c.title)}</span></div>
       <div class="small">${esc(worst.title)}${worst.overdueText ? ` · <b>${esc(worst.overdueText)}</b>` : ''}</div>
-      <div class="small muted">${esc(c.stageName)} · Resp.: ${esc(c.responsibleName)}${c.commercialField ? ` · Comercial: ${esc(c.commercialName)}` : ''}${act.length > 1 ? ` · +${act.length - 1} alerta(s)` : ''}</div>
+      <div class="small muted">${esc(c.stageName)} · Assessor: ${esc(c.responsibleName)}${c.commercialField ? ` · Comercial: ${esc(c.commercialName)}` : ''}${act.length > 1 ? ` · +${act.length - 1} alerta(s)` : ''}</div>
       ${c.link ? `<a class="small" href="${esc(c.link)}" target="_blank" rel="noopener noreferrer">Abrir no Bitrix ↗</a>` : ''}</div>`;
   }).join('') : `<div class="banner ok small" style="margin:0"><div><b>Nenhuma pendência encontrada</b> nos ${A.kpis.monitorados} cards monitorados.</div></div>`;
   html += `<div class="row"><button class="btn primary" data-open="">Abrir painel completo</button><span class="spacer"></span>

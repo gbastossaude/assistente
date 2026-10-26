@@ -6,6 +6,14 @@ Extensão **somente leitura** que consulta os cards do Bitrix24 (negócios, lead
 
 **Como funciona no dia a dia:** você entra no Bitrix (`https://crm.hub-bnk.com`) normalmente, com o seu login. A extensão mostra uma aba **SLA** na lateral da página, com o número de cards que precisam de atenção. Ao clicar, abre a análise numa gaveta dentro do próprio Bitrix. A análise é atualizada sozinha quando você entra no portal e a cada 15 minutos enquanto ele estiver aberto. Não é preciso criar webhook.
 
+## Novidades da versão 1.6.0
+
+- **Pós-venda fora.** Funis e processos com "pós-venda" no nome (em qualquer grafia: "Pós venda", "POS-VENDA"…) não são monitorados nem aparecem na fila, nas etapas, nos alertas ou no ranking de reuniões. Os termos ficam em **Configurações › Funis e etapas › Funis excluídos**.
+- **Sem expediente.** A aba "Expediente e feriados" e o aviso para confirmá-lo foram removidos. Todos os prazos e tempos são contados em **tempo corrido** (24 h por dia, todos os dias); regras antigas em "horário comercial" passam a valer em tempo corrido.
+- **Cards em ordem de criação.** Fila, etapas e central de alertas mostram os cards do **mais antigo para o mais recente**; o botão **"inverter"** passa a mostrar os **mais recentes primeiro** (a escolha é lembrada).
+- **Comercial pelo e-mail do especialista.** O e-mail do campo "E-mail do especialista" vira nome e sobrenome na coluna **Comercial** (ex.: `yago.barbosa@besmart.com.br` → **Yago Barbosa**), com o e-mail logo abaixo. Card sem esse e-mail usa quem abriu o card. Vale também para os filtros, a distribuição "Por comercial" e o ranking de reuniões. O campo é encontrado sozinho (nome com "especialista") e pode ser escolhido em **Configurações › Funis e etapas › Comercial do card**.
+- **Assessor.** A pessoa responsável pelo card passou a se chamar **Assessor** em todas as telas (colunas, filtros, distribuição "Por assessor", popup e notificações).
+
 ## Novidades da versão 1.5.0
 
 - **Mais rápida.** A análise de 1.500 cards caiu de cerca de **50 s para 0,15 s** (o cálculo de horário comercial deixou de recalcular o fuso a cada dia). A sincronização incremental (a cada 15 min) caiu de 2,8 s para 1,0 s e a completa de 8,8 s para 4,3 s com a mesma carga, aproveitando a rajada que o limite do Bitrix24 permite e lendo histórico, atividades e comentários em paralelo. A busca do painel atualiza só a fila e a fila mostra 150 cards por vez ("Mostrar mais"). Medições em `docs/evidencias/desempenho.txt`.
@@ -21,14 +29,14 @@ Extensão **somente leitura** que consulta os cards do Bitrix24 (negócios, lead
 
 ## 1. Instalação no Chrome
 
-1. Descompacte `monitor-sla-bitrix24-v1.5.0.zip` numa pasta permanente (ex.: `Documentos/monitor-sla-bitrix24`). Não apague a pasta depois.
+1. Descompacte `monitor-sla-bitrix24-v1.6.0.zip` numa pasta permanente (ex.: `Documentos/monitor-sla-bitrix24`). Não apague a pasta depois.
 2. Abra `chrome://extensions`.
 3. Ative **Modo do desenvolvedor** (canto superior direito).
 4. Clique em **Carregar sem compactação** e escolha a pasta descompactada (a que contém `manifest.json`).
 5. O Chrome informa que a extensão pode "ler e alterar dados em crm.hub-bnk.com". Esse é o aviso padrão para qualquer extensão que funcione dentro de um site. A extensão só lê, e qualquer comando de alteração é bloqueado no código.
 6. Fixe o ícone (alfinete no menu de extensões). Clique no ícone → **Abrir painel completo**, ou use o botão direito → **Opções**.
 
-**Atualizar da versão 1.4:** descompacte o novo ZIP **na mesma pasta**, substituindo os arquivos, e clique no botão de atualizar (↻) da extensão em `chrome://extensions`. Configurações, regras e a conexão são mantidas. Depois da atualização, recarregue a aba do Bitrix (F5) para a gaveta nova aparecer. A primeira sincronização após atualizar é completa (lê o "Criado por" dos cards e as reuniões) e pode levar alguns segundos a mais.
+**Atualizar de uma versão anterior (1.4 ou 1.5):** descompacte o novo ZIP **na mesma pasta**, substituindo os arquivos, e clique no botão de atualizar (↻) da extensão em `chrome://extensions`. Configurações, regras e a conexão são mantidas. Depois da atualização, recarregue a aba do Bitrix (F5) para a gaveta nova aparecer. A primeira sincronização após atualizar é completa (lê o "Criado por", o e-mail do especialista e as reuniões) e pode levar alguns segundos a mais.
 
 Requisitos: Chrome 116 ou superior (também funciona no Edge e Brave baseados em Chromium).
 
@@ -96,15 +104,12 @@ Tarefas avulsas do módulo Tarefas não são cards nesta versão; tarefas vincul
 |---|---|---|---|---|---|---|
 | (preencher) | | Comercial/Operacional/Assessor | | | | |
 
-### 3.2 Expediente e feriados
-- Fuso horário, dias úteis e um ou mais intervalos por dia (ex.: 08:30–12:00 e 13:00–18:00).
-- Em regras em **dias** no horário comercial, 1 dia = duração do expediente (ou o valor que você informar). Ex.: 2 dias úteis a partir de segunda 15:00 vencem quarta 15:00.
-- Feriados: botões para os nacionais do ano; Carnaval e Corpus Christi são opcionais. Acrescente os estaduais e municipais.
-- Marque **Confirmo que expediente…**: até lá o painel lembra que o expediente padrão está em uso.
+### 3.2 Contagem de tempo
+Todos os prazos, atrasos e tempos na etapa são contados em **tempo corrido** (24 h por dia, todos os dias, no fuso de Brasília). Não há expediente, dias úteis ou feriados a configurar.
 
 ### 3.3 Regras de SLA (nenhum prazo vem preenchido)
 Para cada funil:
-- **SLA da etapa:** prazo em minutos, horas ou dias; contagem em **horário comercial** ou **tempo corrido**; **% para aviso antecipado**.
+- **SLA da etapa:** prazo em minutos, horas ou dias; contagem em **tempo corrido**; **% para aviso antecipado**.
 - **Retorno à etapa:** *reiniciar* (conta do zero a cada nova entrada), *acumular* (soma todas as passagens) ou *manter original* (desde a primeira entrada).
 - **Pausa:** por valor de campo do card (ex.: “Aguardando cliente = Sim”). Nenhuma etapa é pausa automática: “aguardando documentos” só pausa se você criar a condição.
 - **Exceções:** por campo ou tipo de atendimento — usar outro prazo (ex.: urgente = 4 h) ou não aplicar SLA.
@@ -135,8 +140,8 @@ Pontuação **visível e configurável**: peso por tipo de alerta, pontos por di
 - **Sincronização:** a cada 15 min (configurável), incremental; completa a cada 6 h para reconciliar exclusões.
 
 ## 4. Usando o painel
-- **Responsável e comercial em colunas separadas:** o **Responsável** é o responsável atual do card; o **Comercial** é, por padrão, **quem abriu o card** (campo nativo "Criado por"). Os dois aparecem em colunas próprias na fila, nas Etapas e na central de alertas, além do detalhe, do popup e das notificações. Há filtro, ordenação e a distribuição "Por comercial". Se a operação usar outro campo de usuário para o comercial, escolha-o em **Configurações › Funis e etapas › Comercial do card** (ou desligue).
-- **Criação do card:** "Criado em dd/mm/aaaa · há N dias" em cada card (fila, detalhe, Etapas e central de alertas). Ordenação "criados há mais tempo" e "criados recentemente".
+- **Assessor e comercial em colunas separadas:** o **Assessor** é o responsável atual do card no Bitrix; o **Comercial** vem do **e-mail do especialista** (convertido em nome e sobrenome) e, sem esse e-mail, de **quem abriu o card** (campo nativo "Criado por"). Os dois aparecem em colunas próprias na fila, nas Etapas e na central de alertas, além do detalhe, do popup e das notificações. Há filtro, ordenação e a distribuição "Por comercial". Se a operação usar outro campo de usuário para o comercial, escolha-o em **Configurações › Funis e etapas › Comercial do card** (ou desligue).
+- **Criação do card:** "Criado em dd/mm/aaaa · há N dias" em cada card (fila, detalhe, Etapas e central de alertas). Ordem padrão por criação (mais antigos primeiro), com o botão "inverter" para os mais recentes primeiro; vale para a fila, as etapas e a central de alertas. (Antes: ordenação "criados há mais tempo" e "criados recentemente".
 - **Ranking de reuniões:** aba própria, atualizada sozinha a cada sincronização. Mostra, por período (hoje, esta semana — segunda a domingo —, este mês, mês anterior, últimos 30 dias), as reuniões **realizadas** (concluídas), **agendadas** (ainda vão acontecer) e **pendentes** (passaram do horário sem ser concluídas), com posição (empates dividem a posição), cards envolvidos e exportação CSV. Agrupa por comercial (quem abriu o card), responsável pela reunião ou responsável do card. Conta como reunião: atividades do tipo **Reunião** (`CRM_MEETING`) e atividades **"A fazer"** com "reunião" no assunto — ajustável em **Configurações › Ranking de reuniões** (tipos, palavras, janela de leitura e se conta cards já ganhos/perdidos).
 - **Etapas:** o fluxo do funil com a quantidade de cards e o **valor em aberto** de cada etapa (em vermelho as que têm SLA vencido) e o total do funil. Abaixo, cada etapa mostra a soma dos valores e lista seus cards abertos, do mais antigo para o mais recente, com responsável, comercial, data de criação e idade, valor, há quanto tempo está na etapa (corrido e em horário comercial, com a data de entrada), situação do SLA da etapa, próxima atividade e alertas. Mostra também a média atual de permanência e, quando há histórico suficiente, a média histórica.
 - **Painel:** indicadores (monitorados, com atraso, SLA vencido, próximos do vencimento, sem acompanhamento, valor em atraso sem duplicar cards), resumo operacional calculado, distribuição por responsável, funil, etapa e prioridade, e a **fila priorizada** com busca, filtros (responsável, equipe, funil, etapa, tipo de alerta, gravidade), ordenação e botão **Abrir no Bitrix**. Clique no card para ver cada alerta com prazo aplicado, atraso, vencimento, evidências e silenciamento (1 h a 3 dias).
@@ -146,9 +151,9 @@ Pontuação **visível e configurável**: peso por tipo de alerta, pontos por di
 
 ## 5. Primeiro teste no seu portal
 1. Conecte com o webhook (seção 2) e marque **um** funil.
-2. Defina SLA em 2 ou 3 etapas e confirme o expediente.
+2. Defina SLA em 2 ou 3 etapas.
 3. Clique **Sincronizar** e abra **Análises › Cobertura dos dados**: confira a contagem de cards abertos, se o histórico de etapas veio como “ok” e quantos cards tiveram entrada na etapa por histórico, `movedTime` ou parcial.
-4. Abra 3 cards da fila e compare com o Bitrix: etapa, responsável, entrada na etapa e atividade vencida.
+4. Abra 3 cards da fila e compare com o Bitrix: etapa, assessor, comercial (e-mail do especialista), entrada na etapa e atividade vencida.
 5. Em *Acompanhamento e prazos*, veja a coluna **Encontradas** dos tipos de atividade e ajuste o que conta como interação.
 
 Se algo divergir, anote o card e a mensagem exibida.
@@ -182,9 +187,9 @@ Se algo divergir, anote o card e a mensagem exibida.
 ## 8. Evidências das verificações (pasta `docs/evidencias`)
 - `e2e-foco.txt` e `resultado-e2e-foco.json` — 15 verificações (incluindo o comercial na fila, nas Etapas, no filtro e na distribuição) do foco em `/page/besmart/besmart_saude/`: processo identificado pelos links dos cards, monitoramento restrito a ele, regras de SLA só dos funis dele, somente as oportunidades da página analisadas, links no formato da página, negócios e leads fora de todas as telas, visão Etapas com os cards e o tempo de cada um na etapa, suspensão do monitoramento ao trocar a página até identificar o novo processo, e identificação com links no formato `/crm/type/N/details/`. Telas: `F1`, `F2`, `F3`.
 - `e2e-login.txt` e `resultado-e2e-login.json` — 13 verificações do modo "entrar no Bitrix e analisar", num portal simulado com login por cookie e `BX.bitrix_sessid()`: aba SLA dentro da página, gaveta com o painel, conexão pelo login sem webhook, análise feita só pela sessão, nenhuma escrita, contador na aba, link do card abrindo no próprio Bitrix, atualização automática ao reabrir o portal, avisos de "sem login" e "Bitrix fechado" mantendo a última análise, e orientação para usar webhook quando o portal recusa a sessão. Telas: `L1`–`L4-*.png`.
-- `e2e-melhorias.txt` e `resultado-e2e-melhorias.json` — 18 verificações da versão 1.5 com a extensão **carregada no Chromium** na largura da gaveta (1040 px): colunas separadas de Responsável e Comercial (abriu o card), comercial diferente do responsável, data de criação e idade (com conferência de um card), ordenação por criação, detalhe do card, valores no fluxo das etapas, valor da etapa igual à soma dos cards, ranking de reuniões (líder, totais, agrupamento por responsável, CSV sem fórmulas) e a opção de não contar cards encerrados. Telas: `M1`–`M4-*.png`.
+- `e2e-melhorias.txt` e `resultado-e2e-melhorias.json` — 26 verificações (versões 1.5 e 1.6: assessor e comercial em colunas próprias, nome tirado do e-mail do especialista, pós-venda excluído, sem tempos em "úteis" nem aviso de expediente, ordem por criação, botão inverter e preferência lembrada, cards das etapas em ordem de criação, ranking por e-mail do especialista; e as verificações da 1.5 com a extensão **carregada no Chromium** na largura da gaveta (1040 px): colunas separadas de Responsável e Comercial (abriu o card), comercial diferente do responsável, data de criação e idade (com conferência de um card), ordenação por criação, detalhe do card, valores no fluxo das etapas, valor da etapa igual à soma dos cards, ranking de reuniões (líder, totais, agrupamento por responsável, CSV sem fórmulas) e a opção de não contar cards encerrados. Telas: `M1`–`M4-*.png`.
 - `desempenho.txt` — medições de análise e sincronização antes e depois (dados fictícios).
-- `testes-unitarios.txt` — 57 testes de cálculo e integração (todos aprovados), incluindo, na versão 1.5: equivalência do cálculo de fuso com cache em 6 fusos (com horário de verão e fusos de 30/45 min), expediente de um ano inteiro, rajada do limite de requisições, comercial = criador do card, classificação de reuniões, períodos no fuso (semana de segunda a domingo, viradas de mês e de ano), ranking com cards encerrados, atualização incremental do ranking e empates. Dos 49 testes anteriores: expediente com almoço, fins de semana, feriados, fuso, vencimento exato, pausa e retomada, “aguardando documentos” sem pausa automática, retorno à etapa (reiniciar/acumular/manter), exceções, ausência de histórico (`movedTime` e parcial), SLA total com etapa de pausa, card parado, cards concluídos/perdidos fora da fila, atraso atual × vencimento histórico, múltiplos alertas no mesmo card, valor sem duplicidade, atividade sem prazo, automação ignorada, paginação e `batch`, sincronização incremental, `QUERY_LIMIT_EXCEEDED` com nova tentativa, perda de autenticação mantendo os dados anteriores, histórico indisponível, falta de escopo de departamento, processo de espaço digital adicionado pelo link de um card quando `crm.type.list` é negado, deduplicação, silenciamento, janela de notificação e vencimento durante ausência.
+- `testes-unitarios.txt` — 61 testes de cálculo e integração (todos aprovados), incluindo, na versão 1.6: conversão de e-mail em nome e sobrenome, e-mail do especialista com reserva no criador do card, exclusão do pós-venda em várias grafias e migração das regras para tempo corrido; e, na versão 1.5: equivalência do cálculo de fuso com cache em 6 fusos (com horário de verão e fusos de 30/45 min), expediente de um ano inteiro, rajada do limite de requisições, comercial = criador do card, classificação de reuniões, períodos no fuso (semana de segunda a domingo, viradas de mês e de ano), ranking com cards encerrados, atualização incremental do ranking e empates. Dos 49 testes anteriores: expediente com almoço, fins de semana, feriados, fuso, vencimento exato, pausa e retomada, “aguardando documentos” sem pausa automática, retorno à etapa (reiniciar/acumular/manter), exceções, ausência de histórico (`movedTime` e parcial), SLA total com etapa de pausa, card parado, cards concluídos/perdidos fora da fila, atraso atual × vencimento histórico, múltiplos alertas no mesmo card, valor sem duplicidade, atividade sem prazo, automação ignorada, paginação e `batch`, sincronização incremental, `QUERY_LIMIT_EXCEEDED` com nova tentativa, perda de autenticação mantendo os dados anteriores, histórico indisponível, falta de escopo de departamento, processo de espaço digital adicionado pelo link de um card quando `crm.type.list` é negado, deduplicação, silenciamento, janela de notificação e vencimento durante ausência.
 - `e2e.txt` e `resultado-e2e.json` — 34 verificações com a extensão **carregada no Chromium**: demonstração, indicadores, fila, detalhe, link, filtros, busca, silenciamento atualizando o contador do ícone, central, análises, popup, layout em 390 px, endereço do portal pré-preenchido, webhook de outro endereço recusado, webhook inválido recusado, processo de espaço digital adicionado pelo link, conexão HTTP com um servidor que imita o Bitrix24, apenas métodos de leitura recebidos pelo servidor, credencial só na sessão, aviso “não foi possível consultar” ao perder a credencial, “!” no ícone e limpeza de dados.
 - `00`–`10-*.png` — telas capturadas durante o teste.
 

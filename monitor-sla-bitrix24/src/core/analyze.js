@@ -3,14 +3,14 @@
 import { analyzeCard, cardLink, ALERT_TYPES } from './detect.js';
 import { scoreCard, valueThreshold, mergePriority, LEVEL_LABEL } from './priority.js';
 import { normalizeCalendar, measure, durationToMinutes, calendarDaysBetween } from './time.js';
-import { effectiveMonitored, commercialFieldFor, commercialIdsOf } from './config.js';
+import { effectiveMonitored, commercialOfCard } from './config.js';
 import { buildMeetingRankings } from './meetings.js';
 
 const LEVEL_ORDER = { critica: 0, alta: 1, media: 2, baixa: 3 };
 
 function userName(meta, id) {
   const u = meta.users?.[id];
-  return u ? u.name : (id ? `Usuário #${id}` : 'Sem responsável');
+  return u ? u.name : (id ? `Usuário #${id}` : 'Sem assessor');
 }
 
 function teamsOf(meta, config, userId) {
@@ -23,13 +23,13 @@ function teamsOf(meta, config, userId) {
   return [...new Set(out)];
 }
 
-/** Comercial do card (campo configurado ou detectado). Pode haver mais de um. */
+/** Comercial do card: e-mail do especialista (nome e sobrenome), senão campo escolhido ou quem abriu o card. */
 function commercialOf(card, meta, config) {
-  const cf = commercialFieldFor(config, meta, card.entityTypeId);
-  if (!cf) return { commercialIds: [], commercialName: null, commercialField: null };
-  const ids = commercialIdsOf(card, cf);
-  return { commercialIds: ids, commercialName: ids.length ? ids.map(id => userName(meta, id)).join(', ') : 'Sem comercial',
-    commercialField: cf.label, commercialIsCreator: !!cf.creator };
+  const c = commercialOfCard(card, config, meta);
+  if (!c.source) return { commercialIds: [], commercialName: null, commercialField: null };
+  const name = c.name || (c.ids.length ? c.ids.map(id => userName(meta, id)).join(', ') : 'Sem comercial');
+  return { commercialIds: c.ids, commercialName: name, commercialField: c.label, commercialEmail: c.email,
+    commercialSource: c.source, commercialIsCreator: c.source === 'criador' };
 }
 
 export function analyze(ds, config, now = Date.now(), opts = {}) {
@@ -37,9 +37,9 @@ export function analyze(ds, config, now = Date.now(), opts = {}) {
   const cal = config.calendar || {};
   const ncal = normalizeCalendar(cal);
   const pcfg = mergePriority(config.priority);
-  const scope = new Set(effectiveMonitored(config).map(m => `${m.entityTypeId}:${m.categoryIds.map(Number).join(',')}`));
+  const scope = new Set(effectiveMonitored(config, meta).map(m => `${m.entityTypeId}:${m.categoryIds.map(Number).join(',')}`));
   const allowed = c => [...scope].some(k => { const [et, cats] = k.split(':'); return Number(et) === c.entityTypeId && cats.split(',').map(Number).includes(c.categoryId); });
-  const openCards = Object.values(ds.cards || {}).filter(c => !c.closed && (ds.mode === 'demo' || !config.monitored || allowed(c)));
+  const openCards = Object.values(ds.cards || {}).filter(c => !c.closed && (!config.monitored || allowed(c)));
   const vth = valueThreshold(openCards.map(c => Number(c.opportunity) || 0), pcfg.valueTopPercent);
 
   const cards = [];
@@ -145,7 +145,7 @@ export function analyze(ds, config, now = Date.now(), opts = {}) {
     if (kpis.porTipo.parado_etapa) summary.push(`${plural(kpis.porTipo.parado_etapa, 'card está parado', 'cards estão parados')} na mesma etapa além do limite.`);
     if (kpis.proximos) summary.push(`${plural(kpis.proximos, 'card se aproxima', 'cards se aproximam')} do vencimento.`);
     const topResp = distributions.byResponsible[0];
-    if (topResp && topResp.comAtraso >= 2) summary.push(`Responsável com mais cards em atraso: ${topResp.name} (${topResp.comAtraso}).`);
+    if (topResp && topResp.comAtraso >= 2) summary.push(`Assessor com mais cards em atraso: ${topResp.name} (${topResp.comAtraso}).`);
     const topCom = distributions.byCommercial[0];
     if (topCom && topCom.comAtraso >= 2 && topCom.key !== '-') summary.push(`Comercial com mais cards em atraso: ${topCom.name} (${topCom.comAtraso}).`);
     if (kpis.porNivel.critica) summary.push(`Prioridade crítica: ${plural(kpis.porNivel.critica, 'card', 'cards')}.`);

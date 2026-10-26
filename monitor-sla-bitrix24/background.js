@@ -453,8 +453,8 @@ const handlers = {
     await store.saveConfig(mode, config);
     await setupAlarm(config);
     const mk = c => { const m = c.meetings || {}; return [m.enabled, m.providers, m.todoKeywords, m.lookbackDays]; };
-    const needsSync = JSON.stringify([prev.monitored, prev.deadlineFields, prev.commercialFields, prev.slaRules.map(r => [r.pause, r.exceptions]), mk(prev)]) !==
-      JSON.stringify([config.monitored, config.deadlineFields, config.commercialFields, config.slaRules.map(r => [r.pause, r.exceptions]), mk(config)]);
+    const sig = c => JSON.stringify([c.monitored, c.deadlineFields, c.commercialFields, c.specialistFields, c.excludeNames, c.slaRules.map(r => [r.pause, r.exceptions]), mk(c)]);
+    const needsSync = sig(prev) !== sig(config);
     const ds = await store.getDataset(mode);
     if (ds.sync.lastSuccess) await recompute(mode);
     return { ok: true, needsSync };

@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-26T18:45:05.269Z",
+  "at": "2026-10-26T19:19:16.915Z",
   "results": [
     {
       "name": "Extensão carregada (service worker MV3 ativo)",
       "ok": true,
-      "detail": "mgpdobjbmnggkjoonmnpkdhdnegjcedo"
+      "detail": "pemiojhppebfhkehahnmhfbggdohinai"
     },
     {
       "name": "Tela inicial sem configuração",
@@ -19,7 +19,7 @@
     {
       "name": "Indicadores exibidos",
       "ok": true,
-      "detail": "Cards monitorados 24 18 com algum alerta Cards com atraso 15 prazo, atividade, SLA ou parado SLA vencido 12 12 etapa · 1 processo Próximos do vencimento 3 aviso"
+      "detail": "Cards monitorados 24 18 com algum alerta Cards com atraso 18 prazo, atividade, SLA ou parado SLA vencido 17 17 etapa · 2 processo Próximos do vencimento 2 aviso"
     },
     {
       "name": "Fila priorizada com cards",
@@ -27,14 +27,19 @@
       "detail": "18 cards na fila"
     },
     {
-      "name": "Primeiro da fila é crítico",
+      "name": "Fila em ordem de criação (mais antigos primeiro)",
+      "ok": true,
+      "detail": "40, 30, 25, 20, 20, 15"
+    },
+    {
+      "name": "Ordenando por prioridade, o primeiro da fila é crítico",
       "ok": true,
       "detail": ""
     },
     {
       "name": "Contador no ícone da extensão",
       "ok": true,
-      "detail": "badge = 15"
+      "detail": "badge = 18"
     },
     {
       "name": "Detalhe mostra prazo aplicado, atraso e motivo da prioridade",
@@ -49,7 +54,7 @@
     {
       "name": "Filtro por gravidade",
       "ok": true,
-      "detail": "10 críticos"
+      "detail": "15 críticos"
     },
     {
       "name": "Busca por texto",
@@ -59,7 +64,7 @@
     {
       "name": "Silenciar reduz o contador do ícone",
       "ok": true,
-      "detail": "15 → 14"
+      "detail": "18 → 17"
     },
     {
       "name": "Central de alertas",
@@ -127,9 +132,14 @@
       "detail": ""
     },
     {
+      "name": "Aba \"Expediente e feriados\" removida (contagem sempre em tempo corrido)",
+      "ok": true,
+      "detail": ""
+    },
+    {
       "name": "Sincronização via HTTP com o portal simulado",
       "ok": true,
-      "detail": "Cards monitorados 13 8 com algum alerta Cards com atraso 6 prazo, atividade, SLA ou parado SLA vencido 2 2 etapa · 0 pro"
+      "detail": "Cards monitorados 13 10 com algum alerta Cards com atraso 8 prazo, atividade, SLA ou parado SLA vencido 4 4 etapa · 0 pr"
     },
     {
       "name": "Modo real não mostra selo de demonstração",
@@ -149,7 +159,7 @@
     {
       "name": "Servidor recebeu apenas métodos de leitura",
       "ok": true,
-      "detail": "crm.type.list, crm.automatedsolution.list, batch, crm.item.fields, crm.item.list, crm.activity.list"
+      "detail": "crm.type.list, crm.automatedsolution.list, batch, crm.item.fields, crm.item.list, crm.activity.list, crm.stagehistory.list"
     },
     {
       "name": "Sem credencial: painel diferencia \"não foi possível consultar\"",

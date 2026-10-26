@@ -1,11 +1,11 @@
 OK   Aba "SLA" aparece dentro do Bitrix ao entrar
 OK   Gaveta com o painel abre dentro do Bitrix
 OK   Conexão pelo login do Bitrix (sem webhook) leu funis e etapas
-OK   Análise feita com os dados do portal pela sessão — Cards monitorados 13 8 com algum alerta Cards com atraso 6 prazo, atividade, SLA ou parado SLA vencido 2 2 eta
+OK   Análise feita com os dados do portal pela sessão — Cards monitorados 13 10 com algum alerta Cards com atraso 8 prazo, atividade, SLA ou parado SLA vencido 4 4 et
 OK   Consultas feitas só pela sessão, sem webhook — session
 OK   Somente leitura no portal
-OK   Contador na aba "SLA" atualizado — {"cls":"warn","text":"6","title":"Monitor de SLA — 6 card(s) precisam de atenção"}
-OK   Link do card aponta para o portal e abre na própria página — http://127.0.0.1:8790/crm/deal/details/501/ (_top)
+OK   Contador na aba "SLA" atualizado — {"cls":"","text":"8","title":"Monitor de SLA — 8 card(s) precisam de atenção"}
+OK   Link do card aponta para o portal e abre na própria página — http://127.0.0.1:8790/crm/deal/details/512/ (_top)
 OK   Ao entrar de novo no Bitrix, a análise atualiza sozinha — 6 consultas
 OK   Sem login: painel avisa e mantém a última análise
 OK   Bitrix fechado: painel pede para abrir o portal

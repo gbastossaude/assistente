@@ -55,8 +55,12 @@ try {
   check('Indicadores exibidos', /Cards monitorados\s*24/.test(kpiText), kpiText.replace(/\s+/g, ' ').slice(0, 160));
   const rows = await page.locator('.qrow').count();
   check('Fila priorizada com cards', rows > 5, `${rows} cards na fila`);
+  // ordem padrão: data de criação, mais antigos primeiro
+  const ages = (await page.locator('.qrow .sub.created b').allInnerTexts()).map(t => Number((t.match(/\d+/) || [0])[0]));
+  check('Fila em ordem de criação (mais antigos primeiro)', ages.length > 5 && ages.every((v, i) => i === 0 || ages[i - 1] >= v), ages.slice(0, 6).join(', '));
+  await page.selectOption('[data-sort]', 'prioridade');
   const firstLevel = await page.locator('.qrow').first().getAttribute('class');
-  check('Primeiro da fila é crítico', firstLevel.includes('critica'));
+  check('Ordenando por prioridade, o primeiro da fila é crítico', firstLevel.includes('critica'));
   await page.screenshot({ path: path.join(out, '01-painel-demo.png'), fullPage: true });
   // badge
   const badge = await sw.evaluate(() => chrome.action.getBadgeText({}));
@@ -147,7 +151,7 @@ try {
   await page.click('button:has-text("Remover foco")');
   await page.waitForSelector('input[data-act="toggle-cat"]', { timeout: 10000 });
   check('Leads não aparecem nem sem foco', !(await page.locator('h2', { hasText: /^Leads$/ }).count()));
-  check('Conexão por webhook e leitura de funis/etapas', await page.isVisible('text=Pós-venda e Assessoria'));
+  check('Conexão por webhook e leitura de funis/etapas', await page.isVisible('text=be.smart Saúde (fictício)'));
   await page.screenshot({ path: path.join(out, '08-funis-reais-simulados.png'), fullPage: true });
 
   // adiciona processo de espaço digital pelo link de um card
@@ -161,8 +165,7 @@ try {
   // define SLA da etapa "Em cotação": 1 dia útil
   await page.locator('tr:has-text("Em cotação") button:has-text("Definir SLA da etapa")').click();
   await page.locator('tr:has-text("Em cotação") input[data-bind$=".duration.value"]').fill('1');
-  await page.click('.cfgnav button:has-text("Expediente e feriados")');
-  await page.locator('input[data-bind="calendar.confirmed"]').check();
+  check('Aba "Expediente e feriados" removida (contagem sempre em tempo corrido)', (await page.locator('.cfgnav button:has-text("Expediente")').count()) === 0);
   await page.click('#savebar button:has-text("Salvar configurações")');
   await page.waitForTimeout(500);
   await page.click('#tabs button[data-tab="painel"]');

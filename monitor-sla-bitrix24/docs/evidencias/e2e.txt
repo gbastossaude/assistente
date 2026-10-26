@@ -1,15 +1,16 @@
-OK   Extensão carregada (service worker MV3 ativo) — mgpdobjbmnggkjoonmnpkdhdnegjcedo
+OK   Extensão carregada (service worker MV3 ativo) — pemiojhppebfhkehahnmhfbggdohinai
 OK   Tela inicial sem configuração
 OK   Demonstração carregada
-OK   Indicadores exibidos — Cards monitorados 24 18 com algum alerta Cards com atraso 15 prazo, atividade, SLA ou parado SLA vencido 12 12 etapa · 1 processo Próximos do vencimento 3 aviso
+OK   Indicadores exibidos — Cards monitorados 24 18 com algum alerta Cards com atraso 18 prazo, atividade, SLA ou parado SLA vencido 17 17 etapa · 2 processo Próximos do vencimento 2 aviso
 OK   Fila priorizada com cards — 18 cards na fila
-OK   Primeiro da fila é crítico
-OK   Contador no ícone da extensão — badge = 15
+OK   Fila em ordem de criação (mais antigos primeiro) — 40, 30, 25, 20, 20, 15
+OK   Ordenando por prioridade, o primeiro da fila é crítico
+OK   Contador no ícone da extensão — badge = 18
 OK   Detalhe mostra prazo aplicado, atraso e motivo da prioridade
 OK   Link direto para o card no Bitrix — https://demo-ficticio.bitrix24.invalid/crm/deal/details/512/
-OK   Filtro por gravidade — 10 críticos
+OK   Filtro por gravidade — 15 críticos
 OK   Busca por texto — campo de busca mantém o foco
-OK   Silenciar reduz o contador do ícone — 15 → 14
+OK   Silenciar reduz o contador do ícone — 18 → 17
 OK   Central de alertas
 OK   Análises com cobertura dos dados
 OK   Tela de regras de SLA
@@ -23,15 +24,16 @@ OK   Com foco ativo e processo não identificado, nenhum funil é listado (nem l
 OK   Leads não aparecem nem sem foco
 OK   Conexão por webhook e leitura de funis/etapas
 OK   Processo de espaço digital adicionado pelo link de um card
-OK   Sincronização via HTTP com o portal simulado — Cards monitorados 13 8 com algum alerta Cards com atraso 6 prazo, atividade, SLA ou parado SLA vencido 2 2 etapa · 0 pro
+OK   Aba "Expediente e feriados" removida (contagem sempre em tempo corrido)
+OK   Sincronização via HTTP com o portal simulado — Cards monitorados 13 10 com algum alerta Cards com atraso 8 prazo, atividade, SLA ou parado SLA vencido 4 4 etapa · 0 pr
 OK   Modo real não mostra selo de demonstração
 OK   Webhook não gravado no armazenamento local (modo sessão)
 OK   Webhook mantido apenas na sessão
-OK   Servidor recebeu apenas métodos de leitura — crm.type.list, crm.automatedsolution.list, batch, crm.item.fields, crm.item.list, crm.activity.list
+OK   Servidor recebeu apenas métodos de leitura — crm.type.list, crm.automatedsolution.list, batch, crm.item.fields, crm.item.list, crm.activity.list, crm.stagehistory.list
 OK   Sem credencial: painel diferencia "não foi possível consultar" — Não foi possível consultar o Bitrix24: Credencial ausente.
 A credencial não está disponível (o Chrome foi reiniciado e e
 OK   Ícone sinaliza reconexão necessária
 OK   Apagar tudo remove dados locais — inpage
 OK   Sem erros de console
 
-34/34 verificações OK
+36/36 verificações OK

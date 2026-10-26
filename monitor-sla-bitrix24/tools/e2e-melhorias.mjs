@@ -30,28 +30,48 @@ try {
   await page.click('text=Ver demonstração com dados fictícios');
   await page.waitForSelector('.qrow', { timeout: 30000 });
 
-  // --- comercial em coluna própria
+  // --- assessor e comercial em colunas próprias; comercial pelo e-mail do especialista
   const cols = await page.locator('.qcols').innerText();
-  check('Fila tem colunas separadas de Responsável e Comercial (abriu o card)', /Responsável/.test(cols) && /Comercial \(abriu o card\)/.test(cols), cols.replace(/\s+/g, ' '));
-  const pairs = await page.locator('.qrow .qhead').evaluateAll(rows => rows.map(r => [r.querySelector('.c-resp div')?.textContent, r.querySelector('.c-com div')?.textContent]));
-  check('Cada card mostra o comercial (quem abriu o card)', pairs.length > 5 && pairs.every(([, c]) => c && c !== 'Sem comercial'), `${pairs.length} cards`);
-  check('Responsável e comercial podem ser pessoas diferentes', pairs.some(([r, c]) => r !== c), pairs.find(([r, c]) => r !== c)?.join(' × '));
-  const comVisible = await page.locator('.qrow .c-com').first().isVisible();
-  check('Coluna do comercial visível na largura da gaveta (1040 px)', comVisible);
+  check('Fila tem colunas separadas de Assessor e Comercial', /Assessor/.test(cols) && /Comercial/.test(cols) && !/Responsável/.test(cols), cols.replace(/\s+/g, ' '));
+  const rowsInfo = await page.locator('.qrow .qhead').evaluateAll(rows => rows.map(r => ({
+    assessor: r.querySelector('.c-resp div')?.textContent, com: r.querySelector('.c-com div')?.textContent, origem: r.querySelector('.c-com .sub')?.textContent })));
+  const viaEmail = rowsInfo.filter(r => /@/.test(r.origem || ''));
+  check('Comercial com e-mail do especialista mostra nome e sobrenome tirados do e-mail',
+    viaEmail.length > 3 && viaEmail.every(r => {
+      const [local] = r.origem.split('@');
+      const esperado = local.split(/[._-]+/).map((p, i) => (i && ['da', 'de', 'do', 'das', 'dos', 'e'].includes(p) ? p : p[0].toUpperCase() + p.slice(1))).join(' ');
+      return r.com === esperado;
+    }), viaEmail.slice(0, 2).map(r => `${r.origem} → ${r.com}`).join(' | '));
+  check('Sem e-mail do especialista, o comercial é quem abriu o card', rowsInfo.some(r => r.origem === 'abriu o card'), `${rowsInfo.filter(r => r.origem === 'abriu o card').length} card(s)`);
+  check('Assessor e comercial podem ser pessoas diferentes', rowsInfo.some(r => r.assessor !== r.com));
+  check('Coluna do comercial visível na largura da gaveta (1040 px)', await page.locator('.qrow .c-com').first().isVisible());
 
-  // --- data de criação e idade
+  // --- pós-venda e expediente fora
+  const allText = await page.locator('#main').innerText();
+  check('Funil "Pós-venda" excluído (nenhum card dele aparece)', !/Pós-venda — Empresa Fictícia F/.test(allText));
+  check('Sem horário comercial: nenhum tempo em "úteis"', !/úteis/.test(allText));
+  check('Sem aviso de confirmação de expediente', !/Confirme o expediente/.test(allText));
+
+  // --- data de criação, ordem padrão por criação e inversão
   const created = await page.locator('.qrow .sub.created').allInnerTexts();
   check('Cada card mostra data de criação e há quantos dias foi criado',
-    created.length === pairs.length && created.every(t => /^Criado em \d{2}\/\d{2}\/\d{4} · (criado hoje|há 1 dia|há \d+ dias)$/.test(t.trim())), created[0]);
+    created.length === rowsInfo.length && created.every(t => /^Criado em \d{2}\/\d{2}\/\d{4} · (criado hoje|há 1 dia|há \d+ dias)$/.test(t.trim())), created[0]);
   const hotel = await page.locator('.qrow', { hasText: 'Hotel Mirante' }).locator('.sub.created').innerText();
   check('Idade calculada corretamente (Hotel Mirante criado há 30 dias)', /há 30 dias/.test(hotel), hotel);
-  await page.selectOption('[data-sort]', 'antigos');
-  const firstAges = (await page.locator('.qrow .sub.created b').allInnerTexts()).map(t => (t.match(/\d+/) || [0])[0] * 1);
-  check('Ordenar por "criados há mais tempo"', firstAges.every((v, i) => i === 0 || firstAges[i - 1] >= v), firstAges.slice(0, 6).join(', '));
-  await page.selectOption('[data-sort]', 'prioridade');
+  const idades = async () => (await page.locator('.qrow .sub.created b').allInnerTexts()).map(t => /hoje/.test(t) ? 0 : Number((t.match(/\d+/) || [0])[0]));
+  const a1 = await idades();
+  check('Ordem padrão: data de criação, mais antigos primeiro', a1.every((v, i) => i === 0 || a1[i - 1] >= v) && a1[0] > a1[a1.length - 1], a1.slice(0, 6).join(', '));
+  await page.click('button[data-act="ordem"]');
+  const a2 = await idades();
+  check('Botão inverte: mais recentes primeiro', a2.every((v, i) => i === 0 || a2[i - 1] <= v), a2.slice(0, 6).join(', '));
+  await page.reload();
+  await page.waitForSelector('.qrow');
+  const a3 = await idades();
+  check('A ordem escolhida é lembrada ao reabrir o painel', a3[0] <= a3[a3.length - 1] && /Mais recentes primeiro/.test(await page.locator('button[data-act="ordem"]').innerText()));
+  await page.click('button[data-act="ordem"]'); // volta para mais antigos primeiro
   await page.locator('.qrow .qhead').first().click();
   const det = await page.locator('.qdetail').first().innerText();
-  check('Detalhe do card traz "Criado em" e o comercial', /Criado em/.test(det) && /quem abriu o card/.test(det));
+  check('Detalhe do card traz "Criado em", assessor e comercial', /Criado em/.test(det) && /Assessor/.test(det) && /Comercial/.test(det));
   await page.screenshot({ path: path.join(out, 'M1-fila-comercial-criacao.png') });
 
   // --- mini ranking no painel
@@ -69,15 +89,22 @@ try {
   const sum = cells.reduce((a, t) => a + brl(t), 0);
   check('Valor da etapa = soma dos valores dos cards dela', Math.abs(brl(pill.split('·')[0]) - sum) < 1, `${pill} = ${sum}`);
   const head = await stage.locator('thead').innerText();
-  check('Tabela da etapa tem Responsável, Comercial, Criado em e Valor', ['Responsável', 'Comercial', 'Criado em', 'Valor'].every(h => head.includes(h)), head.replace(/\s+/g, ' '));
+  check('Tabela da etapa tem Assessor, Comercial, Criado em e Valor', ['Assessor', 'Comercial', 'Criado em', 'Valor'].every(h => head.includes(h)), head.replace(/\s+/g, ' '));
+  const datas = await stage.locator('td[data-l="Criado em"]').evaluateAll(tds => tds.map(td => td.firstChild.textContent.trim().split('/').reverse().join('')));
+  check('Cards de cada etapa em ordem de criação', datas.every((d, i) => i === 0 || datas[i - 1] <= d), datas.join(' '));
+  const etapasTxt = await page.locator('#main').innerText();
+  check('Etapas não mostram o funil Pós-venda', !/Solicitação de pós-venda/.test(etapasTxt));
   await page.screenshot({ path: path.join(out, 'M2-etapas-valores.png') });
 
   // --- ranking de reuniões
   await page.click('#tabs button[data-tab="reunioes"]');
   await page.waitForSelector('table.rank');
   await page.click('button[data-act="mt-period"][data-v="30d"]');
-  const first = await page.locator('table.rank tbody tr').first().innerText();
-  check('Ranking (últimos 30 dias) liderado por quem mais realizou reuniões', /1º/.test(first) && /Bruno Teixeira/.test(first) && /\b5\b/.test(first), first.replace(/\s+/g, ' '));
+  const rank = await page.locator('table.rank tbody tr').evaluateAll(trs => trs.map(tr => [...tr.querySelectorAll('td')].map(td => td.textContent.trim())));
+  const soma = rank.reduce((n, r) => n + Number(r[2]), 0);
+  const rafael = rank.find(r => r[1] === 'Rafael Dias');
+  check('Ranking por comercial usa o nome tirado do e-mail do especialista', /1º/.test(rank[0][0]) && rafael && Number(rafael[2]) >= 2 && soma === 10,
+    rank.map(r => `${r[0]} ${r[1]} ${r[2]}`).join(' | '));
   const kpis = (await page.locator('.kpis').innerText()).replace(/\s+/g, ' ');
   check('Totais do período: realizadas, agendadas e pendentes', /Reuniões realizadas 10/.test(kpis) && /Pendentes 1/.test(kpis), kpis.slice(0, 120));
   await page.screenshot({ path: path.join(out, 'M3-ranking-reunioes.png'), fullPage: true });

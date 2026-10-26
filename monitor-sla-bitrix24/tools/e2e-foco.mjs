@@ -49,7 +49,7 @@ try {
   check('Monitoramento restrito ao processo da página', cfg.monitored.length === 1 && cfg.monitored[0].entityTypeId === 1036 && cfg.focusEntityTypeId === 1036,
     JSON.stringify(cfg.monitored));
   const tables = await fr.locator('.panel h2').allInnerTexts();
-  check('Regras de SLA mostram só os funis desse processo', tables.filter(t => t.includes('›')).every(t => t.startsWith('Pós-venda')), tables.filter(t => t.includes('›')).join(' | '));
+  check('Regras de SLA mostram só os funis desse processo', tables.filter(t => t.includes('›')).every(t => t.startsWith('be.smart Saúde')), tables.filter(t => t.includes('›')).join(' | '));
 
   // um SLA de exemplo e análise
   await fr.locator('tr:has-text("Aguardando operadora") button:has-text("Definir SLA da etapa")').click();
@@ -73,12 +73,12 @@ try {
   await bx.screenshot({ path: path.join(out, 'F3-etapas.png') });
   const stageText = await fr.locator('details.stage').first().innerText();
   const comCells = await fr.locator('details.stage td[data-l="Comercial"]').allInnerTexts();
-  check('Etapas mostram o comercial (quem abriu o card) em coluna própria, separado do responsável',
-    /Comercial \(abriu o card\)/.test(stageText) && comCells.length > 0 && comCells.every(t => /(Ana|Bruno|Carla)/.test(t)), comCells.join(' | '));
+  check('Etapas mostram o comercial em coluna própria, separado do assessor',
+    /Assessor/.test(stageText) && /Comercial/.test(stageText) && comCells.length > 0 && comCells.every(t => /(Ana|Bruno|Carla|Joana|Rafael|Maria)/.test(t)), comCells.join(' | ').replace(/\s+/g, ' '));
   await fr.click('#tabs button[data-tab="painel"]');
   await fr.waitForSelector('.qrow');
   const comQueue = await fr.locator('.qrow .c-com').allTextContents();
-  check('Fila mostra o comercial em coluna própria e permite filtrar por ele', comQueue.length > 0 && comQueue.every(t => /(Ana|Bruno|Carla)/.test(t)) &&
+  check('Fila mostra o comercial em coluna própria e permite filtrar por ele', comQueue.length > 0 && comQueue.every(t => /(Ana|Bruno|Carla|Joana|Rafael|Maria)/.test(t)) &&
     (await fr.locator('select[data-filter="com"]').count()) === 1, comQueue.slice(0, 2).join(' | ').replace(/\s+/g, ' '));
   check('Painel tem distribuição "Por comercial"', await fr.isVisible('h2:has-text("Por comercial")'));
   await bx.screenshot({ path: path.join(out, 'F4-comercial.png') });
