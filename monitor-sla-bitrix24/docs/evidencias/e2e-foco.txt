@@ -1,4 +1,4 @@
-OK   Processo da página identificado pelos links dos cards — {"entityTypeId":1036,"linkPath":"/page/besmart/besmart_saude/type/1036/details/{id}/","links":6,"source":"links"}
+OK   Processo da página identificado pelos links dos cards — {"entityTypeId":1036,"linkPath":"/page/besmart/besmart_saude/type/1036/details/{id}/","links":8,"source":"links"}
 OK   Monitoramento restrito ao processo da página — [{"categoryIds":[7,8],"entityTypeId":1036}]
 OK   Regras de SLA mostram só os funis desse processo — be.smart Saúde (fictício) › Atendimento ao cliente
 OK   Somente as oportunidades da página foram analisadas — Cards monitorados 4 3 com algum alerta Cards com atraso 2 prazo, atividade, SLA ou parado 

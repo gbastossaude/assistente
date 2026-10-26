@@ -8,6 +8,7 @@ import { effectiveMonitored, commercialFieldFor, commercialIdsOf, specialistFiel
 import { parseBitrixDate } from '../core/time.js';
 import { updateObservation } from '../core/sla.js';
 import { meetingConfig, isMeeting, normalizeMeeting, meetingTime } from '../core/meetings.js';
+import { closedConfig, reasonFieldFor } from '../core/closed.js';
 
 const MARGIN = 5 * 60000;
 const ACT_SELECT = ['ID', 'OWNER_ID', 'OWNER_TYPE_ID', 'PROVIDER_ID', 'TYPE_ID', 'SUBJECT', 'COMPLETED', 'DEADLINE',
@@ -24,7 +25,7 @@ export function emptyDataset(mode = 'real') {
   return {
     mode, portalUrl: null,
     meta: { entities: {}, categories: {}, stages: {}, fields: {}, users: {}, departments: {} },
-    cards: {}, history: {}, observations: {}, activities: {}, comments: {}, meetings: {}, meetingOwners: {},
+    cards: {}, history: {}, observations: {}, activities: {}, comments: {}, meetings: {}, meetingOwners: {}, closed: {},
     sync: { status: 'nunca', errors: [], warnings: [], cursors: { items: {}, historyId: {}, activities: {} }, coverage: {} },
     alertState: { known: {}, snoozed: {} },
     snapshots: []
@@ -38,6 +39,8 @@ export function referencedFields(config, etid, meta) {
   if (cf?.field && cf.field !== CREATOR_FIELD) set.add(cf.field);
   const sf = specialistFieldFor(config, meta, etid);
   if (sf?.field) set.add(sf.field);
+  const rf = closedConfig(config).enabled !== false ? reasonFieldFor(config, meta, etid) : null;
+  if (rf?.field) set.add(rf.field);
   const df = config.deadlineFields?.[etid];
   if (df?.field) set.add(df.field);
   for (const r of config.slaRules || []) {
@@ -63,6 +66,13 @@ export function normalizeCard(raw, etid, extraFields, meta) {
     movedTime: parseBitrixDate(raw.movedTime), lastActivityTime: parseBitrixDate(raw.lastActivityTime),
     semantic, closed: semantic === 'S' || semantic === 'F', fields
   };
+}
+
+/** Registro mínimo de um card encerrado para o estudo (sem atividades nem comentários). */
+export function closedRecord(c, prevStageId, closedTime, closedTimeSource) {
+  return { key: c.key, entityTypeId: c.entityTypeId, id: c.id, title: c.title, categoryId: c.categoryId, stageId: c.stageId, semantic: c.semantic,
+    assignedById: c.assignedById, createdById: c.createdById, opportunity: c.opportunity, currencyId: c.currencyId, createdTime: c.createdTime,
+    closedTime, closedTimeSource, prevStageId, fields: c.fields };
 }
 
 export function normalizeHistory(h) {
@@ -96,7 +106,8 @@ function configSignature(config, meta) {
     f: effectiveMonitored(config, meta).map(m => referencedFields(config, m.entityTypeId, meta)),
     cb: effectiveMonitored(config, meta).map(m => commercialFieldFor(config, meta, m.entityTypeId)?.field || ''),
     c: !!config.interaction?.countComments, l: config.interaction?.lookbackDays,
-    r: (({ enabled, providers, todoKeywords, lookbackDays }) => [enabled, providers, todoKeywords, lookbackDays])(meetingConfig(config))
+    r: (({ enabled, providers, todoKeywords, lookbackDays }) => [enabled, providers, todoKeywords, lookbackDays])(meetingConfig(config)),
+    e: (({ enabled, lookbackDays }) => [enabled, lookbackDays])(closedConfig(config))
   });
 }
 
@@ -162,6 +173,10 @@ export async function syncData({ client, config, ds: dsIn, now = Date.now(), for
     const newKeys = new Set();
 
     // 2) Cards
+    const ccfg = closedConfig(config);
+    const closedOn = ccfg.enabled !== false;
+    const closedWindowStart = now - (Number(ccfg.lookbackDays) || 180) * 86400e3;
+    if (!ds.closed) ds.closed = {};
     for (const m of monitored) {
       const etid = Number(m.entityTypeId);
       const cats = new Set(m.categoryIds.map(Number));
@@ -193,6 +208,11 @@ export async function syncData({ client, config, ds: dsIn, now = Date.now(), for
         for (const r of raw) {
           const c = normalizeCard(r, etid, extra, ds.meta);
           const prev = ds.cards[c.key];
+          if (c.closed && cats.has(c.categoryId) && closedOn) {
+            // encerrado agora: entra no estudo; a etapa anterior é a última etapa aberta vista no cache
+            ds.closed[c.key] = closedRecord(c, prev && !prev.closed ? prev.stageId : ds.closed[c.key]?.prevStageId ?? null,
+              c.movedTime ?? now, 'movedTime');
+          } else if (!c.closed) delete ds.closed[c.key];
           if (c.closed || !cats.has(c.categoryId)) { delete ds.cards[c.key]; continue; }
           if (!prev) newKeys.add(c.key);
           if (!prev || prev.updatedTime !== c.updatedTime || prev.lastActivityTime !== c.lastActivityTime) changedKeys.add(c.key);
@@ -365,8 +385,68 @@ export async function syncData({ client, config, ds: dsIn, now = Date.now(), for
         }
       }
     };
+    const stepClosedFull = async () => {
+      if (!full || !closedOn) return;
+      onProgress('encerrados');
+      for (const m of monitored) {
+        const etid = Number(m.entityTypeId);
+        const cats = new Set(m.categoryIds.map(Number));
+        const extra = referencedFields(config, etid, ds.meta);
+        const select = ['id', 'title', 'stageId', 'assignedById', 'createdBy', 'opportunity', 'currencyId', 'createdTime', 'updatedTime',
+          'movedTime', 'stageSemanticId', ...(etid === 1 ? [] : ['categoryId']), ...extra];
+        const baseFilter = { ...(etid === 1 ? {} : { '@categoryId': [...cats] }), '>=updatedTime': isoForFilter(closedWindowStart) };
+        try {
+          let raw;
+          try {
+            raw = await client.listById('crm.item.list', { entityTypeId: etid, select, filter: { ...baseFilter, '@stageSemanticId': ['S', 'F'] } },
+              { idField: 'id', extract: r => r?.items, max: 20000 });
+          } catch (e) {
+            if (e.kind !== 'other') throw e;
+            raw = await client.listById('crm.item.list', { entityTypeId: etid, select, filter: baseFilter }, { idField: 'id', extract: r => r?.items, max: 20000 });
+          }
+          const found = raw.map(r => normalizeCard(r, etid, extra, ds.meta)).filter(c => c.closed && cats.has(c.categoryId));
+          // Histórico de etapas: data exata do encerramento e etapa em que o card estava antes.
+          const hist = {};
+          const hsel = etid === 1 ? ['ID', 'TYPE_ID', 'OWNER_ID', 'CREATED_TIME', 'STATUS_ID', 'STATUS_SEMANTIC_ID']
+            : ['ID', 'TYPE_ID', 'OWNER_ID', 'CREATED_TIME', 'CATEGORY_ID', 'STAGE_ID', 'STAGE_SEMANTIC_ID'];
+          const cmds = {};
+          for (let i = 0; i < found.length; i += 25) {
+            cmds[`x${i}`] = ['crm.stagehistory.list', { entityTypeId: etid, filter: { '@OWNER_ID': found.slice(i, i + 25).map(c => c.id) }, order: { ID: 'ASC' }, select: hsel }];
+          }
+          if (Object.keys(cmds).length) {
+            try {
+              const r = await client.batchListAll(cmds, { extract: x => x?.items });
+              for (const list of Object.values(r.results)) for (const h of list) (hist[Number(h.OWNER_ID)] = hist[Number(h.OWNER_ID)] || []).push(normalizeHistory(h));
+            } catch (e) {
+              if (isFatal(e) || e.kind === 'rate' || e.kind === 'operation') throw e;
+              warn(`Histórico dos cards encerrados indisponível (${e.code}); a etapa anterior ao encerramento não será mostrada.`);
+            }
+          }
+          for (const k of Object.keys(ds.closed)) if (ds.closed[k].entityTypeId === etid) delete ds.closed[k];
+          for (const c of found) {
+            const h = (hist[c.id] || []).sort((a, b) => a.time - b.time || a.id - b.id);
+            const lastFinal = [...h].reverse().find(x => x.semantic === 'S' || x.semantic === 'F');
+            const before = lastFinal ? h.filter(x => x.time <= lastFinal.time && x.id !== lastFinal.id && x.semantic === 'P').pop() : null;
+            ds.closed[c.key] = closedRecord(c, before?.stageId ?? null, lastFinal?.time ?? c.movedTime ?? c.updatedTime,
+              lastFinal ? 'historico' : c.movedTime ? 'movedTime' : 'atualizacao');
+          }
+          s.coverage.closed = 'ok';
+        } catch (e) {
+          if (isFatal(e) || e.kind === 'rate' || e.kind === 'operation') throw e;
+          s.coverage.closed = `indisponível (${e.code})`;
+          warn(`Cards encerrados indisponíveis para ${ds.meta.entities?.[etid]?.name || etid} (${e.code}); o estudo usa a última leitura.`);
+        }
+      }
+    };
     const incActivities = [];
-    await Promise.all([stepHistory(), stepActivities(), stepComments(), stepMeetingsFull()]);
+    await Promise.all([stepHistory(), stepActivities(), stepComments(), stepMeetingsFull(), stepClosedFull()]);
+    // Estudo de encerrados: janela móvel e escopo atual
+    if (!closedOn) { ds.closed = {}; s.coverage.closed = 'desativado'; }
+    for (const [k, c] of Object.entries(ds.closed)) {
+      const m = monitored.find(x => Number(x.entityTypeId) === c.entityTypeId);
+      if (c.closedTime < closedWindowStart || !m || !m.categoryIds.map(Number).includes(c.categoryId)) delete ds.closed[k];
+    }
+    s.closedWindowStart = full ? closedWindowStart : Math.max(s.closedWindowStart || closedWindowStart, closedWindowStart);
     if (!ds.meetings) ds.meetings = {};
     if (!ds.meetingOwners) ds.meetingOwners = {};
     if (!meetingsOn) { ds.meetings = {}; ds.meetingOwners = {}; s.coverage.meetings = 'desativado'; }
@@ -384,6 +464,11 @@ export async function syncData({ client, config, ds: dsIn, now = Date.now(), for
       // Cards das reuniões que não estão abertos no cache (ganhos/perdidos): funil, responsável e comercial.
       const needed = new Set(Object.values(ds.meetings).map(m => `${m.ownerTypeId}:${m.ownerId}`).filter(k => !ds.cards[k]));
       for (const k of Object.keys(ds.meetingOwners)) if (!needed.has(k)) delete ds.meetingOwners[k];
+      // cards encerrados já lidos para o estudo servem como dono da reunião, sem nova consulta
+      for (const k of needed) {
+        const c = ds.closed?.[k];
+        if (c && !ds.meetingOwners[k]) ds.meetingOwners[k] = { categoryId: c.categoryId, assignedById: c.assignedById, createdById: c.createdById, stageId: c.stageId, fields: c.fields || {} };
+      }
       const missing = [...needed].filter(k => full || !ds.meetingOwners[k]);
       if (missing.length) {
         onProgress('reunioes');
@@ -425,6 +510,10 @@ export async function syncData({ client, config, ds: dsIn, now = Date.now(), for
       for (const c of ds.comments[k] || []) ids.add(c.authorId);
     }
     for (const m of Object.values(ds.meetings || {})) ids.add(m.responsibleId);
+    for (const c of Object.values(ds.closed || {})) {
+      ids.add(c.assignedById);
+      for (const v of commercialIdsOf(c, commercialFieldFor(config, ds.meta, c.entityTypeId))) ids.add(v);
+    }
     for (const [k, o] of Object.entries(ds.meetingOwners || {})) {
       ids.add(o.assignedById);
       for (const v of commercialIdsOf(o, commercialFieldFor(config, ds.meta, Number(k.split(':')[0])))) ids.add(v);

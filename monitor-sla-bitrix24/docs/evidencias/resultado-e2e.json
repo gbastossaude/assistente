@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-26T19:19:16.915Z",
+  "at": "2026-10-26T19:39:27.415Z",
   "results": [
     {
       "name": "Extensão carregada (service worker MV3 ativo)",
       "ok": true,
-      "detail": "pemiojhppebfhkehahnmhfbggdohinai"
+      "detail": "mnninphfpgdbfiobacbpflineblkfimb"
     },
     {
       "name": "Tela inicial sem configuração",
@@ -159,7 +159,7 @@
     {
       "name": "Servidor recebeu apenas métodos de leitura",
       "ok": true,
-      "detail": "crm.type.list, crm.automatedsolution.list, batch, crm.item.fields, crm.item.list, crm.activity.list, crm.stagehistory.list"
+      "detail": "crm.type.list, crm.automatedsolution.list, batch, crm.item.fields, crm.item.list, crm.activity.list"
     },
     {
       "name": "Sem credencial: painel diferencia \"não foi possível consultar\"",

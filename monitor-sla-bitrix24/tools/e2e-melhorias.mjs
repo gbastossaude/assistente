@@ -117,6 +117,38 @@ try {
   const csv = fs.readFileSync(csvPath, 'utf8');
   check('Exportação CSV do ranking (sem células de fórmula)', csv.startsWith('﻿Posição;') && csv.split('\r\n').slice(1).every(l => l.split(';').every(c => !/^[=+\-@]/.test(c))), csv.split('\r\n')[1]);
 
+  // --- estudo de concluídos e cancelados
+  await page.click('#tabs button[data-tab="painel"]');
+  await page.waitForSelector('.qrow');
+  const mini = (await page.locator('.panel', { hasText: 'Encerrados · últimos 30 dias' }).innerText()).replace(/\s+/g, ' ');
+  check('Painel mostra concluídos e cancelados dos últimos 30 dias', /5 concluídos 6 cancelados 45% taxa de conclusão/.test(mini), mini.slice(0, 120));
+  await page.click('#tabs button[data-tab="encerrados"]');
+  await page.click('button[data-act="cs-period"][data-v="180d"]');
+  const ck = (await page.locator('.kpis').innerText()).replace(/\s+/g, ' ');
+  check('Estudo (180 dias): 6 concluídos, 7 cancelados, taxa 46%', /Concluídos 6/.test(ck) && /Cancelados 7/.test(ck) && /Taxa de conclusão 46%/.test(ck), ck.slice(0, 160));
+  const onde = await page.locator('.panel', { hasText: 'Onde os cards foram cancelados' }).innerText();
+  const motivos = await page.locator('.panel', { hasText: 'Motivos dos cancelamentos' }).innerText();
+  check('Mostra em que etapa os cards foram cancelados e os motivos', /Aguardando retorno da operadora\s*2/.test(onde) && /Preço/.test(motivos) && /Rede credenciada/.test(motivos));
+  const linhas = await page.locator('section.panel:has(h2:has-text("Cards encerrados")) tbody tr').count();
+  await page.selectOption('select[data-act="cs-type"]', 'cancelado');
+  const soCanc = await page.locator('section.panel:has(h2:has-text("Cards encerrados")) tbody tr').count();
+  check('Lista dos encerrados com filtro por situação', linhas === 13 && soCanc === 7, `${linhas} encerrados, ${soCanc} cancelados`);
+  const resumo = await page.locator('.summary').first().innerText();
+  check('Resumo do estudo com fatos calculados', /13 cards encerrados: 6 concluídos e 7 cancelados/.test(resumo), resumo.split('\n')[0]);
+  await page.screenshot({ path: path.join(out, 'M5-concluidos-cancelados.png'), fullPage: true });
+  const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('button[data-act="cs-csv"]')]);
+  const csv2Path = path.join(out, 'concluidos-cancelados.csv');
+  await dl2.saveAs(csv2Path);
+  const csv2 = fs.readFileSync(csv2Path, 'utf8').split('\r\n').filter(Boolean);
+  check('Exportação CSV dos encerrados', csv2.length === 8 && csv2[0].startsWith('\uFEFFID;Card;Situação') && csv2.slice(1).every(l => /;Cancelado;/.test(l)), csv2[1]?.slice(0, 90));
+  const enc = async () => (await page.locator('section.panel:has(h2:has-text("Cards encerrados")) tbody tr td:nth-child(8)').allInnerTexts()).map(d => d.split('/').reverse().join(''));
+  const e1 = await enc();
+  await page.click('button[data-act="ordem"]');
+  const e2 = await enc();
+  check('Lista de encerrados segue o botão inverter (antigos ↔ recentes)', e1.every((d, i) => !i || e1[i - 1] <= d) && e2.every((d, i) => !i || e2[i - 1] >= d), `${e1[0]} … / ${e2[0]} …`);
+  await page.click('button[data-act="ordem"]');
+  await page.selectOption('select[data-act="cs-type"]', '');
+
   // --- configuração: sem cards encerrados o total muda (recalculado sem nova consulta)
   await page.click('#tabs button[data-tab="config"]');
   await page.click('button[data-cfg="reunioes"]');

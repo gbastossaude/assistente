@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## 1.7.0
+- Estudo dos cards concluídos e cancelados: aba própria, resumo no Painel, períodos, taxa de conclusão, valores, ciclo, etapa onde se cancela, motivos, por comercial/assessor/funil, evolução mensal, lista com filtros e CSV; configuração de janela e campo de motivo.
+- Sincronização completa lê os encerrados da janela (com histórico de etapas); a incremental captura os encerramentos sem requisição extra e reaproveita esses dados para o ranking de reuniões.
+
 ## 1.6.0
 - Funis/processos com "pós-venda" no nome excluídos do monitoramento (termos configuráveis).
 - Expediente removido: aba, aviso de confirmação e opção "horário comercial"; tudo em tempo corrido (regras antigas migradas).

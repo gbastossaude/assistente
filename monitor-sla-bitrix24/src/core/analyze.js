@@ -5,6 +5,7 @@ import { scoreCard, valueThreshold, mergePriority, LEVEL_LABEL } from './priorit
 import { normalizeCalendar, measure, durationToMinutes, calendarDaysBetween } from './time.js';
 import { effectiveMonitored, commercialOfCard } from './config.js';
 import { buildMeetingRankings } from './meetings.js';
+import { buildClosedStudy } from './closed.js';
 
 const LEVEL_ORDER = { critica: 0, alta: 1, media: 2, baixa: 3 };
 
@@ -156,6 +157,7 @@ export function analyze(ds, config, now = Date.now(), opts = {}) {
     generatedAt: now, mode: ds.mode, cards, queue: withAlerts.map(c => c.key), kpis, distributions, summary,
     historical: historical(ds, config, cards, now, ncal),
     meetings: buildMeetingRankings(ds, config, now),
+    closedStudy: buildClosedStudy(ds, config, now),
     levelLabel: LEVEL_LABEL
   };
 }

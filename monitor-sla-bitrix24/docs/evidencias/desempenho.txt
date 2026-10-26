@@ -15,3 +15,8 @@ Versão 1.5.0 sem o ranking de reuniões (mesma carga da 1.4):
 Versão 1.5.0 com o ranking de reuniões (padrão):
 {"etapa":"completa (primeira)","segundos":6.75,"requisicoes":23,"status":"ok","cards":24}
 {"etapa":"incremental","segundos":1.01,"requisicoes":6,"status":"ok","cards":24}
+
+## Versão 1.7.0 (com ranking de reuniões e estudo de concluídos e cancelados)
+Análise de 1.500 cards: mediana 160 ms.
+Sincronização completa (a cada 6 h): 8.75 s / 27 requisições (inclui reuniões e cards encerrados com histórico).
+Sincronização incremental (a cada 15 min): 1.01 s / 6 requisições — sem custo extra para os novos estudos.

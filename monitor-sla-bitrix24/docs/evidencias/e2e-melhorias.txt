@@ -21,8 +21,15 @@ OK   Etapas não mostram o funil Pós-venda
 OK   Ranking por comercial usa o nome tirado do e-mail do especialista — 🥇 1º Rafael Dias 3 | 🥈 2º Bruno Teixeira (fictício) 2 | 🥈 2º Joana Matos 2 | 🥈 2º Maria da Silva 2 | 5º Ana Ribeiro (fictícia) 1 | 6º Carla Nunes (fictícia) 0
 OK   Totais do período: realizadas, agendadas e pendentes — Reuniões realizadas 10 concluídas no período Agendadas 0 ainda vão acontecer no período Pendentes 1 passaram do horário 
 OK   Agrupar por responsável pela reunião — 🥇 1º Bruno Teixeira (fictício) 4 0 0 3 4
-OK   Exportação CSV do ranking (sem células de fórmula) — 1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;26/09/2026 16:19;26/10/2026 16:18
+OK   Exportação CSV do ranking (sem células de fórmula) — 1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;26/09/2026 16:39;26/10/2026 16:38
+OK   Painel mostra concluídos e cancelados dos últimos 30 dias — Encerrados · últimos 30 dias ver estudo 5 concluídos 6 cancelados 45% taxa de conclusão Valor concluído: R$ 168.200
+OK   Estudo (180 dias): 6 concluídos, 7 cancelados, taxa 46% — Concluídos 6 R$ 258.200 Cancelados 7 R$ 65.400 Taxa de conclusão 46% concluídos ÷ encerrados Ciclo dos concluídos 16 dia(s) mediana 18 dia(s), da criação ao enc
+OK   Mostra em que etapa os cards foram cancelados e os motivos
+OK   Lista dos encerrados com filtro por situação — 13 encerrados, 7 cancelados
+OK   Resumo do estudo com fatos calculados — 13 cards encerrados: 6 concluídos e 7 cancelados — taxa de conclusão de 46%.
+OK   Exportação CSV dos encerrados — 527;[DEMO] Escola Saber — 18 vidas;Cancelado;Comercial PME;Proposta apresentada;Perdido;An
+OK   Lista de encerrados segue o botão inverter (antigos ↔ recentes) — 20260916 … / 20261023 …
 OK   Configuração "contar cards ganhos/perdidos" altera o ranking — Reuniões realizadas 7 concluídas no período Agendadas 0 aind
 OK   Sem erros de console
 
-26/26 verificações OK
+33/33 verificações OK

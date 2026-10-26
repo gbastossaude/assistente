@@ -123,7 +123,9 @@ export function buildDemoPortal(now = Date.now()) {
       ufCrm_PRAZO_PROPOSTA: { type: 'date', title: 'Prazo da proposta (fictício)' },
       ufCrm_TIPO_ATEND: { type: 'enumeration', title: 'Tipo de atendimento (fictício)', items: [{ ID: '101', VALUE: 'Novo contrato' }, { ID: '102', VALUE: 'Inclusão de vidas' }, { ID: '103', VALUE: 'Urgente' }] },
       ufCrm_AGUARD_CLIENTE: { type: 'boolean', title: 'Aguardando cliente (fictício)' },
-      ufCrm_EMAIL_ESPECIALISTA: { type: 'string', title: 'E-mail do especialista' }
+      ufCrm_EMAIL_ESPECIALISTA: { type: 'string', title: 'E-mail do especialista' },
+      ufCrm_MOTIVO_PERDA: { type: 'enumeration', title: 'Motivo da perda (fictício)', items: [{ ID: '201', VALUE: 'Preço' }, { ID: '202', VALUE: 'Rede credenciada' },
+        { ID: '203', VALUE: 'Desistência do cliente' }, { ID: '204', VALUE: 'Fechou com concorrente' }] }
     },
     1: { id: { type: 'integer', title: 'ID' }, title: { type: 'string', title: 'Nome' }, stageId: { type: 'crm_status', title: 'Status' } },
     1036: { id: { type: 'integer', title: 'ID' }, title: { type: 'string', title: 'Nome' }, stageId: { type: 'crm_status', title: 'Etapa' },
@@ -253,6 +255,20 @@ export function buildDemoPortal(now = Date.now()) {
   add(1036, 7, 'Cancelamento — Empresa Fictícia E', '31', 0, [['DT1036_7:NEW', 9], ['DT1036_7:SUCCESS', 7]]);
   // funil de pós-venda: excluído do monitoramento por padrão
   const posVenda = add(1036, 8, 'Pós-venda — Empresa Fictícia F', '32', 0, [['DT1036_8:NEW', 4]], { acts: [{ subj: 'Pendência antiga', deadlineIn: -3, createdAgo: 4 }] });
+
+  // --- encerrados para o estudo de concluídos e cancelados (adicionados no fim para não mudar os IDs acima)
+  const lose = id => ({ fields: { ufCrm_MOTIVO_PERDA: id } });
+  add(2, 0, 'Distribuidora Norte — 30 vidas', '11', 52000, [['NEW', 40], ['PREPARATION', 35], ['PREPAYMENT_INVOICE', 30], ['FINAL_INVOICE', 25], ['WON', 22]]);
+  add(2, 0, 'Clínica Bem Estar — 10 vidas', '12', 15000, [['NEW', 20], ['PREPARATION', 15], ['LOSE', 12]], lose('201'));
+  add(2, 0, 'Mercearia Central — 4 vidas', '13', 4800, [['NEW', 9], ['LOSE', 8]], lose('203'));
+  add(2, 0, 'Escola Saber — 18 vidas', '11', 27000, [['NEW', 60], ['PREPARATION', 50], ['PREPAYMENT_INVOICE', 45], ['LOSE', 40]], lose('204'));
+  add(2, 0, 'Agro Campo — 22 vidas', '12', 33000, [['NEW', 28], ['PREPARATION', 20], ['PREPAYMENT_INVOICE', 10], ['WON', 5]]);
+  add(2, 0, 'Construtora Alicerce — 60 vidas', '13', 90000, [['NEW', 100], ['PREPARATION', 90], ['PREPAYMENT_INVOICE', 85], ['WON', 80]]);
+  add(2, 0, 'Ótica Visão — 6 vidas', '11', 8000, [['NEW', 15], ['PREPARATION', 10], ['LOSE', 3]], lose('202'));
+  add(2, 0, 'Encerrado antigo — fora da janela', '12', 1000, [['NEW', 300], ['WON', 250]]);
+  add(2, 3, 'Padaria Trigo — 5 vidas', '22', 6500, [['FINAL_INVOICE', 30], ['C3:NEW', 25], ['C3:PREPARATION', 20], ['C3:LOSE', 14]], { pathCats: [0, 3, 3, 3] });
+  add(1036, 7, 'Reclamação — Empresa Fictícia G', '31', 0, [['DT1036_7:NEW', 12], ['DT1036_7:PREPARATION', 9], ['DT1036_7:FAIL', 7]]);
+  add(1036, 8, 'Pós-venda encerrado — Empresa Fictícia H', '32', 0, [['DT1036_8:NEW', 10], ['DT1036_8:SUCCESS', 6]]); // funil excluído
 
   // --- Leads (não monitorados na configuração de demonstração)
   add(1, 0, 'Lead fictício — site', '11', 0, [['NEW', 1]]);

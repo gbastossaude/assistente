@@ -1,6 +1,7 @@
 // Painel principal: indicadores, fila priorizada, central de alertas, análises e configurações.
 import { send, esc, fmtDT, fmtAgo, fmtMoney, fmtDate, fmtAge, fmtMoneyMap, LEVELS, STATUS_TEXT, downloadCsv } from './common.js';
 import { PERIODS, GROUPS, DEFAULT_MEETINGS } from '../src/core/meetings.js';
+import { CLOSED_PERIODS, DEFAULT_CLOSED_STUDY, reasonFieldFor } from '../src/core/closed.js';
 import { ALERT_TYPES } from '../src/core/detect.js';
 import { DEFAULT_PRIORITY } from '../src/core/priority.js';
 import { PROVIDER_LABELS, DEFAULT_RELEVANT_PROVIDERS } from '../src/core/interactions.js';
@@ -13,7 +14,7 @@ let cfg = null;        // cópia editável da configuração
 let dirty = false;
 const QUEUE_PAGE = 150; // linhas desenhadas por vez na fila (o restante sob demanda)
 const ui = {
-  tab: 'painel', cfgTab: 'conexao', expanded: new Set(), queueLimit: QUEUE_PAGE, mt: { period: 'mes', group: null },
+  tab: 'painel', cfgTab: 'conexao', expanded: new Set(), queueLimit: QUEUE_PAGE, mt: { period: 'mes', group: null }, cs: { period: '90d', type: '', com: '', sort: 'encerramento', limit: 150 },
   f: { q: '', resp: '', com: '', team: '', cat: '', stage: '', type: '', level: '', snoozed: false }, sort: 'criacao',
   dir: (() => { try { return localStorage.getItem('ordemCriacao') === 'recentes' ? 'recentes' : 'antigos'; } catch { return 'antigos'; } })()
 };
@@ -51,7 +52,7 @@ function renderSyncInfo(progress) {
 }
 function stepText(s) {
   return { inicio: 'iniciando', estrutura: 'lendo funis e etapas', cards: 'lendo cards', historico: 'lendo histórico de etapas',
-    atividades: 'lendo atividades', comentarios: 'lendo comentários', usuarios: 'lendo usuários', reunioes: 'lendo reuniões' }[s] || s;
+    atividades: 'lendo atividades', comentarios: 'lendo comentários', usuarios: 'lendo usuários', reunioes: 'lendo reuniões', encerrados: 'lendo cards encerrados' }[s] || s;
 }
 
 function render() {
@@ -60,7 +61,7 @@ function render() {
   renderSyncInfo();
   $('#btnSync').disabled = !S.mode || S.syncing;
   $('#savebar').classList.toggle('hidden', !(ui.tab === 'config' && dirty));
-  const html = ui.tab === 'painel' ? renderPainel() : ui.tab === 'etapas' ? renderEtapas() : ui.tab === 'reunioes' ? renderReunioes()
+  const html = ui.tab === 'painel' ? renderPainel() : ui.tab === 'etapas' ? renderEtapas() : ui.tab === 'reunioes' ? renderReunioes() : ui.tab === 'encerrados' ? renderEncerrados()
     : ui.tab === 'alertas' ? renderAlertas() : ui.tab === 'analises' ? renderAnalises() : renderConfig();
   main.innerHTML = html;
 }
@@ -212,6 +213,7 @@ function renderPainel() {
     <div class="panel"><h2>Por funil</h2>${bars(A.distributions.byCategory, x => x.name, 'cat')}</div>
     <div class="panel"><h2>Por prioridade</h2>${levelBars(k.porNivel)}</div>
     ${meetingsMini()}
+    ${closedMini()}
   </section>`;
 
   const list = cardsFiltered();
@@ -531,6 +533,131 @@ function exportMeetingsCsv() {
   downloadCsv(`ranking-reunioes-${ui.mt.period}.csv`, rows);
 }
 
+// ---------------------------------------------------------------- estudo de concluídos e cancelados
+const pctTxt = v => (v == null ? '—' : `${Math.round(v * 100)}%`);
+const daysTxt = v => (v == null ? '—' : `${Math.round(v)} dia(s)`);
+
+function closedMini() {
+  const C = S.analysis?.closedStudy;
+  if (!C || C.enabled === false) return '';
+  const p = C.periods['30d'], t = p.totals;
+  return `<div class="panel"><div class="hd"><h2>Encerrados · últimos 30 dias</h2><span class="spacer"></span>
+    <button class="link small" data-act="tab" data-tab="encerrados">ver estudo</button></div>
+    <div class="row" style="gap:18px"><div><div class="num" style="font-size:22px;font-weight:700;color:var(--ok)">${t.concluidos}</div><div class="small muted">concluídos</div></div>
+      <div><div class="num" style="font-size:22px;font-weight:700;color:var(--crit)">${t.cancelados}</div><div class="small muted">cancelados</div></div>
+      <div><div class="num" style="font-size:22px;font-weight:700">${pctTxt(t.taxa)}</div><div class="small muted">taxa de conclusão</div></div></div>
+    <div class="small muted" style="margin-top:6px">Valor concluído: <b>${esc(fmtMoneyMap(t.valorConcluido))}</b></div></div>`;
+}
+
+function closedTable(rows, title, keyLabel) {
+  return `<div class="panel"><h2>${esc(title)}</h2>${rows.length ? `<div class="tablewrap"><table><thead><tr><th>${esc(keyLabel)}</th><th class="n">Concluídos</th><th class="n">Cancelados</th>
+    <th class="n">Taxa</th><th class="n">Valor concluído</th><th class="n">Ciclo médio</th></tr></thead><tbody>
+    ${rows.map(r => `<tr><td>${esc(r.name)}</td><td class="n">${r.concluidos}</td><td class="n">${r.cancelados}</td><td class="n"><b>${pctTxt(r.taxa)}</b></td>
+      <td class="n">${esc(fmtMoneyMap(r.valorConcluido))}</td><td class="n">${daysTxt(r.cicloMedio)}</td></tr>`).join('')}</tbody></table></div>`
+    : '<p class="muted">Nenhum encerrado no período.</p>'}</div>`;
+}
+
+function countBars(rows, color, empty) {
+  if (!rows.length) return `<p class="muted">${esc(empty)}</p>`;
+  const max = Math.max(1, ...rows.map(r => r.n));
+  return `<div class="bars">${rows.slice(0, 10).map(r => `<div class="bar"><div class="name" title="${esc(r.name)}">${esc(r.name)}</div><div class="num">${r.n}</div>
+    <div class="track"><i style="width:${(r.n / max) * 100}%;background:${color}"></i></div></div>`).join('')}</div>`;
+}
+
+function closedList(C, p) {
+  const t = tz();
+  let list = C.items.filter(it => it.closedTime >= p.from && it.closedTime <= p.to + 1);
+  if (ui.cs.type) list = list.filter(it => it.type === ui.cs.type);
+  if (ui.cs.com) list = list.filter(it => it.commercialKey === ui.cs.com);
+  // o botão "inverter" vale para as duas ordens: mais antigos primeiro (padrão) ou mais recentes primeiro
+  list.sort(ui.cs.sort === 'criacao' ? byCreation : (a, b) => (ui.dir === 'recentes' ? b.closedTime - a.closedTime : a.closedTime - b.closedTime));
+  return list;
+}
+
+function renderEncerrados() {
+  if (!S.mode) return onboarding();
+  let html = banners();
+  if (awaitingFocus()) return html + awaitingFocusHtml();
+  const C = S.analysis?.closedStudy;
+  if (!C || !S.sync?.lastSuccess) return html + '<div class="empty"><h3>Sem dados ainda</h3><p class="muted">Sincronize para montar o estudo.</p></div>';
+  if (C.enabled === false) return html + `<div class="empty"><h3>Estudo de concluídos e cancelados desativado</h3>
+    <button class="btn primary" data-act="goto-cfg" data-cfg="encerrados">Ativar e configurar</button></div>`;
+  const t = tz();
+  const p = C.periods[ui.cs.period] || C.periods['90d'];
+  const T = p.totals;
+  const coms = [...new Map(C.items.map(it => [it.commercialKey, it.commercialName])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  html += `<section class="panel"><div class="hd"><h2>Concluídos e cancelados</h2><span class="spacer"></span>
+      <span class="small faint">atualizado a cada sincronização · ${fmtDT(C.generatedAt, t)}</span></div>
+    <div class="row" style="margin-bottom:10px"><div class="seg">${CLOSED_PERIODS.map(([k, l]) => `<button class="${ui.cs.period === k ? 'on' : ''}" data-act="cs-period" data-v="${k}">${esc(l)}</button>`).join('')}</div>
+      <span class="spacer"></span><button class="btn sm" data-act="cs-csv">Exportar CSV</button></div>
+    <div class="small muted" style="margin-bottom:8px">Encerrados entre ${fmtDT(p.from, t, true)} e ${fmtDT(p.to, t, true)} · concluído = etapa final de sucesso; cancelado = etapa final de falha (perdido, cancelado…).
+      ${p.partialWindow ? '<span class="pill partial">período começa antes da janela lida — aumente a janela nas configurações</span>' : ''}</div>
+    <section class="kpis">
+      ${kpi('Concluídos', T.concluidos, fmtMoneyMap(T.valorConcluido), '', '')}
+      ${kpi('Cancelados', T.cancelados, fmtMoneyMap(T.valorCancelado), 'crit', '')}
+      ${kpi('Taxa de conclusão', pctTxt(T.taxa), 'concluídos ÷ encerrados', '', '')}
+      ${kpi('Ciclo dos concluídos', daysTxt(T.cicloConcluido.media), T.cicloConcluido.n ? `mediana ${Math.round(T.cicloConcluido.mediana)} dia(s), da criação ao encerramento` : 'sem dados', '', '')}
+      ${kpi('Tempo até o cancelamento', daysTxt(T.cicloCancelado.media), T.cicloCancelado.n ? `mediana ${Math.round(T.cicloCancelado.mediana)} dia(s)` : 'sem dados', 'mid', '')}
+      ${kpi('Encerrados no período', T.concluidos + T.cancelados, 'nos funis monitorados', '', '')}
+    </section>
+    <div class="panel" style="margin:12px 0 0;box-shadow:none"><h2>Resumo do estudo</h2><ul class="summary">${p.summary.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+  </section>
+  <section class="grid2">
+    <div class="panel"><h2>Onde os cards foram cancelados</h2><p class="help" style="margin-top:-4px">Etapa em que o card estava antes de ir para a etapa de cancelamento.</p>
+      ${countBars(p.lostByStage, 'var(--crit)', 'Nenhum cancelamento no período.')}</div>
+    <div class="panel"><h2>Motivos dos cancelamentos</h2><p class="help" style="margin-top:-4px">${C.coverage.reasonField ? `Campo "${esc(C.coverage.reasonField)}"; sem motivo preenchido, vale o nome da etapa final.` : 'Nome da etapa final de cancelamento (nenhum campo de motivo encontrado).'}</p>
+      ${countBars(p.byReason, 'var(--high)', 'Nenhum cancelamento no período.')}</div>
+  </section>
+  <section class="grid3">
+    ${closedTable(p.byCommercial, 'Por comercial', 'Comercial')}
+    ${closedTable(p.byAssessor, 'Por assessor', 'Assessor')}
+    ${closedTable(p.byFunnel, 'Por funil', 'Funil')}
+    <div class="panel"><h2>Evolução mensal</h2>${monthlyBars(C.monthly)}</div>
+  </section>`;
+  const list = closedList(C, p);
+  const shown = list.slice(0, ui.cs.limit);
+  html += `<section class="panel"><div class="hd"><h2>Cards encerrados</h2><span class="spacer"></span><span class="small muted">${list.length} card(s)</span></div>
+    <div class="filters">
+      <select data-act="cs-type"><option value="">Concluídos e cancelados</option><option value="concluido" ${ui.cs.type === 'concluido' ? 'selected' : ''}>Só concluídos</option><option value="cancelado" ${ui.cs.type === 'cancelado' ? 'selected' : ''}>Só cancelados</option></select>
+      <select data-act="cs-com"><option value="">Todos os comerciais</option>${coms.map(([k, n]) => `<option value="${esc(k)}" ${ui.cs.com === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
+      <select data-act="cs-sort"><option value="encerramento" ${ui.cs.sort === 'encerramento' ? 'selected' : ''}>Ordenar: data de encerramento</option><option value="criacao" ${ui.cs.sort === 'criacao' ? 'selected' : ''}>Ordenar: data de criação</option></select>
+      ${orderToggle()}</div>
+    ${shown.length ? `<div class="tablewrap"><table><thead><tr><th>Card</th><th>Situação</th><th>Etapa anterior → final</th><th>Assessor</th><th>Comercial</th><th class="n">Valor</th>
+      <th>Criado em</th><th>Encerrado em</th><th class="n">Dias aberto</th><th>Motivo</th></tr></thead><tbody>
+      ${shown.map(it => `<tr><td data-l="Card">${it.link ? `<a href="${esc(it.link)}" target="${LT}" rel="noopener noreferrer"><b>${esc(it.title)}</b></a>` : `<b>${esc(it.title)}</b>`}<div class="small faint">#${it.id} · ${esc(it.funnelName)}</div></td>
+        <td><span class="pill ${it.type === 'concluido' ? 'ok' : 'critica'}">${it.type === 'concluido' ? 'Concluído' : 'Cancelado'}</span></td>
+        <td class="small">${esc(it.prevStageName || '—')} → <b>${esc(it.finalStageName)}</b></td>
+        <td>${esc(it.assessorName)}</td><td>${esc(it.commercialName)}${it.commercialEmail ? `<div class="small faint">${esc(it.commercialEmail)}</div>` : ''}</td>
+        <td class="n">${it.opportunity > 0 ? fmtMoney(it.opportunity, it.currency) : '<span class="faint">—</span>'}</td>
+        <td>${it.createdTime != null ? fmtDate(it.createdTime, t) : '—'}</td><td>${fmtDate(it.closedTime, t)}</td>
+        <td class="n">${it.cycleDays ?? '—'}</td><td class="small">${esc(it.reason || '—')}</td></tr>`).join('')}</tbody></table></div>
+      ${list.length > shown.length ? `<div class="row" style="justify-content:center;margin-top:10px"><button class="btn sm" data-act="cs-more">Mostrar mais</button></div>` : ''}`
+      : '<div class="empty"><h3>Nenhum card encerrado com estes filtros</h3></div>'}
+    <p class="help" style="margin-top:10px">Lidos os cards encerrados nos últimos ${esc(C.lookbackDays)} dias dos funis monitorados (funis excluídos, como pós-venda, ficam de fora).
+      Data de encerramento e etapa anterior vêm do histórico de etapas do Bitrix (${C.coverage.fromHistory} de ${C.coverage.total} cards); sem histórico, usa-se a data da mudança de etapa.
+      Dias aberto = dias de calendário da criação ao encerramento. Valores somados por moeda, sem conversão. <button class="link" data-act="goto-cfg" data-cfg="encerrados">Configurar</button></p></section>`;
+  return html;
+}
+
+function monthlyBars(months) {
+  const max = Math.max(1, ...months.map(m => m.concluidos + m.cancelados));
+  return `<div class="bars">${months.map(m => `<div class="bar"><div class="name">${esc(m.label)}${m.partial ? ' <span class="faint">(parcial)</span>' : ''}</div>
+    <div class="num">${m.concluidos}<span class="faint">/${m.cancelados}</span></div>
+    <div class="track"><i style="width:${(m.concluidos / max) * 100}%;background:var(--ok)"></i><i style="width:${(m.cancelados / max) * 100}%;background:var(--crit)"></i></div></div>`).join('')}
+    <div class="small faint">verde: concluídos · vermelho: cancelados</div></div>`;
+}
+
+function exportClosedCsv() {
+  const C = S.analysis?.closedStudy; if (!C) return;
+  const p = C.periods[ui.cs.period] || C.periods['90d'], t = tz();
+  const rows = [['ID', 'Card', 'Situação', 'Funil', 'Etapa anterior', 'Etapa final', 'Assessor', 'Comercial', 'E-mail do especialista', 'Valor', 'Moeda',
+    'Criado em', 'Encerrado em', 'Dias aberto', 'Motivo', 'Link']];
+  for (const it of closedList(C, p)) rows.push([it.id, it.title, it.type === 'concluido' ? 'Concluído' : 'Cancelado', it.funnelName, it.prevStageName || '',
+    it.finalStageName, it.assessorName, it.commercialName, it.commercialEmail || '', it.opportunity ? String(it.opportunity).replace('.', ',') : '', it.currency,
+    it.createdTime != null ? fmtDate(it.createdTime, t) : '', fmtDate(it.closedTime, t), it.cycleDays ?? '', it.reason || '', it.link || '']);
+  downloadCsv(`concluidos-cancelados-${ui.cs.period}.csv`, rows);
+}
+
 // ---------------------------------------------------------------- central de alertas
 function renderAlertas() {
   if (!S.mode) return onboarding();
@@ -617,11 +744,11 @@ function spark(snaps) {
 
 // ---------------------------------------------------------------- configurações
 const CFG_TABS = [['conexao', 'Conexão'], ['funis', 'Funis e etapas'], ['sla', 'Regras de SLA'],
-  ['acomp', 'Acompanhamento e prazos'], ['reunioes', 'Ranking de reuniões'], ['prioridade', 'Prioridade'], ['equipes', 'Equipes'], ['notif', 'Notificações e sincronização'], ['dados', 'Dados e privacidade']];
+  ['acomp', 'Acompanhamento e prazos'], ['reunioes', 'Ranking de reuniões'], ['encerrados', 'Concluídos e cancelados'], ['prioridade', 'Prioridade'], ['equipes', 'Equipes'], ['notif', 'Notificações e sincronização'], ['dados', 'Dados e privacidade']];
 
 function renderConfig() {
   const sec = { conexao: cfgConexao, funis: cfgFunis, sla: cfgSla, acomp: cfgAcomp, prioridade: cfgPrioridade,
-    equipes: cfgEquipes, notif: cfgNotif, dados: cfgDados, reunioes: cfgReunioes }[ui.cfgTab];
+    equipes: cfgEquipes, notif: cfgNotif, dados: cfgDados, reunioes: cfgReunioes, encerrados: cfgEncerrados }[ui.cfgTab];
   return `${S.mode === 'demo' ? '<div class="banner demo"><div class="small"><b>Configuração da demonstração.</b> Os prazos são exemplos fictícios; alterá-los não afeta a configuração real.</div></div>' : ''}
   <div class="cfg"><nav class="cfgnav">${CFG_TABS.map(([k, l]) => `<button class="${ui.cfgTab === k ? 'on' : ''}" data-act="cfgtab" data-cfg="${k}">${l}</button>`).join('')}</nav>
   <div class="section">${sec()}</div></div>`;
@@ -971,6 +1098,31 @@ function cfgReunioes() {
     A janela padrão (70 dias) cobre o mês anterior inteiro; janelas maiores fazem a sincronização completa ler mais atividades. O assunto das atividades é usado só para classificar e não é guardado.</p></div>`;
 }
 
+function cfgEncerrados() {
+  const c = { ...DEFAULT_CLOSED_STUDY, ...(cfg.closedStudy || {}) };
+  cfg.closedStudy = c;
+  const ets = [...new Set(effectiveMonitored(cfg, S.meta).map(m => Number(m.entityTypeId)))];
+  return `<div class="panel"><h2>Estudo de concluídos e cancelados</h2>
+    <p class="help">Lê os cards que foram para uma etapa final — de sucesso (concluídos) ou de falha (cancelados/perdidos) — nos funis monitorados, e calcula taxa de conclusão,
+    valores, tempo até o encerramento, em que etapa os cards são cancelados, motivos e resultados por comercial, assessor e funil. Atualiza sozinho a cada sincronização.</p>
+    ${chk('closedStudy.enabled', c.enabled !== false, '<b>Estudo ativo</b>', true)}
+    <div class="formgrid" style="margin-top:10px"><label class="field"><span>Janela (dias para trás)</span>${num('closedStudy.lookbackDays', c.lookbackDays, 'min="30" max="730"')}</label></div>
+    <div style="margin-top:10px"><span class="small muted"><b>Campo com o motivo da perda/cancelamento</b> (opcional; sem campo, vale o nome da etapa final)</span>
+    ${ets.map(etid => {
+      const f = S.meta.fields?.[etid];
+      if (!f) return `<div class="row" style="margin:6px 0"><b>${esc(S.meta.entities?.[etid]?.name || etid)}</b> <button class="btn sm" data-act="load-fields" data-etid="${etid}">Carregar campos</button></div>`;
+      const cur = reasonFieldFor(cfg, S.meta, etid);
+      const chosen = c.reasonFields?.[etid];
+      const val = chosen ? chosen.field : '__auto';
+      const opts = Object.entries(f).filter(([, v]) => ['enumeration', 'string', 'crm_status', 'text'].includes(v.type)).sort((a, b) => String(a[1].title).localeCompare(String(b[1].title)));
+      return `<div class="row" style="margin:6px 0"><b style="min-width:160px">${esc(S.meta.entities?.[etid]?.name || etid)}</b>
+        <select data-act="set-reason-field" data-etid="${etid}"><option value="__auto" ${val === '__auto' ? 'selected' : ''}>Automático${!chosen ? (cur ? ` (${esc(cur.label)})` : ' (nenhum campo "Motivo…" encontrado)') : ''}</option>
+        ${opts.map(([k, v]) => `<option value="${esc(k)}" ${val === k ? 'selected' : ''}>${esc(v.title)} (${esc(k)})</option>`).join('')}
+        <option value="" ${val === '' ? 'selected' : ''}>Não usar</option></select></div>`;
+    }).join('')}</div>
+    <p class="help">Janelas maiores fazem a sincronização completa (a cada 6 h) ler mais cards. Entre elas, cards que se encerram entram pela consulta incremental, sem requisições extras.</p></div>`;
+}
+
 function cfgDados() {
   return `<div class="panel"><h2>O que fica armazenado neste navegador</h2><ul class="help">
     <li>Cards abertos dos funis monitorados: ID, título, funil, etapa, assessor (responsável), comercial, valor, datas de criação/alteração/mudança de etapa e <b>apenas</b> os campos usados nas suas regras.</li>
@@ -1030,6 +1182,7 @@ main.addEventListener('change', async e => {
   }
   if (el.hasAttribute('data-sort')) { ui.sort = el.value; render(); }
   if (el.dataset.act === 'mt-group') { ui.mt.group = el.value; render(); }
+  if (['cs-type', 'cs-com', 'cs-sort'].includes(el.dataset.act)) { ui.cs[el.dataset.act.slice(3)] = el.value; ui.cs.limit = 150; render(); }
   const act = el.dataset.act;
   if (act === 'toggle-cat') {
     const etid = Number(el.dataset.etid), cid = Number(el.dataset.cid);
@@ -1058,6 +1211,14 @@ main.addEventListener('change', async e => {
       const f = S.meta.fields?.[etid]?.[el.value];
       cfg.deadlineFields[etid] = { field: el.value, label: f?.title || el.value, type: f?.type || 'date', warnHours: cfg.deadlineFields[etid]?.warnHours ?? 24 };
     }
+    markDirty(true);
+  }
+  if (act === 'set-reason-field') {
+    const etid = el.dataset.etid;
+    cfg.closedStudy = { ...DEFAULT_CLOSED_STUDY, ...(cfg.closedStudy || {}) };
+    cfg.closedStudy.reasonFields = { ...(cfg.closedStudy.reasonFields || {}) };
+    if (el.value === '__auto') delete cfg.closedStudy.reasonFields[etid];
+    else cfg.closedStudy.reasonFields[etid] = { field: el.value, label: el.value ? (S.meta.fields?.[etid]?.[el.value]?.title || el.value) : '' };
     markDirty(true);
   }
   if (act === 'set-specialist-field') {
@@ -1108,6 +1269,9 @@ document.addEventListener('click', async e => {
       render(); break;
     case 'mt-period': ui.mt.period = t.dataset.v; render(); break;
     case 'mt-csv': exportMeetingsCsv(); break;
+    case 'cs-period': ui.cs.period = t.dataset.v; ui.cs.limit = 150; render(); break;
+    case 'cs-csv': exportClosedCsv(); break;
+    case 'cs-more': ui.cs.limit += 150; render(); break;
     case 'goto-stage': e.preventDefault(); { const d = document.getElementById(`st-${t.dataset.st}`); if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth' }); } } break;
     case 'goto-conn': ui.tab = 'config'; ui.cfgTab = 'conexao'; render(); break;
     case 'goto-cfg': case 'cfgtab': ui.tab = 'config'; ui.cfgTab = t.dataset.cfg; render(); break;
@@ -1187,6 +1351,8 @@ function validateCfg(c) {
   c.slaRules.forEach(r => [...(r.pause || []), ...(r.exceptions || [])].forEach(x => { if (!x.field) errs.push('Há condição de pausa/exceção sem campo selecionado.'); }));
   const ml = Number(c.meetings?.lookbackDays);
   if (c.meetings && !(ml >= 7 && ml <= 400)) errs.push('Ranking de reuniões: a janela deve ter entre 7 e 400 dias.');
+  const cl = Number(c.closedStudy?.lookbackDays);
+  if (c.closedStudy && !(cl >= 30 && cl <= 730)) errs.push('Concluídos e cancelados: a janela deve ter entre 30 e 730 dias.');
   return [...new Set(errs)];
 }
 async function saveCfg() {
@@ -1264,6 +1430,6 @@ $('#btnSync').addEventListener('click', () => doSync());
 
 // ---------------------------------------------------------------- início
 const h = location.hash.replace('#', '');
-if (['etapas', 'reunioes', 'alertas', 'analises', 'config'].includes(h)) ui.tab = h;
+if (['etapas', 'reunioes', 'encerrados', 'alertas', 'analises', 'config'].includes(h)) ui.tab = h;
 load().catch(e => { main.innerHTML = `<div class="empty err"><h3>Erro ao carregar</h3><p>${esc(e.message)}</p></div>`; });
 setInterval(() => { if (S?.syncing && !dirty) load(); }, 4000);

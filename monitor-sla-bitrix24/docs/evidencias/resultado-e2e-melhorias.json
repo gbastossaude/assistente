@@ -117,7 +117,42 @@
   {
     "name": "Exportação CSV do ranking (sem células de fórmula)",
     "ok": true,
-    "detail": "1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;26/09/2026 16:19;26/10/2026 16:18"
+    "detail": "1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;26/09/2026 16:39;26/10/2026 16:38"
+  },
+  {
+    "name": "Painel mostra concluídos e cancelados dos últimos 30 dias",
+    "ok": true,
+    "detail": "Encerrados · últimos 30 dias ver estudo 5 concluídos 6 cancelados 45% taxa de conclusão Valor concluído: R$ 168.200"
+  },
+  {
+    "name": "Estudo (180 dias): 6 concluídos, 7 cancelados, taxa 46%",
+    "ok": true,
+    "detail": "Concluídos 6 R$ 258.200 Cancelados 7 R$ 65.400 Taxa de conclusão 46% concluídos ÷ encerrados Ciclo dos concluídos 16 dia(s) mediana 18 dia(s), da criação ao enc"
+  },
+  {
+    "name": "Mostra em que etapa os cards foram cancelados e os motivos",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "Lista dos encerrados com filtro por situação",
+    "ok": true,
+    "detail": "13 encerrados, 7 cancelados"
+  },
+  {
+    "name": "Resumo do estudo com fatos calculados",
+    "ok": true,
+    "detail": "13 cards encerrados: 6 concluídos e 7 cancelados — taxa de conclusão de 46%."
+  },
+  {
+    "name": "Exportação CSV dos encerrados",
+    "ok": true,
+    "detail": "527;[DEMO] Escola Saber — 18 vidas;Cancelado;Comercial PME;Proposta apresentada;Perdido;An"
+  },
+  {
+    "name": "Lista de encerrados segue o botão inverter (antigos ↔ recentes)",
+    "ok": true,
+    "detail": "20260916 … / 20261023 …"
   },
   {
     "name": "Configuração \"contar cards ganhos/perdidos\" altera o ranking",

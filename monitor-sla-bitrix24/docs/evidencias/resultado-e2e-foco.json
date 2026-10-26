@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-26T19:19:39.198Z",
+  "at": "2026-10-26T19:39:51.870Z",
   "results": [
     {
       "name": "Processo da página identificado pelos links dos cards",
       "ok": true,
-      "detail": "{\"entityTypeId\":1036,\"linkPath\":\"/page/besmart/besmart_saude/type/1036/details/{id}/\",\"links\":6,\"source\":\"links\"}"
+      "detail": "{\"entityTypeId\":1036,\"linkPath\":\"/page/besmart/besmart_saude/type/1036/details/{id}/\",\"links\":8,\"source\":\"links\"}"
     },
     {
       "name": "Monitoramento restrito ao processo da página",

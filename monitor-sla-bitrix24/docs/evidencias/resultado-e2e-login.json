@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-26T19:19:27.260Z",
+  "at": "2026-10-26T19:39:38.782Z",
   "results": [
     {
       "name": "Aba \"SLA\" aparece dentro do Bitrix ao entrar",
@@ -44,7 +44,7 @@
     {
       "name": "Ao entrar de novo no Bitrix, a análise atualiza sozinha",
       "ok": true,
-      "detail": "6 consultas"
+      "detail": "7 consultas"
     },
     {
       "name": "Sem login: painel avisa e mantém a última análise",

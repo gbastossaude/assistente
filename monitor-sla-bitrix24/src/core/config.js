@@ -3,6 +3,7 @@
 import { DEFAULT_RELEVANT_PROVIDERS } from './interactions.js';
 import { DEFAULT_PRIORITY } from './priority.js';
 import { DEFAULT_MEETINGS } from './meetings.js';
+import { DEFAULT_CLOSED_STUDY } from './closed.js';
 
 export const CONFIG_VERSION = 1;
 
@@ -75,6 +76,7 @@ export function defaultConfig() {
     sync: { intervalMinutes: 15, fullRefreshHours: 6 },
     privacy: { storeActivitySubject: true },
     meetings: structuredClone(DEFAULT_MEETINGS), // ranking automático de reuniões
+    closedStudy: structuredClone(DEFAULT_CLOSED_STUDY), // estudo dos cards concluídos e cancelados
     analytics: { minSample: 5 }
   };
 }
@@ -103,6 +105,7 @@ export function mergeConfig(saved) {
     privacy: { ...d.privacy, ...(saved.privacy || {}) },
     analytics: { ...d.analytics, ...(saved.analytics || {}) },
     meetings: { ...d.meetings, ...(saved.meetings || {}) },
+    closedStudy: { ...d.closedStudy, ...(saved.closedStudy || {}) },
     badge: { ...d.badge, ...(saved.badge || {}) },
     priority: { ...d.priority, ...(saved.priority || {}), weights: { ...d.priority.weights, ...(saved.priority?.weights || {}) },
       levels: { ...d.priority.levels, ...(saved.priority?.levels || {}) } }
