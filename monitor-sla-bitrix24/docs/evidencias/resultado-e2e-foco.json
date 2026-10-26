@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-26T16:26:21.767Z",
+  "at": "2026-10-26T18:45:28.310Z",
   "results": [
     {
       "name": "Processo da página identificado pelos links dos cards",
@@ -34,17 +34,17 @@
     {
       "name": "Visão Etapas mostra o fluxo e os 4 cards abertos com tempo na etapa",
       "ok": true,
-      "detail": "Solicitação recebida 1 › Em atendimento 2 › Aguardando operadora 1"
+      "detail": "Solicitação recebida 1 sem valor › Em atendimento 2 sem valor › Aguardando operadora 1 sem valor 1 vencido(s)"
     },
     {
-      "name": "Etapas mostram o comercial ao lado do responsável",
+      "name": "Etapas mostram o comercial (quem abriu o card) em coluna própria, separado do responsável",
       "ok": true,
-      "detail": "Solicitação recebida 1 card(s) SLA: definir · média atual 21h 36min [DEMO] Inclusão de dependente — Empresa Fictícia A #901 Fábio Lima (fict"
+      "detail": "Bruno Teixeira (fictício) | Carla Nunes (fictícia) | Bruno Teixeira (fictício) | Ana Ribeiro (fictícia)"
     },
     {
-      "name": "Fila mostra o comercial e permite filtrar por ele",
+      "name": "Fila mostra o comercial em coluna própria e permite filtrar por ele",
       "ok": true,
-      "detail": ""
+      "detail": "Ana Ribeiro (fictícia)abriu o card | Bruno Teixeira (fictício)abriu o card"
     },
     {
       "name": "Painel tem distribuição \"Por comercial\"",

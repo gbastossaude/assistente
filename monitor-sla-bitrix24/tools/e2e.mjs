@@ -77,7 +77,9 @@ try {
   check('Filtro por gravidade', crit > 0 && crit < rows, `${crit} críticos`);
   await page.selectOption('[data-filter="level"]', '');
   await page.fill('[data-filter="q"]', 'Metal Forte');
-  check('Busca por texto', (await page.locator('.qrow').count()) === 1);
+  // a busca atualiza só a fila, após uma pequena espera entre as teclas
+  const found = await page.waitForFunction(() => document.querySelectorAll('.qrow').length === 1, null, { timeout: 3000 }).then(() => true, () => false);
+  check('Busca por texto', found && await page.locator('[data-filter="q"]').evaluate(el => el === document.activeElement), 'campo de busca mantém o foco');
   await page.click('text=limpar filtros');
 
   // silenciar

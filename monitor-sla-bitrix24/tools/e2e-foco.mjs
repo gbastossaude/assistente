@@ -72,10 +72,14 @@ try {
   check('Visão Etapas mostra o fluxo e os 4 cards abertos com tempo na etapa', rows === 4 && /Aguardando operadora/.test(flow), flow.slice(0, 120));
   await bx.screenshot({ path: path.join(out, 'F3-etapas.png') });
   const stageText = await fr.locator('details.stage').first().innerText();
-  check('Etapas mostram o comercial ao lado do responsável', /Comercial:\s*(Ana|Bruno|Carla)/.test(stageText), stageText.replace(/\s+/g, ' ').slice(0, 140));
+  const comCells = await fr.locator('details.stage td[data-l="Comercial"]').allInnerTexts();
+  check('Etapas mostram o comercial (quem abriu o card) em coluna própria, separado do responsável',
+    /Comercial \(abriu o card\)/.test(stageText) && comCells.length > 0 && comCells.every(t => /(Ana|Bruno|Carla)/.test(t)), comCells.join(' | '));
   await fr.click('#tabs button[data-tab="painel"]');
   await fr.waitForSelector('.qrow');
-  check('Fila mostra o comercial e permite filtrar por ele', (await fr.locator('.qrow .c-resp:has-text("Comercial:")').count()) > 0 && (await fr.locator('select[data-filter="com"]').count()) === 1);
+  const comQueue = await fr.locator('.qrow .c-com').allTextContents();
+  check('Fila mostra o comercial em coluna própria e permite filtrar por ele', comQueue.length > 0 && comQueue.every(t => /(Ana|Bruno|Carla)/.test(t)) &&
+    (await fr.locator('select[data-filter="com"]').count()) === 1, comQueue.slice(0, 2).join(' | ').replace(/\s+/g, ' '));
   check('Painel tem distribuição "Por comercial"', await fr.isVisible('h2:has-text("Por comercial")'));
   await bx.screenshot({ path: path.join(out, 'F4-comercial.png') });
   await fr.click('#tabs button[data-tab="etapas"]');

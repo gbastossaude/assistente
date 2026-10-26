@@ -18,20 +18,43 @@ function formatter(tz) {
 
 const WD = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 
-/** Partes da data/hora locais no fuso `tz` para o instante `ts` (ms). */
-export function zonedParts(ts, tz) {
+function intlParts(ts, tz) {
   const p = {};
   for (const { type, value } of formatter(tz).formatToParts(new Date(ts))) p[type] = value;
   return {
-    y: +p.year, m: +p.month, d: +p.day, hh: +p.hour, mm: +p.minute, ss: +p.second,
+    y: +p.year, m: +p.month, d: +p.day, hh: +p.hour % 24, mm: +p.minute, ss: +p.second,
     weekday: WD[p.weekday]
   };
 }
 
+// Deslocamento do fuso por faixa de 15 minutos: as mudanças de horário de verão acontecem sempre em
+// múltiplos de 15 min, então dentro de uma faixa o deslocamento é constante. Evita uma chamada ao Intl
+// (cara) para cada data convertida.
+const offsetCache = new Map();
+const BUCKET = 15 * MIN;
+
 function offsetAt(ts, tz) {
-  const p = zonedParts(ts, tz);
-  const asUtc = Date.UTC(p.y, p.m - 1, p.d, p.hh, p.mm, p.ss);
-  return asUtc - Math.floor(ts / 1000) * 1000;
+  let m = offsetCache.get(tz);
+  if (!m) { m = new Map(); offsetCache.set(tz, m); }
+  const b = Math.floor(ts / BUCKET);
+  let off = m.get(b);
+  if (off === undefined) {
+    if (m.size > 100000) m.clear();
+    const t0 = b * BUCKET;
+    const p = intlParts(t0, tz);
+    off = Date.UTC(p.y, p.m - 1, p.d, p.hh, p.mm, p.ss) - t0;
+    m.set(b, off);
+  }
+  return off;
+}
+
+/** Partes da data/hora locais no fuso `tz` para o instante `ts` (ms). */
+export function zonedParts(ts, tz) {
+  const dt = new Date(Math.floor(ts / 1000) * 1000 + offsetAt(ts, tz));
+  return {
+    y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate(), hh: dt.getUTCHours(), mm: dt.getUTCMinutes(),
+    ss: dt.getUTCSeconds(), weekday: dt.getUTCDay()
+  };
 }
 
 /** Converte data/hora local (no fuso tz) para instante UTC (ms). */
@@ -52,53 +75,98 @@ function parseHM(s) {
   return { h, m: m || 0 };
 }
 
+// Calendários já normalizados (mesmo objeto de configuração → mesmo resultado).
+const normCache = new WeakMap();
+
 /** Normaliza o calendário de expediente. */
 export function normalizeCalendar(cal = {}) {
+  if (cal && typeof cal === 'object' && cal.intervals instanceof Array && cal.workdays instanceof Set) return cal;
+  const cached = cal && typeof cal === 'object' ? normCache.get(cal) : null;
+  if (cached) return cached;
+  const out = buildCalendar(cal || {});
+  if (cal && typeof cal === 'object') normCache.set(cal, out);
+  return out;
+}
+
+function buildCalendar(cal) {
   const intervals = (cal.intervals && cal.intervals.length ? cal.intervals : [{ start: '09:00', end: '18:00' }])
     .map(i => ({ s: parseHM(i.start), e: parseHM(i.end) }))
     .filter(i => (i.e.h * 60 + i.e.m) > (i.s.h * 60 + i.s.m))
     .sort((a, b) => (a.s.h * 60 + a.s.m) - (b.s.h * 60 + b.s.m));
   const dayMinutesAuto = intervals.reduce((acc, i) => acc + (i.e.h * 60 + i.e.m) - (i.s.h * 60 + i.s.m), 0);
+  const timezone = cal.timezone || 'America/Sao_Paulo';
+  const workdays = new Set(cal.workdays && cal.workdays.length ? cal.workdays : [1, 2, 3, 4, 5]);
+  const holidays = new Set(cal.holidays || []);
+  // Assinatura do calendário: identifica o cache de dias calculados.
+  const key = JSON.stringify([timezone, [...workdays].sort(), intervals.map(i => [i.s.h, i.s.m, i.e.h, i.e.m]), [...holidays].sort()]);
   return {
-    timezone: cal.timezone || 'America/Sao_Paulo',
-    workdays: new Set(cal.workdays && cal.workdays.length ? cal.workdays : [1, 2, 3, 4, 5]),
-    intervals,
-    holidays: new Set(cal.holidays || []),
+    timezone, workdays, intervals, holidays, key,
     dayMinutes: cal.dayMinutes && cal.dayMinutes > 0 ? cal.dayMinutes : dayMinutesAuto
   };
 }
 
-// Itera dias locais começando na data local de `ts`.
-function* localDays(ts, tz, maxDays = 4000) {
-  const p = zonedParts(ts, tz);
-  let base = Date.UTC(p.y, p.m - 1, p.d);
-  for (let i = 0; i < maxDays; i++) {
-    const dt = new Date(base + i * 86400000);
-    yield { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate(), weekday: dt.getUTCDay() };
+// Cache de dias locais: início do dia e intervalos de expediente em UTC. Evita recalcular o fuso
+// (Intl, operação cara) a cada dia percorrido — o mesmo dia é consultado milhares de vezes numa análise.
+const dayCache = new Map();
+const DAY_CACHE_MAX = 40000;
+
+function daysOf(cal) {
+  const key = cal.key || JSON.stringify([cal.timezone, [...cal.workdays], cal.intervals, [...cal.holidays]]);
+  let days = dayCache.get(key);
+  if (!days) {
+    if (dayCache.size >= 8) dayCache.clear();
+    days = new Map();
+    dayCache.set(key, days);
   }
+  if (days.size >= DAY_CACHE_MAX) days.clear();
+  return days;
 }
 
-/** Intervalos de expediente (UTC ms) de um dia local. Vazio em fim de semana/feriado. */
-function workIntervalsOfDay(day, cal) {
-  if (!cal.workdays.has(day.weekday)) return [];
-  if (cal.holidays.has(dateKey(day.y, day.m, day.d))) return [];
-  return cal.intervals.map(i => [
-    zonedToUtc(day.y, day.m, day.d, i.s.h, i.s.m, cal.timezone),
-    zonedToUtc(day.y, day.m, day.d, i.e.h, i.e.m, cal.timezone)
-  ]);
+/** Dia local nº n (dias desde 1970-01-01): início do dia e intervalos de expediente em UTC. */
+function dayInfo(n, cal, days) {
+  let info = days.get(n);
+  if (!info) {
+    const dt = new Date(n * 86400000);
+    const y = dt.getUTCFullYear(), m = dt.getUTCMonth() + 1, d = dt.getUTCDate();
+    const work = cal.workdays.has(dt.getUTCDay()) && !cal.holidays.has(dateKey(y, m, d));
+    info = {
+      start: zonedToUtc(y, m, d, 0, 0, cal.timezone),
+      ivs: work ? cal.intervals.map(i => [
+        zonedToUtc(y, m, d, i.s.h, i.s.m, cal.timezone),
+        zonedToUtc(y, m, d, i.e.h, i.e.m, cal.timezone)
+      ]) : []
+    };
+    days.set(n, info);
+  }
+  return info;
+}
+
+/** Número do dia local (no fuso) do instante ts. */
+function localDayNum(ts, tz) {
+  const p = zonedParts(ts, tz);
+  return Date.UTC(p.y, p.m - 1, p.d) / 86400000;
+}
+
+const MAX_DAYS = 4000;
+
+/** Dias de calendário entre duas datas, no fuso (criado hoje = 0, ontem = 1), independentemente da hora. */
+export function calendarDaysBetween(a, b, tz) {
+  if (a == null || b == null) return null;
+  return localDayNum(b, tz) - localDayNum(a, tz);
 }
 
 /** Minutos de expediente entre a e b. */
 export function businessMinutesBetween(a, b, calIn) {
   if (!(b > a)) return 0;
-  const cal = calIn.intervals ? calIn : normalizeCalendar(calIn);
+  const cal = normalizeCalendar(calIn);
+  const days = daysOf(cal);
   let total = 0;
-  for (const day of localDays(a, cal.timezone)) {
-    const ivs = workIntervalsOfDay(day, cal);
-    const dayStart = zonedToUtc(day.y, day.m, day.d, 0, 0, cal.timezone);
-    if (dayStart >= b) break;
-    for (const [s, e] of ivs) {
-      const lo = Math.max(s, a), hi = Math.min(e, b);
+  const n0 = localDayNum(a, cal.timezone);
+  for (let n = n0; n < n0 + MAX_DAYS; n++) {
+    const info = dayInfo(n, cal, days);
+    if (info.start >= b) break;
+    for (const iv of info.ivs) {
+      const lo = iv[0] > a ? iv[0] : a, hi = iv[1] < b ? iv[1] : b;
       if (hi > lo) total += hi - lo;
     }
   }
@@ -107,12 +175,14 @@ export function businessMinutesBetween(a, b, calIn) {
 
 /** Instante em que se completam `minutes` minutos de expediente a partir de `start`. */
 export function addBusinessMinutes(start, minutes, calIn) {
-  const cal = calIn.intervals ? calIn : normalizeCalendar(calIn);
+  const cal = normalizeCalendar(calIn);
   let remaining = minutes * MIN;
   if (remaining <= 0) return start;
   if (cal.intervals.length === 0 || cal.workdays.size === 0) return null;
-  for (const day of localDays(start, cal.timezone)) {
-    for (const [s, e] of workIntervalsOfDay(day, cal)) {
+  const days = daysOf(cal);
+  const n0 = localDayNum(start, cal.timezone);
+  for (let n = n0; n < n0 + MAX_DAYS; n++) {
+    for (const [s, e] of dayInfo(n, cal, days).ivs) {
       const lo = Math.max(s, start);
       if (e <= lo) continue;
       const avail = e - lo;
@@ -129,7 +199,7 @@ export function durationToMinutes(duration, mode, cal) {
   switch (duration?.unit) {
     case 'min': return v;
     case 'h': return v * 60;
-    case 'd': return mode === 'util' ? v * normalizeCalendar(cal).dayMinutes : v * 1440;
+    case 'd': return mode === 'util' ? v * normalizeCalendar(cal || {}).dayMinutes : v * 1440;
     default: return v;
   }
 }

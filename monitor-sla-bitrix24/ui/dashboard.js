@@ -1,5 +1,6 @@
 // Painel principal: indicadores, fila priorizada, central de alertas, análises e configurações.
-import { send, esc, fmtDT, fmtAgo, fmtMoney, LEVELS, STATUS_TEXT } from './common.js';
+import { send, esc, fmtDT, fmtAgo, fmtMoney, fmtDate, fmtAge, fmtMoneyMap, LEVELS, STATUS_TEXT, downloadCsv } from './common.js';
+import { PERIODS, GROUPS, DEFAULT_MEETINGS } from '../src/core/meetings.js';
 import { ALERT_TYPES } from '../src/core/detect.js';
 import { DEFAULT_PRIORITY } from '../src/core/priority.js';
 import { PROVIDER_LABELS, DEFAULT_RELEVANT_PROVIDERS } from '../src/core/interactions.js';
@@ -10,8 +11,9 @@ import { parseWebhook, normalizePortal } from '../src/integration/bitrix-client.
 let S = null;          // estado vindo do service worker
 let cfg = null;        // cópia editável da configuração
 let dirty = false;
+const QUEUE_PAGE = 150; // linhas desenhadas por vez na fila (o restante sob demanda)
 const ui = {
-  tab: 'painel', cfgTab: 'conexao', expanded: new Set(),
+  tab: 'painel', cfgTab: 'conexao', expanded: new Set(), queueLimit: QUEUE_PAGE, mt: { period: 'mes', group: null },
   f: { q: '', resp: '', com: '', team: '', cat: '', stage: '', type: '', level: '', snoozed: false }, sort: 'prioridade'
 };
 const $ = s => document.querySelector(s);
@@ -48,7 +50,7 @@ function renderSyncInfo(progress) {
 }
 function stepText(s) {
   return { inicio: 'iniciando', estrutura: 'lendo funis e etapas', cards: 'lendo cards', historico: 'lendo histórico de etapas',
-    atividades: 'lendo atividades', comentarios: 'lendo comentários', usuarios: 'lendo usuários' }[s] || s;
+    atividades: 'lendo atividades', comentarios: 'lendo comentários', usuarios: 'lendo usuários', reunioes: 'lendo reuniões' }[s] || s;
 }
 
 function render() {
@@ -57,7 +59,8 @@ function render() {
   renderSyncInfo();
   $('#btnSync').disabled = !S.mode || S.syncing;
   $('#savebar').classList.toggle('hidden', !(ui.tab === 'config' && dirty));
-  const html = ui.tab === 'painel' ? renderPainel() : ui.tab === 'etapas' ? renderEtapas() : ui.tab === 'alertas' ? renderAlertas() : ui.tab === 'analises' ? renderAnalises() : renderConfig();
+  const html = ui.tab === 'painel' ? renderPainel() : ui.tab === 'etapas' ? renderEtapas() : ui.tab === 'reunioes' ? renderReunioes()
+    : ui.tab === 'alertas' ? renderAlertas() : ui.tab === 'analises' ? renderAnalises() : renderConfig();
   main.innerHTML = html;
 }
 
@@ -137,6 +140,8 @@ function cardsFiltered() {
     etapa: (a, b) => a.categoryName.localeCompare(b.categoryName) || a.stageSort - b.stageSort,
     responsavel: (a, b) => a.responsibleName.localeCompare(b.responsibleName),
     comercial: (a, b) => (a.commercialName || '~').localeCompare(b.commercialName || '~'),
+    antigos: (a, b) => (a.createdTime ?? Infinity) - (b.createdTime ?? Infinity),
+    novos: (a, b) => (b.createdTime ?? -Infinity) - (a.createdTime ?? -Infinity),
     recente: (a, b) => Math.max(0, ...b.vis.map(x => x.firstSeen || 0)) - Math.max(0, ...a.vis.map(x => x.firstSeen || 0))
   };
   return list.sort(sorters[ui.sort] || sorters.prioridade);
@@ -198,11 +203,33 @@ function renderPainel() {
     ${(A.distributions.byCommercial || []).length ? `<div class="panel"><h2>Por comercial</h2>${bars(A.distributions.byCommercial.filter(x => x.comAlerta).slice(0, 8), x => x.name, 'com')}</div>` : ''}
     <div class="panel"><h2>Por funil</h2>${bars(A.distributions.byCategory, x => x.name, 'cat')}</div>
     <div class="panel"><h2>Por prioridade</h2>${levelBars(k.porNivel)}</div>
+    ${meetingsMini()}
   </section>`;
 
+  const list = cardsFiltered();
   html += `<section class="panel"><div class="hd"><h2>Fila priorizada de atendimento</h2><span class="spacer"></span>
-    <span class="small muted">${cardsFiltered().length} card(s)</span></div>${filtersHtml()}${queueHtml()}</section>`;
+    <span class="small muted" id="queueCount">${list.length} card(s)</span></div>${filtersHtml()}<div id="queueBox">${queueHtml(list)}</div></section>`;
   return html;
+}
+
+function clearFiltersHtml() {
+  return Object.entries(ui.f).some(([k, v]) => v && k !== 'snoozed') ? '<button class="link" data-act="clear-filters">limpar filtros</button>' : '';
+}
+
+/** Busca: atualiza só a fila (sem redesenhar indicadores e gráficos), com pequena espera entre teclas. */
+let qTimer = null;
+function refreshQueueOnly() {
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => {
+    const box = $('#queueBox');
+    if (!box || ui.tab !== 'painel') { render(); return; }
+    const list = cardsFiltered();
+    box.innerHTML = queueHtml(list);
+    const cnt = $('#queueCount');
+    if (cnt) cnt.textContent = `${list.length} card(s)`;
+    const clr = $('#clearFilters');
+    if (clr) clr.innerHTML = clearFiltersHtml();
+  }, 120);
 }
 
 function kpi(label, value, sub, cls, filt) {
@@ -251,22 +278,27 @@ function filtersHtml() {
     <select data-filter="type"><option value="">Todos os tipos de alerta</option>${opts(Object.entries(ALERT_TYPES).map(([k, v]) => [k, v.label]), f.type)}</select>
     <select data-filter="level"><option value="">Todas as gravidades</option>${opts(Object.entries(LEVELS), f.level)}</select>
     <select data-sort><option value="prioridade">Ordenar: prioridade</option>${opts([['atraso', 'Ordenar: maior atraso'], ['valor', 'Ordenar: valor'],
-      ['etapa', 'Ordenar: funil e etapa'], ['responsavel', 'Ordenar: responsável'], ['comercial', 'Ordenar: comercial'], ['recente', 'Ordenar: detectado recentemente']], ui.sort)}</select>
+      ['etapa', 'Ordenar: funil e etapa'], ['responsavel', 'Ordenar: responsável'], ['comercial', 'Ordenar: comercial'], ['antigos', 'Ordenar: criados há mais tempo'],
+      ['novos', 'Ordenar: criados recentemente'], ['recente', 'Ordenar: detectado recentemente']], ui.sort)}</select>
     <label><input type="checkbox" data-filter="snoozed" ${f.snoozed ? 'checked' : ''}> incluir silenciados</label>
-    ${Object.entries(f).some(([k, v]) => v && k !== 'snoozed') ? '<button class="link" data-act="clear-filters">limpar filtros</button>' : ''}
+    <span id="clearFilters">${clearFiltersHtml()}</span>
   </div>`;
 }
 
-function queueHtml() {
+function queueHtml(list = cardsFiltered()) {
   const A = S.analysis;
-  const list = cardsFiltered();
   if (!A.cards.some(c => c.alerts.length)) {
     return `<div class="empty ok"><div class="ico">✅</div><h3>Nenhuma pendência encontrada</h3>
       <p class="muted">Consulta concluída em ${fmtDT(S.sync.lastSuccess, tz())} sobre ${A.kpis.monitorados} card(s) monitorados, com as regras atuais.
       Se você esperava alertas, confira se há regras de SLA e acompanhamento configuradas.</p></div>`;
   }
   if (!list.length) return `<div class="empty"><h3>Nenhum card corresponde aos filtros</h3><button class="link" data-act="clear-filters">limpar filtros</button></div>`;
-  return `<div class="queue">${list.map(rowHtml).join('')}</div>`;
+  const shown = list.slice(0, ui.queueLimit);
+  const cols = `<div class="qcols" aria-hidden="true"><span>Prioridade</span><span>Card · criado em</span><span>Etapa</span><span>Responsável</span>
+    <span>Comercial (abriu o card)</span><span>Maior atraso</span><span>Valor</span><span></span></div>`;
+  return `<div class="queue">${cols}${shown.map(rowHtml).join('')}</div>${list.length > shown.length
+    ? `<div class="row" style="justify-content:center;margin-top:10px"><span class="small muted">Mostrando ${shown.length} de ${list.length}.</span>
+      <button class="btn sm" data-act="more">Mostrar mais ${Math.min(QUEUE_PAGE, list.length - shown.length)}</button></div>` : ''}`;
 }
 
 function rowHtml(c) {
@@ -279,15 +311,22 @@ function rowHtml(c) {
       <div><span class="pill ${c.priority.level}">${LEVELS[c.priority.level]}</span><div class="small faint num" style="margin-top:3px">${c.priority.score} pts</div></div>
       <div style="min-width:0"><div class="title" title="${esc(c.title)}">${esc(c.title)}</div>
         <div class="sub">#${c.id} · ${esc(c.entityName)}${c.partial ? ' · <span class="pill partial">cálculo parcial</span>' : ''}${c.returned ? ' · <span class="pill neutral">retornou de etapa</span>' : ''}</div>
-        <div class="c-mobile sub">${esc(c.stageName)} · ${esc(c.responsibleName)}${c.commercialField ? ` · Comercial: ${esc(c.commercialName)}` : ''}</div>
+        <div class="sub created">${createdHtml(c)}</div>
+        <div class="c-mobile sub">${esc(c.stageName)} · Resp.: <b>${esc(c.responsibleName)}</b>${c.commercialField ? ` · Comercial: <b>${esc(c.commercialName)}</b>` : ''}</div>
         <div class="chips">${chips}</div></div>
       <div class="c-stage" style="min-width:0"><div>${esc(c.stageName)}</div><div class="sub">${esc(c.categoryName)}</div></div>
-      <div class="c-resp" style="min-width:0"><div title="Responsável">${esc(c.responsibleName)}</div>
-        ${c.commercialField ? `<div class="sub" title="${esc(c.commercialField)}">Comercial: <b>${esc(c.commercialName)}</b></div>` : `<div class="sub">${esc(c.teams.join(', ') || '—')}</div>`}</div>
+      <div class="c-resp" style="min-width:0"><div title="Responsável atual">${esc(c.responsibleName)}</div><div class="sub">${esc(c.teams.join(', ') || 'responsável')}</div></div>
+      <div class="c-com" style="min-width:0">${c.commercialField ? `<div title="${esc(c.commercialField)}">${esc(c.commercialName)}</div><div class="sub">${c.commercialIsCreator ? 'abriu o card' : esc(c.commercialField)}</div>` : '<span class="faint">—</span>'}</div>
       <div class="c-over"><div class="num">${worst?.overdueText ? esc(worst.overdueText) : '—'}</div><div class="sub">maior atraso</div></div>
       <div class="c-val num">${c.opportunity ? fmtMoney(c.opportunity, c.currency) : '<span class="faint">—</span>'}</div>
       <div>${c.link ? `<a class="btn sm" href="${esc(c.link)}" target="${LT}" rel="noopener noreferrer">Abrir no Bitrix ↗</a>` : ''}</div>
     </div>${open ? detailHtml(c) : ''}</div>`;
+}
+
+/** "Criado em 12/10/2026 · há 14 dias" (dias de calendário no fuso configurado). */
+function createdHtml(c) {
+  if (c.createdTime == null) return '<span class="faint">criação não informada</span>';
+  return `<span title="Data de criação do card no Bitrix">Criado em ${fmtDate(c.createdTime, tz())} · <b>${esc(fmtAge(c.ageDays))}</b></span>`;
 }
 
 function detailHtml(c) {
@@ -325,8 +364,9 @@ function detailHtml(c) {
         <dt>Funil / etapa</dt><dd>${esc(c.categoryName)} › ${esc(c.stageName)}</dd>
         <dt>Entrada na etapa</dt><dd>${fmtDT(c.entryTime, t, true)} <span class="faint">(${esc({ historico: 'histórico de etapas', movedTime: 'movedTime do card', acompanhamento: 'início do acompanhamento — parcial' }[c.entrySource])})</span></dd>
         ${c.returned ? `<dt>Retorno</dt><dd>Voltou para esta etapa vindo de ${esc(S.meta.stages?.[`${c.entityTypeId}:${c.returned.fromStageId}`]?.name || c.returned.fromStageId)}</dd>` : ''}
+        <dt>Criado em</dt><dd>${c.createdTime != null ? `${fmtDT(c.createdTime, t, true)} <span class="faint">(${esc(fmtAge(c.ageDays))})</span>` : '<span class="faint">não informado</span>'}</dd>
         <dt>Responsável</dt><dd>${esc(c.responsibleName)}</dd>
-        ${c.commercialField ? `<dt>Comercial</dt><dd>${esc(c.commercialName)} <span class="faint small">(campo ${esc(c.commercialField)})</span></dd>` : ''}
+        ${c.commercialField ? `<dt>Comercial</dt><dd>${esc(c.commercialName)} <span class="faint small">(${c.commercialIsCreator ? 'quem abriu o card' : 'campo ' + esc(c.commercialField)})</span></dd>` : ''}
         <dt>Última interação</dt><dd>${li ? `${esc(li.desc)} — ${fmtDT(li.time, t, true)} por ${esc(li.authorName)}` : '<span class="faint">nenhuma relevante nos dados consultados</span>'}</dd>
         <dt>Próxima atividade</dt><dd>${na ? `${esc(PROVIDER_LABELS[na.providerId] || 'Atividade')}${na.subject ? ` "${esc(na.subject)}"` : ''} — ${fmtDT(na.deadline, t, true)} (${esc(na.responsibleName)})` : '<span class="faint">nenhuma agendada</span>'}</dd>
         <dt>Valor</dt><dd>${c.opportunity ? fmtMoney(c.opportunity, c.currency) : '<span class="faint">não informado</span>'}</dd>
@@ -359,12 +399,17 @@ function renderEtapas() {
     const fnCards = A.cards.filter(c => c.entityTypeId === fn.etid && Number(c.categoryId) === fn.cid);
     const name = `${S.meta.entities?.[fn.etid]?.name || fn.etid} › ${S.meta.categories?.[`${fn.etid}:${fn.cid}`]?.name || fn.cid}`;
     const byStage = st => fnCards.filter(c => c.stageId === st.statusId);
+    // Valor em aberto por moeda (cada card uma vez; moedas não são somadas entre si).
+    const sumValue = list => list.reduce((m, c) => { if (c.opportunity > 0) m[c.currency] = (m[c.currency] || 0) + c.opportunity; return m; }, {});
+    const semValor = list => list.filter(c => !(c.opportunity > 0)).length;
     // Fluxo resumido
-    html += `<section class="panel" style="margin-bottom:12px"><div class="hd"><h2>${esc(name)}</h2><span class="spacer"></span><span class="small muted">${fnCards.length} card(s) abertos</span></div>
+    html += `<section class="panel" style="margin-bottom:12px"><div class="hd"><h2>${esc(name)}</h2><span class="spacer"></span>
+      <span class="small muted">${fnCards.length} card(s) abertos · valor em aberto <b class="num">${esc(fmtMoneyMap(sumValue(fnCards)))}</b></span></div>
       <div class="flow">${stages.map(st => {
         const cs = byStage(st), venc = cs.filter(c => c.stageSlaStatus === 'vencido').length;
+        const val = cs.length ? (fmtMoneyMap(sumValue(cs)).replace(/^—$/, 'sem valor')) : 'R$ 0';
         return `<a class="flowstep ${venc ? 'bad' : cs.length ? 'has' : ''}" href="#st-${esc(st.statusId)}" data-act="goto-stage" data-st="${esc(st.statusId)}">
-          <span class="fname">${esc(st.name)}</span><span class="fnum">${cs.length}</span>${venc ? `<span class="fbad">${venc} vencido(s)</span>` : ''}</a>`;
+          <span class="fname">${esc(st.name)}</span><span class="fnum">${cs.length}</span><span class="fval num" title="Valor em aberto na etapa">${esc(val)}</span>${venc ? `<span class="fbad">${venc} vencido(s)</span>` : ''}</a>`;
       }).join('<span class="farrow">›</span>')}</div></section>`;
     // Detalhe por etapa
     for (const st of stages) {
@@ -381,13 +426,17 @@ function renderEtapas() {
         <summary><div class="row" style="gap:10px"><h3 style="margin:0">${esc(st.name)}</h3><span class="pill neutral">${cs.length} card(s)</span>
           ${cnt('vencido') ? `<span class="pill critica">${cnt('vencido')} SLA vencido</span>` : ''}${cnt('aviso') ? `<span class="pill media">${cnt('aviso')} perto do vencimento</span>` : ''}
           ${cnt('pausado') ? `<span class="pill neutral">${cnt('pausado')} pausado(s)</span>` : ''}
+          ${cs.length ? `<span class="pill neutral num" title="Soma dos valores dos cards abertos nesta etapa">Valor: ${esc(fmtMoneyMap(sumValue(cs.map(x => x.c))))}${semValor(cs.map(x => x.c)) ? ` · ${semValor(cs.map(x => x.c))} sem valor` : ''}</span>` : ''}
           <span class="spacer"></span><span class="small muted">SLA: ${rule ? esc(ruleText(rule)) : '<button class="link" data-act="goto-cfg" data-cfg="sla">definir</button>'}
           ${avg != null ? ` · média atual ${esc(fmtMinutes(avg, 'corrido'))}` : ''}${ha ? ` · histórico ${esc(fmtMinutes(ha.avgMin, 'corrido'))} (${ha.n} passagens)` : ''}</span></div></summary>
-        ${cs.length ? `<div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Card</th><th>Responsável</th><th class="n">Na etapa há</th><th>SLA da etapa</th><th>Próxima atividade</th><th>Alertas</th></tr></thead><tbody>
+        ${cs.length ? `<div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Card</th><th>Responsável</th><th>Comercial (abriu o card)</th><th>Criado em</th><th class="n">Valor</th><th class="n">Na etapa há</th><th>SLA da etapa</th><th>Próxima atividade</th><th>Alertas</th></tr></thead><tbody>
           ${cs.map(({ c, corr, util }) => {
             const pill = SLA_PILL[c.stageSlaStatus];
             return `<tr><td data-l="Card">${c.link ? `<a href="${esc(c.link)}" target="${LT}" rel="noopener noreferrer"><b>${esc(c.title)}</b></a>` : `<b>${esc(c.title)}</b>`}<div class="small faint">#${c.id}${c.returned ? ' · voltou de etapa' : ''}</div></td>
-              <td data-l="Responsável">${esc(c.responsibleName)}${c.commercialField ? `<div class="small muted">Comercial: <b>${esc(c.commercialName)}</b></div>` : ''}</td>
+              <td data-l="Responsável">${esc(c.responsibleName)}</td>
+              <td data-l="Comercial">${c.commercialField ? esc(c.commercialName) : '<span class="faint">—</span>'}</td>
+              <td data-l="Criado em">${c.createdTime != null ? `${fmtDate(c.createdTime, t)}<div class="small faint">${esc(fmtAge(c.ageDays))}</div>` : '<span class="faint">—</span>'}</td>
+              <td class="n" data-l="Valor">${c.opportunity > 0 ? fmtMoney(c.opportunity, c.currency) : '<span class="faint">—</span>'}</td>
               <td class="n" data-l="Na etapa há">${corr != null ? `${esc(fmtMinutes(corr, 'corrido'))}<div class="small faint">${esc(fmtMinutes(util, 'util'))}${c.partial ? ' · parcial' : ''}</div>` : '—'}
                 <div class="small faint">desde ${fmtDT(c.entryTime, t)}</div></td>
               <td data-l="SLA da etapa">${pill ? `<span class="pill ${pill[0]}">${pill[1]}</span>` : '<span class="faint small">sem SLA definido</span>'}</td>
@@ -397,7 +446,78 @@ function renderEtapas() {
     }
   }
   if (!funnels.length) html += '<div class="empty"><h3>Nenhum funil monitorado</h3></div>';
-  return html + '<p class="small faint">“Na etapa há” usa a entrada na etapa pelo histórico do Bitrix (ou movedTime; “parcial” quando só há o início do acompanhamento). A segunda linha conta só o horário comercial configurado.</p>';
+  return html + '<p class="small faint">“Na etapa há” usa a entrada na etapa pelo histórico do Bitrix (ou movedTime; “parcial” quando só há o início do acompanhamento). A segunda linha conta só o horário comercial configurado. “Criado em” é a data de criação do card no Bitrix e a idade conta dias de calendário no fuso configurado. Os valores somam o campo Valor dos cards abertos, sem converter moedas.</p>';
+}
+
+// ---------------------------------------------------------------- ranking de reuniões
+const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
+function meetingGroup() { return ui.mt.group || S.config.meetings?.groupBy || DEFAULT_MEETINGS.groupBy; }
+
+/** Resumo no Painel: 5 primeiros do mês, pelo agrupamento padrão. */
+function meetingsMini() {
+  const M = S.analysis?.meetings;
+  if (!M || M.enabled === false) return '';
+  const p = M.periods.mes, g = meetingGroup();
+  const rows = (p.byGroup[g] || []).slice(0, 5);
+  return `<div class="panel"><div class="hd"><h2>Ranking de reuniões · ${esc(p.label.toLowerCase())}</h2><span class="spacer"></span>
+    <button class="link small" data-act="tab" data-tab="reunioes">ver ranking</button></div>
+    ${rows.length ? `<div class="bars">${rows.map(r => `<div class="bar"><div class="name" title="${esc(r.name)}">${MEDAL[r.pos] || r.pos + 'º'} ${esc(r.name)}</div>
+      <div class="num">${r.realizadas}<span class="faint">${r.agendadas ? ' +' + r.agendadas : ''}</span></div>
+      <div class="track"><i style="width:${(r.realizadas / Math.max(1, rows[0].realizadas)) * 100}%;background:var(--ok)"></i></div></div>`).join('')}
+      <div class="small faint">${esc(GROUPS.find(x => x[0] === g)?.[1] || '')} · realizadas (+ agendadas)</div></div>`
+      : '<p class="muted">Nenhuma reunião registrada neste mês.</p>'}</div>`;
+}
+
+function renderReunioes() {
+  if (!S.mode) return onboarding();
+  let html = banners();
+  if (awaitingFocus()) return html + awaitingFocusHtml();
+  const M = S.analysis?.meetings;
+  if (!M || !S.sync?.lastSuccess) return html + '<div class="empty"><h3>Sem dados ainda</h3><p class="muted">Sincronize para montar o ranking.</p></div>';
+  if (M.enabled === false) {
+    return html + `<div class="empty"><div class="ico">📅</div><h3>Ranking de reuniões desativado</h3>
+      <button class="btn primary" data-act="goto-cfg" data-cfg="reunioes">Ativar e configurar</button></div>`;
+  }
+  const t = tz(), g = meetingGroup();
+  const p = M.periods[ui.mt.period] || M.periods.mes;
+  const rows = p.byGroup[g] || [];
+  const max = Math.max(1, ...rows.map(r => r.realizadas));
+  const provLabel = (M.config.providers || []).map(x => PROVIDER_LABELS[x] || x).join(', ');
+  const cov = M.coverage || {};
+  html += `<section class="panel"><div class="hd"><h2>Ranking de reuniões</h2><span class="spacer"></span>
+      <span class="small faint">atualizado automaticamente a cada sincronização · ${fmtDT(M.generatedAt, t)}</span></div>
+    <div class="row" style="margin-bottom:10px">
+      <div class="seg">${PERIODS.map(([k, l]) => `<button class="${(ui.mt.period === k) ? 'on' : ''}" data-act="mt-period" data-v="${k}">${esc(l)}</button>`).join('')}</div>
+      <label class="small muted">Agrupar por <select data-act="mt-group">${GROUPS.map(([k, l]) => `<option value="${k}" ${g === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
+      <span class="spacer"></span><button class="btn sm" data-act="mt-csv">Exportar CSV</button></div>
+    <div class="small muted" style="margin-bottom:8px">${fmtDT(p.from, t, true)} até ${fmtDT(p.to - 60000, t, true)}${p.partialWindow ? ' · <span class="pill partial">período começa antes da janela lida — aumente a janela em Configurações › Ranking de reuniões</span>' : ''}</div>
+    <section class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      ${kpi('Reuniões realizadas', p.totals.realizadas, 'concluídas no período', '', '')}
+      ${kpi('Agendadas', p.totals.agendadas, 'ainda vão acontecer no período', 'mid', '')}
+      ${kpi('Pendentes', p.totals.pendentes, 'passaram do horário sem ser concluídas', p.totals.pendentes ? 'high' : '', '')}
+    </section>
+    ${rows.length ? `<div class="tablewrap"><table class="rank"><thead><tr><th class="n">Posição</th><th>${esc(GROUPS.find(x => x[0] === g)[1])}</th>
+      <th class="n">Realizadas</th><th></th><th class="n">Agendadas</th><th class="n">Pendentes</th><th class="n">Cards</th><th class="n">Total</th></tr></thead><tbody>
+      ${rows.map(r => `<tr class="${r.pos <= 3 ? 'top' : ''}"><td class="n"><b>${MEDAL[r.pos] || ''} ${r.pos}º</b></td><td>${esc(r.name)}</td>
+        <td class="n"><b>${r.realizadas}</b></td><td style="width:28%"><div class="track"><i style="width:${(r.realizadas / max) * 100}%;background:var(--ok)"></i></div></td>
+        <td class="n">${r.agendadas}</td><td class="n">${r.pendentes ? `<span style="color:var(--high)">${r.pendentes}</span>` : 0}</td>
+        <td class="n">${r.cards}</td><td class="n">${r.total}</td></tr>`).join('')}</tbody></table></div>`
+      : '<div class="empty"><h3>Nenhuma reunião neste período</h3><p class="muted">Troque o período ou confira em Configurações › Ranking de reuniões o que conta como reunião.</p></div>'}
+    <p class="help" style="margin-top:10px">Ordem: reuniões realizadas; empate por agendadas (mesma posição quando os dois empatam). Conta como reunião: atividades do tipo
+      <b>${esc(provLabel || 'nenhum tipo')}</b>${(M.config.todoKeywords || []).length ? ` e atividades "A fazer" com <b>${esc(M.config.todoKeywords.join(', '))}</b> no assunto` : ''}.
+      A data é a do início da reunião (ou o prazo). ${M.config.includeClosed ? 'Inclui reuniões de cards já ganhos ou perdidos.' : 'Somente cards abertos.'}
+      Janela lida: últimos ${esc(M.config.lookbackDays)} dias e as agendadas. Comercial = ${esc(S.config.commercialFields && Object.values(S.config.commercialFields).some(x => x.field && x.field !== 'createdBy') ? 'campo escolhido nas configurações' : 'quem abriu o card')}.
+      ${cov.foraDoEscopo ? `${cov.foraDoEscopo} reunião(ões) de funis não monitorados ficaram de fora.` : ''} ${cov.semCard ? `${cov.semCard} sem card identificado.` : ''}
+      <button class="link" data-act="goto-cfg" data-cfg="reunioes">Configurar</button></p></section>`;
+  return html;
+}
+
+function exportMeetingsCsv() {
+  const M = S.analysis?.meetings; if (!M) return;
+  const p = M.periods[ui.mt.period] || M.periods.mes, g = meetingGroup();
+  const rows = [['Posição', GROUPS.find(x => x[0] === g)[1], 'Realizadas', 'Agendadas', 'Pendentes', 'Cards', 'Total', 'Período', 'De', 'Até']];
+  for (const r of p.byGroup[g] || []) rows.push([r.pos, r.name, r.realizadas, r.agendadas, r.pendentes, r.cards, r.total, p.label, fmtDT(p.from, tz(), true), fmtDT(p.to - 60000, tz(), true)]);
+  downloadCsv(`ranking-reunioes-${ui.mt.period}.csv`, rows);
 }
 
 // ---------------------------------------------------------------- central de alertas
@@ -417,12 +537,13 @@ function renderAlertas() {
     ['Acompanhamento', act.filter(x => ALERT_TYPES[x.a.type].group === 'acompanhamento'), ''],
     ['Silenciados', snoozed, 'Voltam automaticamente ao fim do período, se ainda estiverem ativos.']
   ];
-  const table = list => `<div class="tablewrap"><table><thead><tr><th>Prioridade</th><th>Card</th><th>Alerta</th><th>Motivo</th><th class="n">Atraso</th><th>Responsável</th><th>Detectado</th><th></th></tr></thead><tbody>
+  const table = list => `<div class="tablewrap"><table><thead><tr><th>Prioridade</th><th>Card</th><th>Alerta</th><th>Motivo</th><th class="n">Atraso</th><th>Responsável</th><th>Comercial</th><th>Criado</th><th>Detectado</th><th></th></tr></thead><tbody>
     ${list.sort((x, y) => y.c.priority.score - x.c.priority.score).map(({ c, a }) => `<tr>
       <td><span class="pill ${c.priority.level}">${LEVELS[c.priority.level]}</span></td>
       <td>${c.link ? `<a href="${esc(c.link)}" target="${LT}" rel="noopener noreferrer">${esc(c.title)}</a>` : esc(c.title)}<div class="small muted">${esc(c.categoryName)} › ${esc(c.stageName)}</div></td>
       <td>${esc(a.title)}${a.partial ? ' <span class="pill partial">parcial</span>' : ''}</td><td class="small">${esc(a.reason)}</td>
-      <td class="n">${esc(a.overdueText || '—')}</td><td>${esc(c.responsibleName)}${c.commercialField ? `<div class="small muted">Comercial: ${esc(c.commercialName)}</div>` : ''}</td><td class="small">${a.firstSeen ? fmtDT(a.firstSeen, t) : '—'}</td>
+      <td class="n">${esc(a.overdueText || '—')}</td><td>${esc(c.responsibleName)}</td><td>${c.commercialField ? esc(c.commercialName) : '<span class="faint">—</span>'}</td>
+      <td class="small">${c.createdTime != null ? `${fmtDate(c.createdTime, t)}<div class="faint">${esc(fmtAge(c.ageDays))}</div>` : '—'}</td><td class="small">${a.firstSeen ? fmtDT(a.firstSeen, t) : '—'}</td>
       <td>${a.snoozedUntil > now ? `<button class="btn sm" data-act="snooze" data-keys="${esc(a.key)}" data-h="0">Reativar</button>`
         : `<button class="btn sm" data-act="snooze" data-keys="${esc(a.key)}" data-h="4">Silenciar 4 h</button>`}</td></tr>`).join('')}</tbody></table></div>`;
   return banners() + groups.filter(([, l], i) => l.length || i >= 2 && i <= 4).map(([title, list, help]) =>
@@ -439,8 +560,8 @@ function renderAnalises() {
   const cov = S.sync?.coverage || {}, s = S.sync || {}, H = A.historical, t = tz();
   const src = { historico: 0, movedTime: 0, acompanhamento: 0 };
   for (const c of A.cards) src[c.entrySource]++;
-  const dt = (rows, name) => `<div class="tablewrap"><table><thead><tr><th>${name}</th><th class="n">Cards</th><th class="n">Com alerta</th><th class="n">Em atraso</th><th class="n">Críticos</th></tr></thead>
-    <tbody>${rows.map(r => `<tr><td>${esc(r.name)}</td><td class="n">${r.cards}</td><td class="n">${r.comAlerta}</td><td class="n">${r.comAtraso}</td><td class="n">${r.criticos}</td></tr>`).join('')}</tbody></table></div>`;
+  const dt = (rows, name) => `<div class="tablewrap"><table><thead><tr><th>${name}</th><th class="n">Cards</th><th class="n">Com alerta</th><th class="n">Em atraso</th><th class="n">Críticos</th><th class="n">Valor em aberto</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td>${esc(r.name)}</td><td class="n">${r.cards}</td><td class="n">${r.comAlerta}</td><td class="n">${r.comAtraso}</td><td class="n">${r.criticos}</td><td class="n">${esc(fmtMoneyMap(r.valor))}</td></tr>`).join('')}</tbody></table></div>`;
   let html = banners() + `<section class="grid2">
     <div class="panel"><h2>Cobertura dos dados</h2><dl class="kv">
       <dt>Última consulta OK</dt><dd>${s.lastSuccess ? fmtDT(s.lastSuccess, t, true) : 'nenhuma'} ${s.stats ? `<span class="faint">(${s.stats.full ? 'completa' : 'incremental'}, ${s.stats.requests} requisições)</span>` : ''}</dd>
@@ -484,11 +605,11 @@ function spark(snaps) {
 
 // ---------------------------------------------------------------- configurações
 const CFG_TABS = [['conexao', 'Conexão'], ['funis', 'Funis e etapas'], ['expediente', 'Expediente e feriados'], ['sla', 'Regras de SLA'],
-  ['acomp', 'Acompanhamento e prazos'], ['prioridade', 'Prioridade'], ['equipes', 'Equipes'], ['notif', 'Notificações e sincronização'], ['dados', 'Dados e privacidade']];
+  ['acomp', 'Acompanhamento e prazos'], ['reunioes', 'Ranking de reuniões'], ['prioridade', 'Prioridade'], ['equipes', 'Equipes'], ['notif', 'Notificações e sincronização'], ['dados', 'Dados e privacidade']];
 
 function renderConfig() {
   const sec = { conexao: cfgConexao, funis: cfgFunis, expediente: cfgExpediente, sla: cfgSla, acomp: cfgAcomp, prioridade: cfgPrioridade,
-    equipes: cfgEquipes, notif: cfgNotif, dados: cfgDados }[ui.cfgTab];
+    equipes: cfgEquipes, notif: cfgNotif, dados: cfgDados, reunioes: cfgReunioes }[ui.cfgTab];
   return `${S.mode === 'demo' ? '<div class="banner demo"><div class="small"><b>Configuração da demonstração.</b> Os prazos são exemplos fictícios; alterá-los não afeta a configuração real.</div></div>' : ''}
   <div class="cfg"><nav class="cfgnav">${CFG_TABS.map(([k, l]) => `<button class="${ui.cfgTab === k ? 'on' : ''}" data-act="cfgtab" data-cfg="${k}">${l}</button>`).join('')}</nav>
   <div class="section">${sec()}</div></div>`;
@@ -577,19 +698,19 @@ function cfgFunis() {
       : `<span class="pill partial">aguardando identificação</span> <span class="small">Abra <a href="${esc(portal + cfg.focusPage)}" target="${LT}" rel="noopener noreferrer">${esc(portal + cfg.focusPage)}</a> no Bitrix (logado) com os cards carregados.${det ? ' Processo encontrado: ' + det.types.map(t => t.entityTypeId).join(', ') + '.' : ''}</span>`}</div></div>`;
   const comEts = [...new Set(effectiveMonitored(cfg).map(m => Number(m.entityTypeId)))];
   const comPanel = comEts.length ? `<div class="panel"><h2>Comercial do card</h2>
-    <p class="help">Além do responsável, a extensão mostra o <b>comercial</b> de cada card em todas as telas e permite filtrar por ele. Escolha o campo do Bitrix que guarda o comercial.
-    Sem escolha, ela usa automaticamente um campo de usuário chamado "Comercial", "Vendedor", "Consultor" ou "Corretor".</p>
+    <p class="help">O <b>comercial</b> aparece em coluna própria, separado do <b>responsável</b> atual, em todas as telas, nos filtros e no ranking de reuniões.
+    Por padrão, o comercial é <b>quem abriu o card</b> (campo nativo "Criado por" do Bitrix). Se a sua operação usa outro campo de usuário para o comercial, escolha-o aqui.</p>
     ${comEts.map(etid => {
       const f = S.meta.fields?.[etid];
       const cur = commercialFieldFor(cfg, S.meta, etid);
       const chosen = cfg.commercialFields?.[etid];
       const selVal = chosen ? chosen.field : '__auto';
       if (!f) return `<div class="row" style="margin:6px 0"><b>${esc(S.meta.entities?.[etid]?.name || etid)}</b> <button class="btn sm" data-act="load-fields" data-etid="${etid}">Carregar campos</button></div>`;
-      const userFields = Object.entries(f).filter(([k, v]) => v.type === 'user' && !['updatedBy', 'movedBy', 'lastActivityBy'].includes(k))
+      const userFields = Object.entries(f).filter(([k, v]) => v.type === 'user' && !['createdBy', 'updatedBy', 'movedBy', 'lastActivityBy'].includes(k))
         .sort((a, b) => a[1].title.localeCompare(b[1].title));
       return `<div class="row" style="margin:6px 0"><b style="min-width:160px">${esc(S.meta.entities?.[etid]?.name || etid)}</b>
         <select data-act="set-commercial-field" data-etid="${etid}">
-          <option value="__auto" ${selVal === '__auto' ? 'selected' : ''}>Automático${!chosen && cur ? ` (${esc(cur.label)})` : !chosen ? ' (nenhum campo encontrado)' : ''}</option>
+          <option value="__auto" ${selVal === '__auto' || selVal === 'createdBy' ? 'selected' : ''}>Quem abriu o card (Criado por) — padrão</option>
           ${userFields.map(([k, v]) => `<option value="${esc(k)}" ${selVal === k ? 'selected' : ''}>${esc(v.title)} (${esc(k)})</option>`).join('')}
           <option value="" ${selVal === '' ? 'selected' : ''}>Não mostrar comercial</option></select>
         ${cur ? `<span class="pill ok">usando: ${esc(cur.label)}</span>` : '<span class="pill neutral">sem campo de comercial</span>'}</div>`;
@@ -824,6 +945,29 @@ function cfgNotif() {
     <p class="help">Entre as completas, só o que mudou é consultado. A extensão funciona apenas com o Chrome aberto: o navegador pode suspender a execução em segundo plano e nada é monitorado com ele fechado. Ao reabrir, os dados são atualizados e os vencimentos ocorridos no intervalo são destacados.</p></div>`;
 }
 
+function cfgReunioes() {
+  const m = { ...DEFAULT_MEETINGS, ...(cfg.meetings || {}) };
+  cfg.meetings = m;
+  const provs = [...new Set(['CRM_MEETING', 'CRM_TODO', 'CRM_CALENDAR_SHARING', 'CRM_BOOKING', 'VOXIMPLANT_CALL', 'CRM_EMAIL', 'IMOPENLINES_SESSION',
+    ...Object.keys(S.observedProviders || {})])];
+  return `<div class="panel"><h2>Ranking de reuniões</h2>
+    <p class="help">O ranking é montado sozinho a cada sincronização, com as reuniões registradas nos cards monitorados — inclusive de cards já ganhos ou perdidos.
+    Nada é preenchido à mão e nada é alterado no Bitrix.</p>
+    ${chk('meetings.enabled', m.enabled !== false, '<b>Ranking de reuniões ativo</b>', true)}
+    <div style="margin-top:10px"><span class="small muted"><b>Tipos de atividade que contam como reunião</b></span>
+      <div class="row" style="flex-wrap:wrap">${provs.map(pv => `<label class="check"><input type="checkbox" data-act="toggle-in" data-path="meetings.providers" data-v="${esc(pv)}" ${m.providers.includes(pv) ? 'checked' : ''}>
+        ${esc(PROVIDER_LABELS[pv] || pv)} <span class="faint small">${esc(pv)}${S.observedProviders?.[pv] ? ` · ${S.observedProviders[pv]} encontradas` : ''}</span></label>`).join('')}</div></div>
+    <div class="formgrid" style="margin-top:10px">
+      <label class="field" style="grid-column:1/-1"><span>Atividades "A fazer" contam como reunião quando o assunto contém (separe por vírgula; vazio desativa)</span>
+        <input data-bind="meetings.todoKeywords" data-type="words" value="${esc((m.todoKeywords || []).join(', '))}" placeholder="reunião, reuniao"></label>
+      <label class="field"><span>Janela de leitura (dias para trás)</span>${num('meetings.lookbackDays', m.lookbackDays, 'min="7" max="400"')}</label>
+      <label class="field"><span>Agrupamento padrão</span>${sel('meetings.groupBy', GROUPS, m.groupBy)}</label>
+    </div>
+    <div style="margin-top:8px">${chk('meetings.includeClosed', m.includeClosed !== false, 'Contar reuniões de cards já ganhos ou perdidos')}</div>
+    <p class="help">Realizadas = concluídas, contadas pela data da reunião. Agendadas = ainda não aconteceram. Pendentes = passaram do horário e não foram concluídas.
+    A janela padrão (70 dias) cobre o mês anterior inteiro; janelas maiores fazem a sincronização completa ler mais atividades. O assunto das atividades é usado só para classificar e não é guardado.</p></div>`;
+}
+
 function cfgDados() {
   return `<div class="panel"><h2>O que fica armazenado neste navegador</h2><ul class="help">
     <li>Cards abertos dos funis monitorados: ID, título, funil, etapa, responsável, valor, datas de criação/alteração/mudança de etapa e <b>apenas</b> os campos usados nas suas regras.</li>
@@ -855,13 +999,14 @@ function parseVal(el) {
   if (t === 'bool') return el.checked;
   if (t === 'number') return el.value === '' ? null : Number(el.value);
   if (t === 'lines') return el.value.split(/\s+/).map(s => s.trim()).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s));
+  if (t === 'words') return [...new Set(el.value.split(/[,;\n]/).map(s => s.trim()).filter(Boolean))].slice(0, 20);
   return el.value;
 }
 
 main.addEventListener('input', e => {
   const el = e.target;
   if (el.dataset.bind && el.tagName !== 'SELECT' && el.type !== 'checkbox') { setPath(cfg, el.dataset.bind, parseVal(el)); markDirty(false); }
-  if (el.dataset.filter === 'q') { ui.f.q = el.value; const pos = el.selectionStart; render(); const n = main.querySelector('[data-filter="q"]'); n.focus(); n.setSelectionRange(pos, pos); }
+  if (el.dataset.filter === 'q') { ui.f.q = el.value; ui.queueLimit = QUEUE_PAGE; refreshQueueOnly(); }
 });
 main.addEventListener('change', async e => {
   const el = e.target;
@@ -876,10 +1021,12 @@ main.addEventListener('change', async e => {
   }
   if (el.dataset.filter && el.dataset.filter !== 'q') {
     ui.f[el.dataset.filter] = el.type === 'checkbox' ? el.checked : el.value;
+    ui.queueLimit = QUEUE_PAGE;
     if (el.dataset.filter === 'cat') ui.f.stage = '';
     render();
   }
   if (el.hasAttribute('data-sort')) { ui.sort = el.value; render(); }
+  if (el.dataset.act === 'mt-group') { ui.mt.group = el.value; render(); }
   const act = el.dataset.act;
   if (act === 'toggle-cat') {
     const etid = Number(el.dataset.etid), cid = Number(el.dataset.cid);
@@ -943,6 +1090,9 @@ document.addEventListener('click', async e => {
   switch (act) {
     case 'toggle': if (e.target.closest('a')) return; ui.expanded.has(t.dataset.key) ? ui.expanded.delete(t.dataset.key) : ui.expanded.add(t.dataset.key); render(); break;
     case 'tab': ui.tab = t.dataset.tab; render(); break;
+    case 'more': ui.queueLimit += QUEUE_PAGE; refreshQueueOnly(); break;
+    case 'mt-period': ui.mt.period = t.dataset.v; render(); break;
+    case 'mt-csv': exportMeetingsCsv(); break;
     case 'goto-stage': e.preventDefault(); { const d = document.getElementById(`st-${t.dataset.st}`); if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth' }); } } break;
     case 'goto-conn': ui.tab = 'config'; ui.cfgTab = 'conexao'; render(); break;
     case 'goto-cfg': case 'cfgtab': ui.tab = 'config'; ui.cfgTab = t.dataset.cfg; render(); break;
@@ -1027,6 +1177,8 @@ function validateCfg(c) {
   c.slaRules.forEach(r => [...(r.pause || []), ...(r.exceptions || [])].forEach(x => { if (!x.field) errs.push('Há condição de pausa/exceção sem campo selecionado.'); }));
   c.calendar.intervals.forEach(i => { if (!(i.start < i.end)) errs.push(`Intervalo de expediente inválido: ${i.start}–${i.end}.`); });
   if (!c.calendar.workdays.length) errs.push('Selecione ao menos um dia útil.');
+  const ml = Number(c.meetings?.lookbackDays);
+  if (c.meetings && !(ml >= 7 && ml <= 400)) errs.push('Ranking de reuniões: a janela deve ter entre 7 e 400 dias.');
   return [...new Set(errs)];
 }
 async function saveCfg() {
@@ -1104,6 +1256,6 @@ $('#btnSync').addEventListener('click', () => doSync());
 
 // ---------------------------------------------------------------- início
 const h = location.hash.replace('#', '');
-if (['etapas', 'alertas', 'analises', 'config'].includes(h)) ui.tab = h;
+if (['etapas', 'reunioes', 'alertas', 'analises', 'config'].includes(h)) ui.tab = h;
 load().catch(e => { main.innerHTML = `<div class="empty err"><h3>Erro ao carregar</h3><p>${esc(e.message)}</p></div>`; });
 setInterval(() => { if (S?.syncing && !dirty) load(); }, 4000);

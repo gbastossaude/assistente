@@ -1,15 +1,15 @@
-OK   Extensão carregada (service worker MV3 ativo) — agikhelpmbliiojmkglhndcoilgmicme
+OK   Extensão carregada (service worker MV3 ativo) — mgpdobjbmnggkjoonmnpkdhdnegjcedo
 OK   Tela inicial sem configuração
 OK   Demonstração carregada
-OK   Indicadores exibidos — Cards monitorados 24 18 com algum alerta Cards com atraso 14 prazo, atividade, SLA ou parado SLA vencido 10 10 etapa · 1 processo Próximos do vencimento 3 aviso
+OK   Indicadores exibidos — Cards monitorados 24 18 com algum alerta Cards com atraso 15 prazo, atividade, SLA ou parado SLA vencido 12 12 etapa · 1 processo Próximos do vencimento 3 aviso
 OK   Fila priorizada com cards — 18 cards na fila
 OK   Primeiro da fila é crítico
-OK   Contador no ícone da extensão — badge = 14
+OK   Contador no ícone da extensão — badge = 15
 OK   Detalhe mostra prazo aplicado, atraso e motivo da prioridade
 OK   Link direto para o card no Bitrix — https://demo-ficticio.bitrix24.invalid/crm/deal/details/512/
-OK   Filtro por gravidade — 9 críticos
-OK   Busca por texto
-OK   Silenciar reduz o contador do ícone — 14 → 13
+OK   Filtro por gravidade — 10 críticos
+OK   Busca por texto — campo de busca mantém o foco
+OK   Silenciar reduz o contador do ícone — 15 → 14
 OK   Central de alertas
 OK   Análises com cobertura dos dados
 OK   Tela de regras de SLA
@@ -23,7 +23,7 @@ OK   Com foco ativo e processo não identificado, nenhum funil é listado (nem l
 OK   Leads não aparecem nem sem foco
 OK   Conexão por webhook e leitura de funis/etapas
 OK   Processo de espaço digital adicionado pelo link de um card
-OK   Sincronização via HTTP com o portal simulado — Cards monitorados 13 8 com algum alerta Cards com atraso 5 prazo, atividade, SLA ou parado SLA vencido 2 2 etapa · 0 pro
+OK   Sincronização via HTTP com o portal simulado — Cards monitorados 13 8 com algum alerta Cards com atraso 6 prazo, atividade, SLA ou parado SLA vencido 2 2 etapa · 0 pro
 OK   Modo real não mostra selo de demonstração
 OK   Webhook não gravado no armazenamento local (modo sessão)
 OK   Webhook mantido apenas na sessão

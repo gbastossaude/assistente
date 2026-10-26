@@ -116,6 +116,7 @@ export function buildDemoPortal(now = Date.now()) {
     2: {
       id: { type: 'integer', title: 'ID' }, title: { type: 'string', title: 'Nome' }, stageId: { type: 'crm_status', title: 'Etapa' },
       categoryId: { type: 'crm_category', title: 'Funil' }, assignedById: { type: 'user', title: 'Responsável' },
+      createdBy: { type: 'user', title: 'Criado por' }, createdTime: { type: 'datetime', title: 'Criado em' },
       opportunity: { type: 'double', title: 'Valor' }, closedate: { type: 'date', title: 'Data prevista de fechamento' },
       ufCrm_PRAZO_PROPOSTA: { type: 'date', title: 'Prazo da proposta (fictício)' },
       ufCrm_TIPO_ATEND: { type: 'enumeration', title: 'Tipo de atendimento (fictício)', items: [{ ID: '101', VALUE: 'Novo contrato' }, { ID: '102', VALUE: 'Inclusão de vidas' }, { ID: '103', VALUE: 'Urgente' }] },
@@ -123,6 +124,7 @@ export function buildDemoPortal(now = Date.now()) {
     },
     1: { id: { type: 'integer', title: 'ID' }, title: { type: 'string', title: 'Nome' }, stageId: { type: 'crm_status', title: 'Status' } },
     1036: { id: { type: 'integer', title: 'ID' }, title: { type: 'string', title: 'Nome' }, stageId: { type: 'crm_status', title: 'Etapa' },
+      assignedById: { type: 'user', title: 'Responsável' }, createdBy: { type: 'user', title: 'Criado por' },
       ufCrm7_PRIORIDADE: { type: 'enumeration', title: 'Prioridade (fictício)', items: [{ ID: '1', VALUE: 'Normal' }, { ID: '2', VALUE: 'Alta' }] },
       ufCrm7_COMERCIAL: { type: 'user', title: 'Comercial', isMultiple: false } }
   };
@@ -144,7 +146,8 @@ export function buildDemoPortal(now = Date.now()) {
     const sem = stageObj?.SEMANTICS || 'P';
     let updated = Math.max(t(curAgo), ex.updatedAgo != null ? t(ex.updatedAgo) : 0);
     const rec = {
-      id, title: `[DEMO] ${title}`, stageId: curStage, assignedById: resp, opportunity: opp, currencyId: 'BRL',
+      id, title: `[DEMO] ${title}`, stageId: curStage, assignedById: resp, createdBy: String(ex.creator ?? ['11', '12', '13'][id % 3]),
+      opportunity: opp, currencyId: 'BRL',
       createdTime: iso(created), movedTime: ex.noMovedTime ? null : iso(t(curAgo)), stageSemanticId: sem, ...(ex.fields || {})
     };
     if (etid !== 1) rec.categoryId = cat;
@@ -248,6 +251,29 @@ export function buildDemoPortal(now = Date.now()) {
   // --- Leads (não monitorados na configuração de demonstração)
   add(1, 0, 'Lead fictício — site', '11', 0, [['NEW', 1]]);
   add(1, 0, 'Lead fictício — indicação', '12', 0, [['IN_PROCESS', 2]]);
+
+  // Reuniões fictícias para o ranking (inclui cards já ganhos/perdidos e "A fazer" com "Reunião" no assunto).
+  const meeting = (etid, ownerId, subj, inDays, done, resp, prov = 'CRM_MEETING') => {
+    const at = iso(now + inDays * DAY);
+    activities.push({ ID: String(aid++), OWNER_ID: String(ownerId), OWNER_TYPE_ID: String(etid), PROVIDER_ID: prov, TYPE_ID: prov === 'CRM_MEETING' ? '1' : '6',
+      SUBJECT: subj, COMPLETED: done ? 'Y' : 'N', DEADLINE: at, START_TIME: at, END_TIME: done ? at : null,
+      CREATED: iso(now + Math.min(inDays, 0) * DAY - DAY), LAST_UPDATED: done ? at : iso(now - DAY), AUTHOR_ID: String(resp), RESPONSIBLE_ID: String(resp), DIRECTION: '0' });
+  };
+  meeting(2, 501, 'Apresentação da proposta', -1, true, '11');
+  meeting(2, 503, 'Reunião com o RH', -2, true, '13');
+  meeting(2, 504, 'Visita ao cliente', -3, true, '12');
+  meeting(2, 508, 'Reunião de renegociação', -5, true, '12', 'CRM_TODO');
+  meeting(2, 509, 'Reunião de apresentação', 2, false, '13', 'CRM_TODO');
+  meeting(2, 512, 'Alinhamento com o sócio', -0.5, false, '13');
+  meeting(2, 514, 'Reunião de fechamento', -16, true, '12');
+  meeting(2, 514, 'Assinatura do contrato', -20, true, '12');
+  meeting(2, 515, 'Apresentação', -11, true, '13');
+  meeting(2, 513, 'Reunião rápida', -0.2, true, '11');
+  meeting(2, 502, 'Diagnóstico de benefícios', -8, true, '11');
+  meeting(2, 507, 'Reunião inicial', -35, true, '11');
+  meeting(2, 506, 'Reunião com a diretoria', -40, true, '13');
+  meeting(1036, 901, 'Reunião de pós-venda', -1, true, '31');
+  meeting(2, 510, 'Ligar para o cliente', -1, true, '11', 'CRM_TODO'); // não é reunião
 
   // Comercial (campo de usuário) nos cards do processo 1036; um card fica sem comercial.
   items[1036].forEach((it, i) => { it.ufCrm7_COMERCIAL = i === 3 ? null : ['11', '12', '13'][i % 3]; });

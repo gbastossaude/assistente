@@ -47,7 +47,7 @@ export async function sendNotifications({ send, digest, mode }) {
     await chrome.notifications.create(id, {
       type: 'basic', iconUrl: chrome.runtime.getURL('icons/icon128.png'),
       title: `${prefix}${alert.title}`,
-      message: `${card.title}\n${card.stageName} · ${card.responsibleName}${card.commercialField ? ` · Comercial: ${card.commercialName}` : ''}${alert.overdueText ? ` · atraso ${alert.overdueText}` : ''}`,
+      message: `${card.title}\n${card.stageName} · Resp.: ${card.responsibleName}${card.commercialField ? ` · Comercial: ${card.commercialName}` : ''}${alert.overdueText ? ` · atraso ${alert.overdueText}` : ''}`,
       priority: card.priority.level === 'critica' ? 2 : 1
     });
     count++;

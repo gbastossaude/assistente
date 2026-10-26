@@ -1,0 +1,20 @@
+OK   Fila tem colunas separadas de Responsável e Comercial (abriu o card) — Prioridade Card · criado em Etapa Responsável Comercial (abriu o card) Maior atraso Valor
+OK   Cada card mostra o comercial (quem abriu o card) — 18 cards
+OK   Responsável e comercial podem ser pessoas diferentes — Elisa Prado (fictícia) × Carla Nunes (fictícia)
+OK   Coluna do comercial visível na largura da gaveta (1040 px)
+OK   Cada card mostra data de criação e há quantos dias foi criado — Criado em 26/09/2026 · há 30 dias
+OK   Idade calculada corretamente (Hotel Mirante criado há 30 dias) — Criado em 26/09/2026 · há 30 dias
+OK   Ordenar por "criados há mais tempo" — 40, 30, 25, 20, 20, 15
+OK   Detalhe do card traz "Criado em" e o comercial
+OK   Painel mostra o ranking de reuniões do mês
+OK   Fluxo das etapas mostra o valor de cada etapa — Em cotação 5 R$ 174.400 | Aguardando retorno da operadora 3 R$ 25.400 | Proposta apresentada 2 R$ 101.700 | Enviado para assinatura 1 R$ 22.500 | Aguardando assinatura 2 R$ 16.000 | Em digitação 2 R$ 48.000 | Pendência de documentos 1 R$ 20.300 | Em análise 1 R$ 27.600 | Aguardando boleto 1 R$ 49.900 | Aguardando implantação 2 R$ 23.700 | Solicitação recebida 1 sem valor | Em atendimento 2 sem valor | Aguardando operadora 1 sem valor
+OK   Valor da etapa = soma dos valores dos cards dela — Valor: R$ 174.400 = 174400
+OK   Tabela da etapa tem Responsável, Comercial, Criado em e Valor — Card Responsável Comercial (abriu o card) Criado em Valor Na etapa há SLA da etapa Próxima atividade Alertas 
+OK   Ranking (últimos 30 dias) liderado por quem mais realizou reuniões — 🥇 1º Bruno Teixeira (fictício) 5 0 0 4 5
+OK   Totais do período: realizadas, agendadas e pendentes — Reuniões realizadas 10 concluídas no período Agendadas 0 ainda vão acontecer no período Pendentes 1 passaram do horário 
+OK   Agrupar por responsável pela reunião — 🥇 1º Bruno Teixeira (fictício) 4 0 0 3 4
+OK   Exportação CSV do ranking (sem células de fórmula) — 1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;26/09/2026 15:45;26/10/2026 15:44
+OK   Configuração "contar cards ganhos/perdidos" altera o ranking — Reuniões realizadas 7 concluídas no período Agendadas 0 aind
+OK   Sem erros de console
+
+18/18 verificações OK

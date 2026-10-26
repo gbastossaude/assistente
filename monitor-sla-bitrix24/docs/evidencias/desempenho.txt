@@ -1,0 +1,17 @@
+# Desempenho — medições locais (Node 22, mesma máquina), dados FICTÍCIOS
+
+## Análise (tools/bench.mjs: cards com até 400 dias, regras em horário comercial)
+Versão 1.4.0 (antes): 300 cards = 9468 ms · 1500 cards = 50108 ms (mediana de 3)
+Versão 1.5.0 (agora):
+{"cards":300,"repeticoes":5,"msMediana":36,"msMin":27,"comAlerta":294,"slaVencido":290,"tamanhoAnaliseKB":1139}
+{"cards":1500,"repeticoes":5,"msMediana":145,"msMin":129,"comAlerta":1482,"slaVencido":1464,"tamanhoAnaliseKB":5724}
+Resultado da análise idêntico ao da versão 1.4.0 (comparação campo a campo de 200 cards: prioridade, status de SLA, alertas, atrasos e vencimentos).
+
+## Sincronização (tools/bench-sync.mjs: portal simulado, 250 ms de latência por requisição, limite de 2 req/s)
+Versão 1.4.0 (antes): completa 8.76 s / 18 requisições · incremental 2.76 s / 6 requisições
+Versão 1.5.0 sem o ranking de reuniões (mesma carga da 1.4):
+{"etapa":"completa (primeira)","segundos":4.26,"requisicoes":18,"status":"ok","cards":24}
+{"etapa":"incremental","segundos":1.01,"requisicoes":6,"status":"ok","cards":24}
+Versão 1.5.0 com o ranking de reuniões (padrão):
+{"etapa":"completa (primeira)","segundos":6.75,"requisicoes":23,"status":"ok","cards":24}
+{"etapa":"incremental","segundos":1.01,"requisicoes":6,"status":"ok","cards":24}

@@ -2,6 +2,7 @@
 // parada, interação e prazo começam vazias e são definidas pelo usuário.
 import { DEFAULT_RELEVANT_PROVIDERS } from './interactions.js';
 import { DEFAULT_PRIORITY } from './priority.js';
+import { DEFAULT_MEETINGS } from './meetings.js';
 
 export const CONFIG_VERSION = 1;
 
@@ -68,6 +69,7 @@ export function defaultConfig() {
     badge: { count: 'atraso' },   // 'atraso' | 'alta' | 'critica' | 'todos'
     sync: { intervalMinutes: 15, fullRefreshHours: 6 },
     privacy: { storeActivitySubject: true },
+    meetings: structuredClone(DEFAULT_MEETINGS), // ranking automático de reuniões
     analytics: { minSample: 5 }
   };
 }
@@ -84,6 +86,7 @@ export function mergeConfig(saved) {
     sync: { ...d.sync, ...(saved.sync || {}) },
     privacy: { ...d.privacy, ...(saved.privacy || {}) },
     analytics: { ...d.analytics, ...(saved.analytics || {}) },
+    meetings: { ...d.meetings, ...(saved.meetings || {}) },
     badge: { ...d.badge, ...(saved.badge || {}) },
     priority: { ...d.priority, ...(saved.priority || {}), weights: { ...d.priority.weights, ...(saved.priority?.weights || {}) },
       levels: { ...d.priority.levels, ...(saved.priority?.levels || {}) } }
@@ -120,23 +123,27 @@ export function effectiveMonitored(config) {
   return list;
 }
 
-const COMMERCIAL_RE = /comercial|vendedor|vendedora|consultor|consultora|corretor|corretora|executivo de vendas|closer/i;
+/** Comercial padrão: a pessoa que abriu (criou) o card no Bitrix — campo nativo `createdBy`. */
+export const CREATOR_FIELD = 'createdBy';
+export const CREATOR_LABEL = 'Quem abriu o card (Criado por)';
 
 /**
- * Campo que identifica o Comercial do card. Usa a escolha do usuário; sem escolha, procura um campo do
- * tipo usuário cujo nome indique o comercial (ex.: "Comercial", "Vendedor", "Consultor").
- * `field: ''` explícito desativa.
+ * Campo que identifica o Comercial do card. Sem escolha do usuário, o comercial é quem abriu o card
+ * (`createdBy`), mostrado em coluna própria, separado do responsável atual. O usuário pode escolher outro
+ * campo de usuário do processo; `field: ''` explícito desativa.
  */
 export function commercialFieldFor(config, meta, etid) {
   const chosen = config.commercialFields?.[etid];
   if (chosen && chosen.field === '') return null;
-  if (chosen?.field) return { field: chosen.field, label: chosen.label || chosen.field, auto: false };
-  const fields = meta?.fields?.[etid];
-  if (!fields) return null;
-  const hits = Object.entries(fields).filter(([k, f]) => f.type === 'user' && !['assignedById', 'createdBy', 'updatedBy', 'movedBy', 'lastActivityBy'].includes(k) && (COMMERCIAL_RE.test(f.title || '') || COMMERCIAL_RE.test(k)));
-  if (!hits.length) return null;
-  hits.sort((a, b) => (/comercial/i.test(b[1].title) - /comercial/i.test(a[1].title)));
-  return { field: hits[0][0], label: hits[0][1].title, auto: true };
+  if (chosen?.field && chosen.field !== CREATOR_FIELD) return { field: chosen.field, label: chosen.label || chosen.field, auto: false, creator: false };
+  return { field: CREATOR_FIELD, label: CREATOR_LABEL, auto: !chosen, creator: true };
+}
+
+/** IDs de usuário do comercial de um card normalizado (pode haver mais de um num campo múltiplo). */
+export function commercialIdsOf(card, cf) {
+  if (!cf) return [];
+  const raw = cf.creator ? (card.createdById ?? card.fields?.[CREATOR_FIELD]) : card.fields?.[cf.field];
+  return [].concat(raw ?? []).map(String).filter(v => v && v !== '0' && v !== 'null');
 }
 
 export function newId() {

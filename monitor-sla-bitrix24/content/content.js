@@ -88,7 +88,7 @@
     .tab .n { background: #B42318; border-radius: 999px; min-width: 20px; padding: 2px 5px; text-align: center; font-size: 11px; }
     .tab .n.ok { background: #157F3D; } .tab .n.warn { background: #C2410C; } .tab .n.off { background: #64748B; }
     .tab .n.hide { display: none; }
-    .drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(640px, 100vw); background: #F4F6F8; box-shadow: -8px 0 30px rgba(0,0,0,.25);
+    .drawer { position: fixed; top: 0; right: 0; height: 100vh; width: min(1040px, 100vw); background: #F4F6F8; box-shadow: -8px 0 30px rgba(0,0,0,.25);
       transform: translateX(105%); transition: transform .2s ease; display: flex; flex-direction: column; }
     .drawer.open { transform: none; }
     .bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #0F4C5C; color: #fff; font: 600 13px system-ui, sans-serif; }

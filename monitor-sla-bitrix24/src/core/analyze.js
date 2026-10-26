@@ -2,8 +2,9 @@
 // resumo operacional e métricas históricas (somente quando há dados suficientes).
 import { analyzeCard, cardLink, ALERT_TYPES } from './detect.js';
 import { scoreCard, valueThreshold, mergePriority, LEVEL_LABEL } from './priority.js';
-import { normalizeCalendar, measure, durationToMinutes } from './time.js';
-import { effectiveMonitored, commercialFieldFor } from './config.js';
+import { normalizeCalendar, measure, durationToMinutes, calendarDaysBetween } from './time.js';
+import { effectiveMonitored, commercialFieldFor, commercialIdsOf } from './config.js';
+import { buildMeetingRankings } from './meetings.js';
 
 const LEVEL_ORDER = { critica: 0, alta: 1, media: 2, baixa: 3 };
 
@@ -26,8 +27,9 @@ function teamsOf(meta, config, userId) {
 function commercialOf(card, meta, config) {
   const cf = commercialFieldFor(config, meta, card.entityTypeId);
   if (!cf) return { commercialIds: [], commercialName: null, commercialField: null };
-  const ids = [].concat(card.fields?.[cf.field] ?? []).map(String).filter(v => v && v !== '0');
-  return { commercialIds: ids, commercialName: ids.length ? ids.map(id => userName(meta, id)).join(', ') : 'Sem comercial', commercialField: cf.label };
+  const ids = commercialIdsOf(card, cf);
+  return { commercialIds: ids, commercialName: ids.length ? ids.map(id => userName(meta, id)).join(', ') : 'Sem comercial',
+    commercialField: cf.label, commercialIsCreator: !!cf.creator };
 }
 
 export function analyze(ds, config, now = Date.now(), opts = {}) {
@@ -69,6 +71,7 @@ export function analyze(ds, config, now = Date.now(), opts = {}) {
       ...commercialOf(card, meta, config),
       teams: teamsOf(meta, config, card.assignedById),
       opportunity: Number(card.opportunity) || 0, currency: card.currencyId || 'BRL',
+      createdTime: card.createdTime ?? null, ageDays: calendarDaysBetween(card.createdTime, now, ncal.timezone),
       alerts: r.alerts, priority: pr,
       lastInteraction: r.lastInteraction ? { ...r.lastInteraction, authorName: userName(meta, r.lastInteraction.authorId) } : null,
       ignoredEvidence: r.ignoredEvidence,
@@ -105,8 +108,10 @@ export function analyze(ds, config, now = Date.now(), opts = {}) {
     const m = new Map();
     for (const c of cards) {
       const k = keyFn(c);
-      const e = m.get(k) || { key: k, name: nameFn(c), cards: 0, comAlerta: 0, comAtraso: 0, criticos: 0, alertas: 0 };
+      const e = m.get(k) || { key: k, name: nameFn(c), cards: 0, comAlerta: 0, comAtraso: 0, criticos: 0, alertas: 0, valor: {} };
       e.cards++;
+      // Valor em aberto por moeda (moedas diferentes nunca são somadas entre si).
+      if (c.opportunity > 0) e.valor[c.currency] = (e.valor[c.currency] || 0) + c.opportunity;
       const act = active(c);
       if (act.length) e.comAlerta++;
       if (act.some(isOverdue)) e.comAtraso++;
@@ -150,6 +155,7 @@ export function analyze(ds, config, now = Date.now(), opts = {}) {
   return {
     generatedAt: now, mode: ds.mode, cards, queue: withAlerts.map(c => c.key), kpis, distributions, summary,
     historical: historical(ds, config, cards, now, ncal),
+    meetings: buildMeetingRankings(ds, config, now),
     levelLabel: LEVEL_LABEL
   };
 }

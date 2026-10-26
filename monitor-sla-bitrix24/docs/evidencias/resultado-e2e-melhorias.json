@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Fila tem colunas separadas de Responsável e Comercial (abriu o card)",
+    "ok": true,
+    "detail": "Prioridade Card · criado em Etapa Responsável Comercial (abriu o card) Maior atraso Valor"
+  },
+  {
+    "name": "Cada card mostra o comercial (quem abriu o card)",
+    "ok": true,
+    "detail": "18 cards"
+  },
+  {
+    "name": "Responsável e comercial podem ser pessoas diferentes",
+    "ok": true,
+    "detail": "Elisa Prado (fictícia) × Carla Nunes (fictícia)"
+  },
+  {
+    "name": "Coluna do comercial visível na largura da gaveta (1040 px)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "Cada card mostra data de criação e há quantos dias foi criado",
+    "ok": true,
+    "detail": "Criado em 26/09/2026 · há 30 dias"
+  },
+  {
+    "name": "Idade calculada corretamente (Hotel Mirante criado há 30 dias)",
+    "ok": true,
+    "detail": "Criado em 26/09/2026 · há 30 dias"
+  },
+  {
+    "name": "Ordenar por \"criados há mais tempo\"",
+    "ok": true,
+    "detail": "40, 30, 25, 20, 20, 15"
+  },
+  {
+    "name": "Detalhe do card traz \"Criado em\" e o comercial",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "Painel mostra o ranking de reuniões do mês",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "Fluxo das etapas mostra o valor de cada etapa",
+    "ok": true,
+    "detail": "Em cotação 5 R$ 174.400 | Aguardando retorno da operadora 3 R$ 25.400 | Proposta apresentada 2 R$ 101.700 | Enviado para assinatura 1 R$ 22.500 | Aguardando assinatura 2 R$ 16.000 | Em digitação 2 R$ 48.000 | Pendência de documentos 1 R$ 20.300 | Em análise 1 R$ 27.600 | Aguardando boleto 1 R$ 49.900 | Aguardando implantação 2 R$ 23.700 | Solicitação recebida 1 sem valor | Em atendimento 2 sem valor | Aguardando operadora 1 sem valor"
+  },
+  {
+    "name": "Valor da etapa = soma dos valores dos cards dela",
+    "ok": true,
+    "detail": "Valor: R$ 174.400 = 174400"
+  },
+  {
+    "name": "Tabela da etapa tem Responsável, Comercial, Criado em e Valor",
+    "ok": true,
+    "detail": "Card Responsável Comercial (abriu o card) Criado em Valor Na etapa há SLA da etapa Próxima atividade Alertas "
+  },
+  {
+    "name": "Ranking (últimos 30 dias) liderado por quem mais realizou reuniões",
+    "ok": true,
+    "detail": "🥇 1º Bruno Teixeira (fictício) 5 0 0 4 5"
+  },
+  {
+    "name": "Totais do período: realizadas, agendadas e pendentes",
+    "ok": true,
+    "detail": "Reuniões realizadas 10 concluídas no período Agendadas 0 ainda vão acontecer no período Pendentes 1 passaram do horário "
+  },
+  {
+    "name": "Agrupar por responsável pela reunião",
+    "ok": true,
+    "detail": "🥇 1º Bruno Teixeira (fictício) 4 0 0 3 4"
+  },
+  {
+    "name": "Exportação CSV do ranking (sem células de fórmula)",
+    "ok": true,
+    "detail": "1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;26/09/2026 15:45;26/10/2026 15:44"
+  },
+  {
+    "name": "Configuração \"contar cards ganhos/perdidos\" altera o ranking",
+    "ok": true,
+    "detail": "Reuniões realizadas 7 concluídas no período Agendadas 0 aind"
+  },
+  {
+    "name": "Sem erros de console",
+    "ok": true,
+    "detail": ""
+  }
+]

@@ -105,9 +105,11 @@ h3 { font-size: 14px; font-weight: 650; }
 .queue { display: grid; gap: 8px; }
 .qrow { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--low); border-radius: 10px; box-shadow: var(--shadow); }
 .qrow.critica { border-left-color: var(--crit); } .qrow.alta { border-left-color: var(--high); } .qrow.media { border-left-color: var(--mid); }
-.qhead { display: grid; grid-template-columns: 86px minmax(0, 2.2fr) minmax(0, 1.5fr) minmax(0, 1fr) 120px 110px auto; gap: 12px; align-items: center;
+.qhead, .qcols { display: grid; grid-template-columns: 78px minmax(0, 2.6fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) 92px 92px auto; gap: 12px; align-items: center;
   padding: 10px 12px; cursor: pointer; }
+.qcols { cursor: default; padding: 0 16px 0 16px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
 .qhead .title { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qhead .sub.created { color: var(--text); opacity: .8; }
 .qhead .sub { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
 .chip { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
@@ -165,12 +167,16 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 1100px) {
   .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grid2, .grid3 { grid-template-columns: 1fr; }
-  .qhead { grid-template-columns: 80px minmax(0, 1fr) auto; }
-  .qhead .c-stage, .qhead .c-resp, .qhead .c-over, .qhead .c-val { display: none; }
-  .qhead .c-mobile { display: block; }
   .qdetail { grid-template-columns: 1fr; }
 }
-@media (min-width: 1101px) { .qhead .c-mobile { display: none; } }
+/* fila em colunas a partir de 940 px (a gaveta dentro do Bitrix tem até 1040 px) */
+@media (max-width: 939px) {
+  .qhead { grid-template-columns: 80px minmax(0, 1fr) auto; }
+  .qhead .c-stage, .qhead .c-resp, .qhead .c-com, .qhead .c-over, .qhead .c-val { display: none; }
+  .qhead .c-mobile { display: block; white-space: normal; }
+  .qcols { display: none; }
+}
+@media (min-width: 940px) { .qhead .c-mobile { display: none; } }
 @media (max-width: 720px) {
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cfg { grid-template-columns: 1fr; }
@@ -203,6 +209,7 @@ body.embed .cfgnav button, .cfgnav button { white-space: nowrap; }
 .flowstep { display: grid; gap: 1px; text-decoration: none; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; min-width: 96px; }
 .flowstep .fname { font-size: 11.5px; color: var(--muted); font-weight: 600; }
 .flowstep .fnum { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.flowstep .fval { font-size: 11.5px; color: var(--brand-2); font-weight: 650; }
 .flowstep .fbad { font-size: 11px; color: var(--crit); font-weight: 650; }
 .flowstep.has { border-color: var(--line-2); background: var(--surface); }
 .flowstep.bad { border-color: color-mix(in srgb, var(--crit) 50%, var(--line)); background: var(--crit-soft); }
@@ -221,3 +228,11 @@ details.stage[open] > summary h3::before { content: '▾ '; }
   details.stage td:first-child::before { display: none; }
 }
 .tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .tabs button { white-space: nowrap; flex: none; }
+
+/* ranking de reuniões */
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 2px; }
+.seg button { border: 0; background: none; padding: 5px 10px; border-radius: 8px; cursor: pointer; color: var(--muted); font-weight: 550; font-size: 12.5px; }
+.seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+table.rank tr.top td { background: color-mix(in srgb, var(--ok-soft) 55%, transparent); }
+table.rank .track { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; display: flex; min-width: 60px; }
+table.rank .track i { display: block; height: 100%; }

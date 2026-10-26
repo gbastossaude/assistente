@@ -16,7 +16,7 @@ export const PROVIDER_LABELS = {
   CRM_TODO: 'Atividade', VOXIMPLANT_CALL: 'Ligação', CALL_LIST: 'Lista de chamadas', CRM_MEETING: 'Reunião',
   CRM_EMAIL: 'E-mail', IMOPENLINES_SESSION: 'Canal aberto', TASKS_TASK: 'Tarefa', CRM_SMS: 'SMS',
   CRM_BIZPROC_WORKFLOW: 'Fluxo de trabalho', CRM_WEBFORM: 'Formulário', CRM_NOTIFICATION: 'Notificação',
-  CONFIGURABLE_REST_APP: 'Atividade de aplicativo', CRM_BOOKING: 'Agendamento'
+  CONFIGURABLE_REST_APP: 'Atividade de aplicativo', CRM_BOOKING: 'Agendamento', CRM_CALENDAR_SHARING: 'Reunião pelo calendário'
 };
 
 export function providerLabel(p) { return PROVIDER_LABELS[p] || p || 'Atividade'; }

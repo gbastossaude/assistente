@@ -115,13 +115,20 @@ export class BitrixClient {
    * Webhook: { webhookUrl }. Login do Bitrix: { origin, transport } — `transport(method, params)` devolve
    * { status, text } e é executado dentro de uma aba do portal (mesma origem, com a sessão do usuário).
    */
-  constructor({ webhookUrl, origin, transport, fetchImpl, requestsPerSecond = 2, maxRetries = 5, maxWaitMs = 20000,
+  constructor({ webhookUrl, origin, transport, fetchImpl, requestsPerSecond = 2, burst, maxRetries = 5, maxWaitMs = 20000,
     sleep = sleepDefault, allowLocalHttp = false, onRequest } = {}) {
     this.transport = transport || null;
     this.mode = transport ? 'login' : 'webhook';
     this.wh = transport ? { origin, base: null } : parseWebhook(webhookUrl, { allowLocalHttp });
     this.fetch = fetchImpl || ((...a) => fetch(...a));
-    this.minInterval = 1000 / Math.max(0.5, requestsPerSecond);
+    this.rate = Math.max(0.5, requestsPerSecond);
+    this.minInterval = 1000 / this.rate;
+    // Balde do limite do Bitrix24 ("leaky bucket"): o portal aceita uma rajada inicial e depois
+    // escoa no ritmo do plano (2 req/s no padrão, bloqueio a partir de 50 pendentes; 5 req/s e 250 no
+    // Enterprise). A rajada usada aqui fica bem abaixo do bloqueio, para sobrar folga ao próprio portal.
+    this.burst = Math.max(1, Math.floor(burst ?? (this.rate >= 5 ? 25 : 10)));
+    this.level = 0;
+    this.levelAt = 0;
     this.maxRetries = maxRetries;
     this.maxWaitMs = maxWaitMs;
     this.sleep = sleep;
@@ -134,11 +141,23 @@ export class BitrixClient {
 
   get origin() { return this.wh.origin; }
 
-  /** Serializa requisições respeitando o intervalo mínimo (sem chamadas paralelas). */
+  /**
+   * Reserva a vez da próxima requisição respeitando o balde: até `burst` requisições seguidas sem espera
+   * e, depois disso, no ritmo do plano. As vagas são concedidas em ordem (fila).
+   */
   _slot() {
     const p = this.queue.then(async () => {
-      const wait = this.lastAt + this.minInterval - Date.now();
-      if (wait > 0) await this.sleep(wait);
+      const t = Date.now();
+      this.level = Math.max(0, this.level - ((t - this.levelAt) / 1000) * this.rate);
+      this.levelAt = t;
+      const wait = ((this.level + 1 - this.burst) / this.rate) * 1000;
+      if (wait > 0) {
+        await this.sleep(wait);
+        const t2 = Date.now();
+        this.level = Math.max(0, this.level - ((t2 - this.levelAt) / 1000) * this.rate);
+        this.levelAt = t2;
+      }
+      this.level += 1;
       this.lastAt = Date.now();
     });
     this.queue = p.catch(() => {});

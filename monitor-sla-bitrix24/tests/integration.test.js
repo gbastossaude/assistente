@@ -245,23 +245,32 @@ test('página de foco: aceita URL completa, caminho ou link de card', async () =
   assert.equal(normalizeFocusPage('https://crm.hub-bnk.com/stream/'), null);
 });
 
-test('comercial: campo detectado automaticamente, mostrado por card e na distribuição', async () => {
+test('comercial: por padrão é quem abriu o card (createdBy), em campo separado do responsável', async () => {
   const { commercialFieldFor } = await import('../src/core/config.js');
   const mock = createMockPortal({ now: NOW });
   const cfg = demoConfig(NOW);
   const { ds } = await syncData({ client: fastClient(mock), config: cfg, ds: emptyDataset(), now: NOW });
-  assert.deepEqual(commercialFieldFor(cfg, ds.meta, 1036), { field: 'ufCrm7_COMERCIAL', label: 'Comercial', auto: true });
-  assert.equal(commercialFieldFor(cfg, ds.meta, 2), null, 'negócios do demo não têm campo de comercial');
+  assert.equal(commercialFieldFor(cfg, ds.meta, 1036).field, 'createdBy');
+  assert.equal(commercialFieldFor(cfg, ds.meta, 2).field, 'createdBy');
+  assert.ok(mock.state.methods['crm.item.list'] > 0);
   const a = analyze(ds, cfg, NOW);
-  const spa = a.cards.filter(c => c.entityTypeId === 1036);
-  assert.ok(spa.every(c => c.commercialField === 'Comercial'));
+  for (const c of a.cards) {
+    const raw = mock.data.items[c.entityTypeId].find(r => r.id === c.id);
+    assert.deepEqual(c.commercialIds, [raw.createdBy], `card ${c.key}: comercial = criador`);
+    assert.equal(c.commercialIsCreator, true);
+    assert.notEqual(c.commercialName, 'Sem comercial');
+  }
+  assert.ok(a.cards.some(c => c.commercialIds[0] !== c.responsibleId), 'há cards com comercial diferente do responsável');
+  assert.ok(a.distributions.byCommercial.length > 0);
+  // escolha manual de outro campo de usuário e desativação
+  const manual = { ...cfg, commercialFields: { 1036: { field: 'ufCrm7_COMERCIAL', label: 'Comercial' } } };
+  assert.deepEqual(commercialFieldFor(manual, ds.meta, 1036), { field: 'ufCrm7_COMERCIAL', label: 'Comercial', auto: false, creator: false });
+  const r2 = await syncData({ client: fastClient(mock), config: manual, ds, now: NOW + 60000 });
+  const a2 = analyze(r2.ds, manual, NOW + 60000);
+  const spa = a2.cards.filter(c => c.entityTypeId === 1036);
   assert.ok(spa.some(c => c.commercialName === 'Ana Ribeiro (fictícia)'));
   assert.ok(spa.some(c => c.commercialName === 'Sem comercial'));
-  assert.ok(a.distributions.byCommercial.length > 0);
-  // escolha manual e desativação
-  assert.equal(commercialFieldFor({ ...cfg, commercialFields: { 1036: { field: 'createdBy', label: 'Criado por' } } }, ds.meta, 1036).field, 'createdBy');
   assert.equal(commercialFieldFor({ ...cfg, commercialFields: { 1036: { field: '' } } }, ds.meta, 1036), null);
-  // detecção pelo código do campo quando o título é o próprio código
-  const meta2 = { fields: { 1050: { ufCrm12_COMERCIAL: { type: 'user', title: 'ufCrm12_COMERCIAL' }, assignedById: { type: 'user', title: 'Responsável' } } } };
-  assert.equal(commercialFieldFor({}, meta2, 1050).field, 'ufCrm12_COMERCIAL');
 });
+
+

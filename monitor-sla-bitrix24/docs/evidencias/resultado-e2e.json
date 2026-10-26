@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-26T16:26:44.837Z",
+  "at": "2026-10-26T18:45:05.269Z",
   "results": [
     {
       "name": "Extensão carregada (service worker MV3 ativo)",
       "ok": true,
-      "detail": "agikhelpmbliiojmkglhndcoilgmicme"
+      "detail": "mgpdobjbmnggkjoonmnpkdhdnegjcedo"
     },
     {
       "name": "Tela inicial sem configuração",
@@ -19,7 +19,7 @@
     {
       "name": "Indicadores exibidos",
       "ok": true,
-      "detail": "Cards monitorados 24 18 com algum alerta Cards com atraso 14 prazo, atividade, SLA ou parado SLA vencido 10 10 etapa · 1 processo Próximos do vencimento 3 aviso"
+      "detail": "Cards monitorados 24 18 com algum alerta Cards com atraso 15 prazo, atividade, SLA ou parado SLA vencido 12 12 etapa · 1 processo Próximos do vencimento 3 aviso"
     },
     {
       "name": "Fila priorizada com cards",
@@ -34,7 +34,7 @@
     {
       "name": "Contador no ícone da extensão",
       "ok": true,
-      "detail": "badge = 14"
+      "detail": "badge = 15"
     },
     {
       "name": "Detalhe mostra prazo aplicado, atraso e motivo da prioridade",
@@ -49,17 +49,17 @@
     {
       "name": "Filtro por gravidade",
       "ok": true,
-      "detail": "9 críticos"
+      "detail": "10 críticos"
     },
     {
       "name": "Busca por texto",
       "ok": true,
-      "detail": ""
+      "detail": "campo de busca mantém o foco"
     },
     {
       "name": "Silenciar reduz o contador do ícone",
       "ok": true,
-      "detail": "14 → 13"
+      "detail": "15 → 14"
     },
     {
       "name": "Central de alertas",
@@ -129,7 +129,7 @@
     {
       "name": "Sincronização via HTTP com o portal simulado",
       "ok": true,
-      "detail": "Cards monitorados 13 8 com algum alerta Cards com atraso 5 prazo, atividade, SLA ou parado SLA vencido 2 2 etapa · 0 pro"
+      "detail": "Cards monitorados 13 8 com algum alerta Cards com atraso 6 prazo, atividade, SLA ou parado SLA vencido 2 2 etapa · 0 pro"
     },
     {
       "name": "Modo real não mostra selo de demonstração",
