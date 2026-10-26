@@ -1,0 +1,81 @@
+{
+  "at": "2026-10-26T16:26:21.767Z",
+  "results": [
+    {
+      "name": "Processo da página identificado pelos links dos cards",
+      "ok": true,
+      "detail": "{\"entityTypeId\":1036,\"linkPath\":\"/page/besmart/besmart_saude/type/1036/details/{id}/\",\"links\":5,\"source\":\"links\"}"
+    },
+    {
+      "name": "Monitoramento restrito ao processo da página",
+      "ok": true,
+      "detail": "[{\"categoryIds\":[7],\"entityTypeId\":1036}]"
+    },
+    {
+      "name": "Regras de SLA mostram só os funis desse processo",
+      "ok": true,
+      "detail": "Pós-venda e Assessoria › Atendimento ao cliente"
+    },
+    {
+      "name": "Somente as oportunidades da página foram analisadas",
+      "ok": true,
+      "detail": "Cards monitorados 4 3 com algum alerta Cards com atraso 2 prazo, atividade, SLA ou parado "
+    },
+    {
+      "name": "Links abrem o card dentro da página be.smart Saúde",
+      "ok": true,
+      "detail": "http://127.0.0.1:8792/page/besmart/besmart_saude/type/1036/details/903/"
+    },
+    {
+      "name": "Negócios e outros tipos não aparecem no painel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Visão Etapas mostra o fluxo e os 4 cards abertos com tempo na etapa",
+      "ok": true,
+      "detail": "Solicitação recebida 1 › Em atendimento 2 › Aguardando operadora 1"
+    },
+    {
+      "name": "Etapas mostram o comercial ao lado do responsável",
+      "ok": true,
+      "detail": "Solicitação recebida 1 card(s) SLA: definir · média atual 21h 36min [DEMO] Inclusão de dependente — Empresa Fictícia A #901 Fábio Lima (fict"
+    },
+    {
+      "name": "Fila mostra o comercial e permite filtrar por ele",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Painel tem distribuição \"Por comercial\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Leads não aparecem em nenhuma tela",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Tela de escopo indica o foco",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Trocar a página de foco sem identificar o processo suspende o monitoramento",
+      "ok": true,
+      "detail": "{\"fp\":\"/page/besmart/generico/\",\"et\":null}"
+    },
+    {
+      "name": "Identifica o processo também com links no formato /crm/type/N/details/",
+      "ok": true,
+      "detail": "{\"fromPage\":\"/page/besmart/generico/\",\"linkPath\":\"/crm/type/1036/details/{id}/\"}"
+    },
+    {
+      "name": "Sem erros de script",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "errors": []
+}

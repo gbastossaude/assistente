@@ -1,0 +1,17 @@
+OK   Processo da página identificado pelos links dos cards — {"entityTypeId":1036,"linkPath":"/page/besmart/besmart_saude/type/1036/details/{id}/","links":5,"source":"links"}
+OK   Monitoramento restrito ao processo da página — [{"categoryIds":[7],"entityTypeId":1036}]
+OK   Regras de SLA mostram só os funis desse processo — Pós-venda e Assessoria › Atendimento ao cliente
+OK   Somente as oportunidades da página foram analisadas — Cards monitorados 4 3 com algum alerta Cards com atraso 2 prazo, atividade, SLA ou parado 
+OK   Links abrem o card dentro da página be.smart Saúde — http://127.0.0.1:8792/page/besmart/besmart_saude/type/1036/details/903/
+OK   Negócios e outros tipos não aparecem no painel
+OK   Visão Etapas mostra o fluxo e os 4 cards abertos com tempo na etapa — Solicitação recebida 1 › Em atendimento 2 › Aguardando operadora 1
+OK   Etapas mostram o comercial ao lado do responsável — Solicitação recebida 1 card(s) SLA: definir · média atual 21h 36min [DEMO] Inclusão de dependente — Empresa Fictícia A #901 Fábio Lima (fict
+OK   Fila mostra o comercial e permite filtrar por ele
+OK   Painel tem distribuição "Por comercial"
+OK   Leads não aparecem em nenhuma tela
+OK   Tela de escopo indica o foco
+OK   Trocar a página de foco sem identificar o processo suspende o monitoramento — {"fp":"/page/besmart/generico/","et":null}
+OK   Identifica o processo também com links no formato /crm/type/N/details/ — {"fromPage":"/page/besmart/generico/","linkPath":"/crm/type/1036/details/{id}/"}
+OK   Sem erros de script
+
+15/15 verificações OK

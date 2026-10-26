@@ -1,0 +1,71 @@
+{
+  "at": "2026-10-26T16:27:00.792Z",
+  "results": [
+    {
+      "name": "Aba \"SLA\" aparece dentro do Bitrix ao entrar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Gaveta com o painel abre dentro do Bitrix",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Conexão pelo login do Bitrix (sem webhook) leu funis e etapas",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Análise feita com os dados do portal pela sessão",
+      "ok": true,
+      "detail": "Cards monitorados 13 8 com algum alerta Cards com atraso 5 prazo, atividade, SLA ou parado SLA vencido 2 2 eta"
+    },
+    {
+      "name": "Consultas feitas só pela sessão, sem webhook",
+      "ok": true,
+      "detail": "session"
+    },
+    {
+      "name": "Somente leitura no portal",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Contador na aba \"SLA\" atualizado",
+      "ok": true,
+      "detail": "{\"cls\":\"warn\",\"text\":\"5\",\"title\":\"Monitor de SLA — 5 card(s) precisam de atenção\"}"
+    },
+    {
+      "name": "Link do card aponta para o portal e abre na própria página",
+      "ok": true,
+      "detail": "http://127.0.0.1:8790/crm/deal/details/501/ (_top)"
+    },
+    {
+      "name": "Ao entrar de novo no Bitrix, a análise atualiza sozinha",
+      "ok": true,
+      "detail": "6 consultas"
+    },
+    {
+      "name": "Sem login: painel avisa e mantém a última análise",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Bitrix fechado: painel pede para abrir o portal",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Portal que recusa a sessão (WRONG_AUTH_TYPE): orienta usar webhook",
+      "ok": true,
+      "detail": "O portal não permite este tipo de consulta com o login do navegador. Use a conexão por webhook (Configurações › Conexão). [batch: WRONG_AUTH"
+    },
+    {
+      "name": "Sem erros de script",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "errors": []
+}

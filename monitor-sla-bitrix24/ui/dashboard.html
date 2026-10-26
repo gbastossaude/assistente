@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitor de SLA – Bitrix24</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="../icons/icon48.png" alt=""><div>Monitor de SLA <small>Bitrix24</small></div></div>
+    <span id="modePill"></span>
+    <nav class="tabs" id="tabs">
+      <button data-tab="painel" class="on">Painel</button>
+      <button data-tab="etapas">Etapas</button>
+      <button data-tab="alertas">Central de alertas</button>
+      <button data-tab="analises">Análises</button>
+      <button data-tab="config">Configurações</button>
+    </nav>
+    <div class="spacer"></div>
+    <div class="syncinfo" id="syncinfo"></div>
+    <button class="btn" id="btnSync" title="Buscar alterações no Bitrix24 agora">Sincronizar</button>
+  </header>
+  <main class="wrap" id="main"><div class="empty"><h3>Carregando…</h3></div></main>
+  <div class="savebar hidden" id="savebar">
+    <span class="muted">Alterações não salvas</span>
+    <button class="btn" data-act="discard">Descartar</button>
+    <button class="btn primary" data-act="save">Salvar configurações</button>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>

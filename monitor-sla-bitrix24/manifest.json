@@ -1,0 +1,89 @@
+{
+  "manifest_version": 3,
+  "name": "Monitor de SLA – Bitrix24",
+  "short_name": "SLA Bitrix24",
+  "version": "1.4.0",
+  "description": "Monitora cards do Bitrix24 (somente leitura) e mostra, dentro do próprio Bitrix, atrasos, SLAs vencidos, atividades pendentes e cards sem acompanhamento.",
+  "minimum_chrome_version": "116",
+  "action": {
+    "default_popup": "ui/popup.html",
+    "default_title": "Monitor de SLA Bitrix24",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "ui/dashboard.html#config",
+    "open_in_tab": true
+  },
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+  "optional_permissions": [
+    "notifications"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "host_permissions": [
+    "https://crm.hub-bnk.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://crm.hub-bnk.com/*"
+      ],
+      "js": [
+        "content/bridge-main.js"
+      ],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://crm.hub-bnk.com/*"
+      ],
+      "js": [
+        "content/content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://crm.hub-bnk.com/*"
+      ],
+      "js": [
+        "content/detect.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "ui/dashboard.html",
+        "icons/icon32.png"
+      ],
+      "matches": [
+        "https://crm.hub-bnk.com/*"
+      ]
+    }
+  ]
+}

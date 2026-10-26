@@ -20,6 +20,7 @@ const eslintConfig = [
       "next-env.d.ts",
       // Extensão Chrome independente (JS puro, testes próprios com node:test)
       "extensao-bitrix/**",
+      "monitor-sla-bitrix24/**",
     ],
   },
 ];

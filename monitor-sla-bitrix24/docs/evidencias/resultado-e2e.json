@@ -1,0 +1,176 @@
+{
+  "at": "2026-10-26T16:26:44.837Z",
+  "results": [
+    {
+      "name": "Extensão carregada (service worker MV3 ativo)",
+      "ok": true,
+      "detail": "agikhelpmbliiojmkglhndcoilgmicme"
+    },
+    {
+      "name": "Tela inicial sem configuração",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Demonstração carregada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Indicadores exibidos",
+      "ok": true,
+      "detail": "Cards monitorados 24 18 com algum alerta Cards com atraso 14 prazo, atividade, SLA ou parado SLA vencido 10 10 etapa · 1 processo Próximos do vencimento 3 aviso"
+    },
+    {
+      "name": "Fila priorizada com cards",
+      "ok": true,
+      "detail": "18 cards na fila"
+    },
+    {
+      "name": "Primeiro da fila é crítico",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Contador no ícone da extensão",
+      "ok": true,
+      "detail": "badge = 14"
+    },
+    {
+      "name": "Detalhe mostra prazo aplicado, atraso e motivo da prioridade",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Link direto para o card no Bitrix",
+      "ok": true,
+      "detail": "https://demo-ficticio.bitrix24.invalid/crm/deal/details/512/"
+    },
+    {
+      "name": "Filtro por gravidade",
+      "ok": true,
+      "detail": "9 críticos"
+    },
+    {
+      "name": "Busca por texto",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Silenciar reduz o contador do ícone",
+      "ok": true,
+      "detail": "14 → 13"
+    },
+    {
+      "name": "Central de alertas",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Análises com cobertura dos dados",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Tela de regras de SLA",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Popup com prioridades",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Layout responsivo sem rolagem horizontal (390px)",
+      "ok": true,
+      "detail": "excesso 0px"
+    },
+    {
+      "name": "Demonstração separada: sair limpa os dados fictícios",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Endereço do portal pré-preenchido",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Webhook de outro endereço é recusado antes de qualquer chamada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Webhook inválido é recusado com mensagem clara",
+      "ok": true,
+      "detail": "Falha: A autenticação com o Bitrix24 falhou. O webhook pode ter sido excluído, alterado ou o REST pode estar indisponíve"
+    },
+    {
+      "name": "Com foco ativo e processo não identificado, nenhum funil é listado (nem leads)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Leads não aparecem nem sem foco",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Conexão por webhook e leitura de funis/etapas",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Processo de espaço digital adicionado pelo link de um card",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Sincronização via HTTP com o portal simulado",
+      "ok": true,
+      "detail": "Cards monitorados 13 8 com algum alerta Cards com atraso 5 prazo, atividade, SLA ou parado SLA vencido 2 2 etapa · 0 pro"
+    },
+    {
+      "name": "Modo real não mostra selo de demonstração",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Webhook não gravado no armazenamento local (modo sessão)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Webhook mantido apenas na sessão",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Servidor recebeu apenas métodos de leitura",
+      "ok": true,
+      "detail": "crm.type.list, crm.automatedsolution.list, batch, crm.item.fields, crm.item.list, crm.activity.list"
+    },
+    {
+      "name": "Sem credencial: painel diferencia \"não foi possível consultar\"",
+      "ok": true,
+      "detail": "Não foi possível consultar o Bitrix24: Credencial ausente.\nA credencial não está disponível (o Chrome foi reiniciado e e"
+    },
+    {
+      "name": "Ícone sinaliza reconexão necessária",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Apagar tudo remove dados locais",
+      "ok": true,
+      "detail": "inpage"
+    },
+    {
+      "name": "Sem erros de console",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "consoleErrors": []
+}
