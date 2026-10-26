@@ -1,0 +1,15 @@
+{
+  "name": "assistente-pendencias-bitrix",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Extensão Chrome (MV3) somente leitura para análise de pendências e SLA no Bitrix24 crm.hub-bnk.com",
+  "scripts": {
+    "check": "node scripts/check.js",
+    "test": "node --test tests/unit/core.test.js",
+    "test:e2e": "node --test --test-concurrency=1 tests/e2e/extension.e2e.js",
+    "build": "node scripts/check.js && node scripts/build-zip.js"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

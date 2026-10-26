@@ -1,0 +1,3 @@
+﻿Prioridade;ID;Entidade;Nome;Funil;Etapa;Responsável;Valor;Moeda;Pendências;Prazo aplicado;Atraso;Origem da informação;Contagem parcial;Link
+1;101;deal;Clínica Alfa — 120 vidas;Funil 2;Novo contato;Ana Souza;45000,00;BRL;Prazo do card vencido | SLA da etapa vencido | Atividade pendente vencida;05/01/2026 18:00 | 26/10/2026 14:12;293 d 20 h | 45 min;"Campo exibido pelo Bitrix: ""Prazo operacional"" | Contagem parcial desde a observação local | Indicador de atividade exibido pelo Bitrix";sim;https://crm.hub-bnk.com/crm/deal/details/101/
+2;104;deal;Delta Saúde;Funil 2;Cotação;Carla Dias;8500,50;BRL;SLA vencido (sinalizado pelo Bitrix);;;Sinalização exibida pelo Bitrix no card;não;https://crm.hub-bnk.com/crm/deal/details/104/

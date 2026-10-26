@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: manifesto carregado com permissões mínimas
+ok 1 - manifesto carregado com permissões mínimas
+  ---
+  duration_ms: 435.196752
+  type: 'test'
+  ...
+# Subtest: kanban: reconhece cards, pendências nativas e encerrados
+ok 2 - kanban: reconhece cards, pendências nativas e encerrados
+  ---
+  duration_ms: 376.923607
+  type: 'test'
+  ...
+# Subtest: conteúdo malicioso em títulos é exibido como texto e links perigosos são descartados
+ok 3 - conteúdo malicioso em títulos é exibido como texto e links perigosos são descartados
+  ---
+  duration_ms: 83.419017
+  type: 'test'
+  ...
+# Subtest: configuração de SLA no painel aceita 1,25 e rejeita valores inválidos
+ok 4 - configuração de SLA no painel aceita 1,25 e rejeita valores inválidos
+  ---
+  duration_ms: 393.332359
+  type: 'test'
+  ...
+# Subtest: SLA vencido com contagem parcial desde a observação local
+ok 5 - SLA vencido com contagem parcial desde a observação local
+  ---
+  duration_ms: 764.302794
+  type: 'test'
+  ...
+# Subtest: atualização automática: novos cards e movimentação entre etapas
+ok 6 - atualização automática: novos cards e movimentação entre etapas
+  ---
+  duration_ms: 1465.498637
+  type: 'test'
+  ...
+# Subtest: localizar card na página e exportar CSV
+ok 7 - localizar card na página e exportar CSV
+  ---
+  duration_ms: 95.289114
+  type: 'test'
+  ...
+# Subtest: eventos do painel não disparam atalhos do Bitrix; a página continua recebendo cliques
+ok 8 - eventos do painel não disparam atalhos do Bitrix; a página continua recebendo cliques
+  ---
+  duration_ms: 120.285985
+  type: 'test'
+  ...
+# Subtest: navegação interna (pushState) para a lista e leitura do grid
+ok 9 - navegação interna (pushState) para a lista e leitura do grid
+  ---
+  duration_ms: 736.985724
+  type: 'test'
+  ...
+# Subtest: sessão encerrada durante o uso
+ok 10 - sessão encerrada durante o uso
+  ---
+  duration_ms: 734.872089
+  type: 'test'
+  ...
+# Subtest: layout desconhecido, fora do CRM e página de detalhes
+ok 11 - layout desconhecido, fora do CRM e página de detalhes
+  ---
+  duration_ms: 252.168063
+  type: 'test'
+  ...
+# Subtest: iframes: lê o do mesmo domínio e não acessa o de outro domínio
+ok 12 - iframes: lê o do mesmo domínio e não acessa o de outro domínio
+  ---
+  duration_ms: 261.246648
+  type: 'test'
+  ...
+# Subtest: recuperação após atualização da extensão (reinstalação da pasta via CDP)
+ok 13 - recuperação após atualização da extensão (reinstalação da pasta via CDP)
+  ---
+  duration_ms: 503.815945
+  type: 'test'
+  ...
+# Subtest: painel responsivo em tela estreita e minimizável
+ok 14 - painel responsivo em tela estreita e minimizável
+  ---
+  duration_ms: 133.54542
+  type: 'test'
+  ...
+# Subtest: nenhuma chamada externa feita pela extensão
+ok 15 - nenhuma chamada externa feita pela extensão
+  ---
+  duration_ms: 2.448876
+  type: 'test'
+  ...
+# Subtest: extensão desativada/recarregada sem reinjeção: painel antigo avisa e para de processar
+ok 16 - extensão desativada/recarregada sem reinjeção: painel antigo avisa e para de processar
+  ---
+  duration_ms: 2884.375576
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9690.385937

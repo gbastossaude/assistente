@@ -12,6 +12,14 @@ follow-up D0–D7, integrados de planosaude26-rgb.github.io/besmart) e assistent
 > (arquitetura, módulos, modelo de dados, fluxo diário e checklist do módulo comercial),
 > [`PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) e [`REQUIREMENTS_MATRIX.md`](docs/REQUIREMENTS_MATRIX.md).
 
+## Extensão Chrome — Assistente de Pendências no Bitrix24
+
+A pasta [`extensao-bitrix/`](extensao-bitrix) contém uma extensão Chrome independente (Manifest V3, somente
+leitura, sem webhook) que analisa os cards do Bitrix24 em `https://crm.hub-bnk.com` e mostra a fila de pendências
+e SLA dentro da própria página. ZIP pronto: `extensao-bitrix/dist/`. Instalação, configuração e limitações em
+[`extensao-bitrix/README.md`](extensao-bitrix/README.md); evidências em
+[`extensao-bitrix/TESTES.md`](extensao-bitrix/TESTES.md).
+
 ## Stack
 
 Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS 4 + componentes no padrão shadcn/ui (Radix) ·

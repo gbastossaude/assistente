@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Extensão Chrome independente (JS puro, testes próprios com node:test)
+      "extensao-bitrix/**",
     ],
   },
 ];

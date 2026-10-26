@@ -1,0 +1,154 @@
+TAP version 13
+# Subtest: formulário aceita horas fracionárias com vírgula ou ponto
+ok 1 - formulário aceita horas fracionárias com vírgula ou ponto
+  ---
+  duration_ms: 2.252253
+  type: 'test'
+  ...
+# Subtest: valores monetários em formato brasileiro e moeda não presumida
+ok 2 - valores monetários em formato brasileiro e moeda não presumida
+  ---
+  duration_ms: 1.399026
+  type: 'test'
+  ...
+# Subtest: links: somente https do portal dentro de /crm/
+ok 3 - links: somente https do portal dentro de /crm/
+  ---
+  duration_ms: 0.835004
+  type: 'test'
+  ...
+# Subtest: escape de HTML e limpeza de texto
+ok 4 - escape de HTML e limpeza de texto
+  ---
+  duration_ms: 0.396984
+  type: 'test'
+  ...
+# Subtest: funções nativas mantêm o contexto (sem Illegal invocation)
+ok 5 - funções nativas mantêm o contexto (sem Illegal invocation)
+  ---
+  duration_ms: 6.73337
+  type: 'test'
+  ...
+# Subtest: datas brasileiras no fuso de São Paulo (UTC-3)
+ok 6 - datas brasileiras no fuso de São Paulo (UTC-3)
+  ---
+  duration_ms: 21.47829
+  type: 'test'
+  ...
+# Subtest: datas ausentes, inválidas ou ambíguas não são usadas
+ok 7 - datas ausentes, inválidas ou ambíguas não são usadas
+  ---
+  duration_ms: 1.180924
+  type: 'test'
+  ...
+# Subtest: hoje / ontem / amanhã relativos ao fuso configurado
+ok 8 - hoje / ontem / amanhã relativos ao fuso configurado
+  ---
+  duration_ms: 0.490649
+  type: 'test'
+  ...
+# Subtest: conversão de fuso com horário de verão (America/New_York)
+ok 9 - conversão de fuso com horário de verão (America/New_York)
+  ---
+  duration_ms: 1.281543
+  type: 'test'
+  ...
+# Subtest: expediente: fim de semana não conta
+ok 10 - expediente: fim de semana não conta
+  ---
+  duration_ms: 1.738049
+  type: 'test'
+  ...
+# Subtest: expediente: feriados e horas fracionárias
+ok 11 - expediente: feriados e horas fracionárias
+  ---
+  duration_ms: 2.247035
+  type: 'test'
+  ...
+# Subtest: tempo corrido e fim do dia local
+ok 12 - tempo corrido e fim do dia local
+  ---
+  duration_ms: 0.37975
+  type: 'test'
+  ...
+# Subtest: configuração antiga de webhook/token é removida
+ok 13 - configuração antiga de webhook/token é removida
+  ---
+  duration_ms: 0.949736
+  type: 'test'
+  ...
+# Subtest: observação: continuidade, lacunas e mudança de etapa
+ok 14 - observação: continuidade, lacunas e mudança de etapa
+  ---
+  duration_ms: 0.871991
+  type: 'test'
+  ...
+# Subtest: observação: pausa e retorno à etapa retomam a contagem
+ok 15 - observação: pausa e retorno à etapa retomam a contagem
+  ---
+  duration_ms: 0.65152
+  type: 'test'
+  ...
+# Subtest: observação: retenção e saneamento do armazenamento
+ok 16 - observação: retenção e saneamento do armazenamento
+  ---
+  duration_ms: 0.836495
+  type: 'test'
+  ...
+# Subtest: prazo do card vencido (campo configurado) e datas sem ano
+ok 17 - prazo do card vencido (campo configurado) e datas sem ano
+  ---
+  duration_ms: 2.541084
+  type: 'test'
+  ...
+# Subtest: não exibido x não encontrado x sem regra
+ok 18 - não exibido x não encontrado x sem regra
+  ---
+  duration_ms: 0.624856
+  type: 'test'
+  ...
+# Subtest: SLA por observação local: parcial, aviso antecipado e vencido
+ok 19 - SLA por observação local: parcial, aviso antecipado e vencido
+  ---
+  duration_ms: 1.086156
+  type: 'test'
+  ...
+# Subtest: SLA com data de entrada exibida pelo Bitrix (não parcial) e etapa em pausa
+ok 20 - SLA com data de entrada exibida pelo Bitrix (não parcial) e etapa em pausa
+  ---
+  duration_ms: 0.671314
+  type: 'test'
+  ...
+# Subtest: cards finalizados saem da fila (WON/LOSE ou marcação manual)
+ok 21 - cards finalizados saem da fila (WON/LOSE ou marcação manual)
+  ---
+  duration_ms: 0.707485
+  type: 'test'
+  ...
+# Subtest: sinais nativos, valor sem duplicidade e moedas separadas
+ok 22 - sinais nativos, valor sem duplicidade e moedas separadas
+  ---
+  duration_ms: 0.765644
+  type: 'test'
+  ...
+# Subtest: prioridade: proporção do atraso desempata a mesma gravidade
+ok 23 - prioridade: proporção do atraso desempata a mesma gravidade
+  ---
+  duration_ms: 0.670307
+  type: 'test'
+  ...
+# Subtest: CSV neutraliza fórmulas e escapa separadores
+ok 24 - CSV neutraliza fórmulas e escapa separadores
+  ---
+  duration_ms: 0.973111
+  type: 'test'
+  ...
+1..24
+# tests 24
+# suites 0
+# pass 24
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 132.785713

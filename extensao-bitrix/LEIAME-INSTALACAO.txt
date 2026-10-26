@@ -1,0 +1,22 @@
+ASSISTENTE DE PENDÊNCIAS — CRM HUB BNK (Bitrix24)
+Extensão Chrome somente leitura. Sem webhook, token, senha ou servidor.
+
+INSTALAR
+1. Extraia este ZIP numa pasta fixa (não apague a pasta depois).
+2. Chrome > chrome://extensions > ative "Modo do desenvolvedor".
+3. "Carregar sem compactação" > selecione a pasta que contém manifest.json.
+4. Entre normalmente em https://crm.hub-bnk.com e abra o CRM em Kanban ou Lista.
+5. Clique no botão "Pendências" na borda direita da tela.
+
+ATUALIZAR
+1. Extraia o novo ZIP na MESMA pasta, substituindo os arquivos.
+2. chrome://extensions > botão de atualizar (seta circular) no card da extensão.
+3. As abas abertas do Bitrix recebem o novo painel sozinhas; se aparecer aviso, pressione F5.
+
+PRIMEIRO USO
+Aba "Configurar SLA": defina prazos por funil/etapa (aceita 1,25), expediente, feriados,
+etapas de pausa e finalizadas e o campo de prazo do card. Tudo começa desativado (0).
+
+PRIVACIDADE
+Nada sai do navegador. Guardado localmente: configurações e, por card, só ID, etapa e horários de
+observação. Limpeza na aba "Cobertura".
