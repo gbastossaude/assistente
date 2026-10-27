@@ -1,0 +1,192 @@
+{
+  "at": "2026-10-27T22:08:25.184Z",
+  "segundos": 93,
+  "results": [
+    {
+      "name": "Preparação: análise pelo login do Bitrix simulado",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Usuário logado identificado só pelo número (Meus cards)",
+      "ok": true,
+      "detail": "{\"id\":\"11\",\"origin\":\"http://127.0.0.1:8793\"}"
+    },
+    {
+      "name": "Atalho \"Meus cards\" aparece na fila",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "\"Meus cards\" filtra a fila",
+      "ok": true,
+      "detail": "3 de 10"
+    },
+    {
+      "name": "Navegação interna percebida por evento (Navigation API, sem consulta periódica)",
+      "ok": true,
+      "detail": "http://127.0.0.1:8793/crm/deal/details/503/"
+    },
+    {
+      "name": "Lote (batch) com um comando de escrita é bloqueado no script da página",
+      "ok": true,
+      "detail": "escrita: 403, leitura: 200"
+    },
+    {
+      "name": "Comando de teclado abre e fecha a gaveta dentro do Bitrix",
+      "ok": true,
+      "detail": "false → true"
+    },
+    {
+      "name": "Após atualizar a extensão, a aba do Bitrix é religada sem recarregar a página",
+      "ok": true,
+      "detail": "instância mvr8jv → mvr8jx, 1 aba(s) SLA"
+    },
+    {
+      "name": "Service worker registra quantas abas foram religadas",
+      "ok": true,
+      "detail": "{\"at\":1793138816172,\"reason\":\"update\",\"tabs\":1}"
+    },
+    {
+      "name": "Gaveta abre normalmente depois da atualização",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Consulta pelo login funciona depois da atualização, sem recarregar o Bitrix",
+      "ok": true,
+      "detail": "status ok"
+    },
+    {
+      "name": "Segunda aba do Bitrix também tem uma única aba \"SLA\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Fechando a aba usada, a consulta segue pela outra aba aberta",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "Contador da aba \"SLA\" atualizado por mensagem (o script da página não escuta o armazenamento)",
+      "ok": true,
+      "detail": "8"
+    },
+    {
+      "name": "Gaveta fechada não redesenha a cada sincronização; atualiza ao abrir",
+      "ok": true,
+      "detail": "fechada: 0, ao abrir: 1"
+    },
+    {
+      "name": "Portal fora do ar: aviso de falha e últimos dados mantidos",
+      "ok": true,
+      "detail": "A última consulta falhou (27/10 19:07). Falha temporária no servidor do Bitrix24 ou na red · 10 cards"
+    },
+    {
+      "name": "Botão de sincronizar volta a funcionar após a falha",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Portal de volta: sincronização se recupera e o aviso some",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Serviço indisponível (503): para de insistir e agenda nova tentativa",
+      "ok": true,
+      "detail": "erro · Limite de requisições do Bitrix24 atingido (QUERY_LIMIT_EXCEEDED). [crm.item.lis · nova tentativa 22:09"
+    },
+    {
+      "name": "Sem internet: não insiste e mostra \"sem conexão\"",
+      "ok": true,
+      "detail": "sem_conexao"
+    },
+    {
+      "name": "Diagnóstico mostra os erros recentes",
+      "ok": true,
+      "detail": "Versão 1.8.0 Modo Portal real Última sincronização Sem conexão com a internet 27/10/2026 19:08 Abas do Bitrix religadas "
+    },
+    {
+      "name": "Diagnóstico sem credenciais nem sessid",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Histórico de sincronizações com duração, requisições e resultado",
+      "ok": true,
+      "detail": "11 registros"
+    },
+    {
+      "name": "Progresso gravado sem sincronização em andamento é ignorado",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Painel não fica em \"Sincronizando…\" por um progresso antigo",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Atualização em segundo plano não apaga edição não salva",
+      "ok": true,
+      "detail": "valor 37"
+    },
+    {
+      "name": "Atalho 2 abre Etapas",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Atalho / foca a busca",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Busca global leva ao card na fila e abre o detalhe",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Atalho ? mostra a lista de atalhos",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Tema alterna automático → claro → escuro e fica salvo",
+      "ok": true,
+      "detail": "auto → light → dark (escuro)"
+    },
+    {
+      "name": "Popup abre com o resumo gravado (sem ler todos os dados)",
+      "ok": true,
+      "detail": "136 ms, 4 KB"
+    },
+    {
+      "name": "Depois de reiniciar o navegador, o painel abre com a última análise",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Aba \"SLA\" volta sozinha no Bitrix após reiniciar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Etapas com 1.500 cards: desenha 40 por etapa e carrega mais sob demanda",
+      "ok": true,
+      "detail": "200 → 300 linhas"
+    },
+    {
+      "name": "Busca global em 1.500 cards responde rápido",
+      "ok": true,
+      "detail": "85 ms (inclui 80 ms de espera entre teclas)"
+    },
+    {
+      "name": "Sem erros de script nas páginas",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "errors": []
+}

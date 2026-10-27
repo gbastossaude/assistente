@@ -12,10 +12,20 @@ import { demoConfig } from './src/demo/demo-config.js';
 import { updateAlertState, selectNotifications } from './src/alerts/alert-state.js';
 import { updateBadge, sendNotifications } from './src/alerts/notifier.js';
 import * as store from './src/store/storage.js';
+import { logSync, logError, getDiag, clearDiag, sanitizeMessage } from './src/store/diag.js';
 import { newId, effectiveMonitored } from './src/core/config.js';
 
 const ALARM = 'sync';
 let running = null;
+let runningSince = null;
+
+// Um service worker novo nunca herda uma sincronização em andamento (o anterior foi encerrado pelo Chrome):
+// apaga o progresso que tenha ficado gravado, para o painel não mostrar "Sincronizando…" para sempre.
+chrome.storage.session.remove('syncProgress').catch(() => {});
+
+// Erros inesperados ficam no diagnóstico local (mascarados), em vez de sumirem no console.
+self.addEventListener('unhandledrejection', ev => { logError('service-worker', ev.reason); });
+self.addEventListener('error', ev => { logError('service-worker', ev.error || ev.message); });
 
 function dayKey(ts, tz) {
   const p = zonedParts(ts, tz);
@@ -35,6 +45,17 @@ async function bitrixTabs(origin) {
     const tabs = await chrome.tabs.query({ url: `${origin}/*` });
     return tabs.sort((a, b) => (b.active - a.active) || ((b.lastAccessed || 0) - (a.lastAccessed || 0)));
   } catch { return []; }
+}
+
+/**
+ * "Meus cards": guarda só o número do usuário logado no portal (nenhum outro dado pessoal).
+ * O painel só usa quando o portal é o conectado.
+ */
+async function rememberMe(origin, userId) {
+  const uid = /^\d{1,10}$/.test(String(userId ?? '')) ? String(userId) : null;
+  if (!uid || !origin) return;
+  const cur = (await chrome.storage.local.get('me_real')).me_real;
+  if (cur?.id !== uid || cur?.origin !== origin) { await chrome.storage.local.set({ me_real: { id: uid, origin } }); store.bump('view'); }
 }
 
 let preferredTab = null;
@@ -160,6 +181,7 @@ async function postProcess(mode, ds, config, { prevSuccess, notify = true } = {}
 
 async function runSync({ forceFull = false } = {}) {
   if (running) return running;
+  runningSince = Date.now();
   running = (async () => {
    try {
     const mode = await store.getMode();
@@ -167,6 +189,17 @@ async function runSync({ forceFull = false } = {}) {
     const config = mode === 'demo' ? (await store.getConfig('demo')) : await store.getConfig('real');
     await setupAlarm(config);
     let ds = await store.getDataset(mode);
+    // Sem internet: não insiste (cada consulta tentaria 5 vezes); avisa e tenta de novo no próximo ciclo.
+    if (mode === 'real' && self.navigator && self.navigator.onLine === false) {
+      ds.sync.status = 'sem_conexao';
+      ds.sync.errors = [{ at: Date.now(), code: 'OFFLINE', kind: 'temporary', message: 'Sem conexão com a internet. Os números são da última atualização; a extensão tenta de novo sozinha.' }];
+      await store.saveDataset(mode, ds);
+      const an = await store.getAnalysis(mode);
+      if (an) { an.sync = { ...ds.sync }; await store.saveAnalysis(mode, an); }
+      await updateBadge({ analysis: an, mode, syncStatus: 'erro', badgeMode: config.badge.count });
+      logSync({ at: Date.now(), ms: 0, mode, full: forceFull, requests: 0, status: 'sem_conexao', cards: null, comAlerta: null, error: 'sem internet' });
+      return { status: 'sem_conexao' };
+    }
     let client;
     if (mode === 'demo') client = await demoClient();
     else {
@@ -182,21 +215,28 @@ async function runSync({ forceFull = false } = {}) {
         const an = await store.getAnalysis(mode);
         if (an) { an.sync = { ...ds.sync }; await store.saveAnalysis(mode, an); }
         await updateBadge({ analysis: an, mode, syncStatus: r.error });
+        logSync({ at: Date.now(), ms: 0, mode, full: forceFull, requests: 0, status: r.error, cards: null, comAlerta: null, error: ds.sync.errors[0].message });
         return { status: r.error };
       }
       client = r.client;
     }
     const prevSuccess = ds.sync.lastSuccess;
-    await chrome.storage.session.set({ syncProgress: { step: 'inicio', at: Date.now() } });
+    const t0 = Date.now();
+    await chrome.storage.session.set({ syncProgress: { step: 'inicio', at: t0, since: t0 } });
     const res = await syncData({ client, config, ds, forceFull,
-      onProgress: (step, detail) => chrome.storage.session.set({ syncProgress: { step, detail: detail || null, at: Date.now() } }) });
+      onProgress: (step, detail) => chrome.storage.session.set({ syncProgress: { step, detail: detail || null, at: Date.now(), since: t0 } }) });
     ds = res.ds;
     if (res.error && res.error.retryAt) {
       // limite da API: tenta de novo no horário indicado, sem insistir antes
       chrome.alarms.create('retry', { when: Math.max(Date.now() + 60000, res.error.retryAt) });
     }
-    await postProcess(mode, ds, config, { prevSuccess, notify: !res.error });
+    const an = await postProcess(mode, ds, config, { prevSuccess, notify: !res.error });
     await chrome.storage.session.set({ syncProgress: null });
+    const err = ds.sync.errors?.[0];
+    logSync({ at: t0, ms: Date.now() - t0, mode, full: !!res.report?.full, requests: res.report?.requests ?? null, status: ds.sync.status,
+      cards: an?.kpis?.monitorados ?? null, comAlerta: an?.kpis?.comAlerta ?? null, error: res.error ? (err?.message || res.error.message || String(res.error.code || 'erro')) : null });
+    // Bitrix fechado ou sem login são situações esperadas (aparecem no histórico), não erros
+    if (res.error && !['sem_aba', 'sem_sessao'].includes(ds.sync.status)) logError('sincronizacao', err?.message || res.error.message || res.error, { code: err?.code || res.error.code });
     return { status: ds.sync.status, report: res.report };
    } catch (e) {
     // Erro inesperado: registra para o painel não confundir com "nenhuma pendência".
@@ -204,14 +244,17 @@ async function runSync({ forceFull = false } = {}) {
     const mode = (await store.getMode()) || 'real';
     const ds = await store.getDataset(mode);
     ds.sync.status = 'erro';
-    ds.sync.errors = [{ at: Date.now(), code: 'ERRO_INTERNO', kind: 'other', message: String(e?.message || e).slice(0, 300) }];
+    ds.sync.errors = [{ at: Date.now(), code: 'ERRO_INTERNO', kind: 'other', message: sanitizeMessage(e?.message || e) }];
     await store.saveDataset(mode, ds);
     const an = await store.getAnalysis(mode);
     if (an) { an.sync = { ...ds.sync }; await store.saveAnalysis(mode, an); }
+    logError('sincronizacao', e, { code: 'ERRO_INTERNO' });
+    logSync({ at: runningSince, ms: Date.now() - runningSince, mode, full: forceFull, requests: null, status: 'erro', cards: null, comAlerta: null, error: e?.message || String(e) });
     return { status: 'erro', error: ds.sync.errors[0].message };
    }
   })();
-  try { return await running; } finally { running = null; }
+  store.bump('sync');
+  try { return await running; } finally { running = null; runningSince = null; store.bump('sync'); }
 }
 
 async function recompute(mode) {
@@ -220,14 +263,50 @@ async function recompute(mode) {
   return postProcess(mode, ds, config, { prevSuccess: ds.sync.lastSuccess, notify: false });
 }
 
+/**
+ * Depois de instalar ou atualizar, as abas do Bitrix que já estavam abertas ficam com o script antigo, desligado
+ * da extensão: a aba "SLA" para de responder e a análise pelo login não encontra a aba até a página ser recarregada.
+ * Reinjeta os scripts nessas abas (o script novo remove a interface do antigo), sem recarregar a página.
+ */
+async function reinjectContentScripts() {
+  const scripts = chrome.runtime.getManifest().content_scripts || [];
+  const matches = [...new Set(scripts.flatMap(c => c.matches || []))];
+  let tabs = [];
+  try { tabs = await chrome.tabs.query({ url: matches }); } catch { return 0; }
+  let n = 0;
+  for (const t of tabs) {
+    if (!t.id || t.discarded) continue; // aba descartada recarrega sozinha ao ser aberta
+    let ok = true;
+    for (const c of scripts) {
+      try {
+        await chrome.scripting.executeScript({ target: { tabId: t.id, allFrames: !!c.all_frames }, files: c.js, world: c.world === 'MAIN' ? 'MAIN' : 'ISOLATED' });
+      } catch { ok = false; } // página de erro ou sem acesso: o script volta quando ela for recarregada
+    }
+    if (ok) n++;
+  }
+  return n;
+}
+
 // ---------- eventos ----------
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   const mode = await store.getMode();
   if (mode) await setupAlarm(await store.getConfig(mode));
   await updateBadge({ analysis: mode ? await store.getAnalysis(mode) : null, mode });
+  if (reason === 'install' || reason === 'update') {
+    const n = await reinjectContentScripts();
+    await chrome.storage.session.set({ reinjected: { at: Date.now(), tabs: n, reason } });
+  }
 });
 chrome.runtime.onStartup.addListener(() => { runSync().catch(() => {}); });
 chrome.alarms.onAlarm.addListener(a => { if (a.name === ALARM || a.name === 'retry') runSync().catch(() => {}); });
+
+// Atalho de teclado (chrome://extensions/shortcuts): abre/fecha o painel dentro do Bitrix; fora dele, abre o painel numa aba.
+chrome.commands?.onCommand?.addListener(async command => {
+  if (command !== 'toggle-drawer') return;
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const r = tab?.id ? await chrome.tabs.sendMessage(tab.id, { type: 'slaToggleDrawer' }).catch(() => null) : null;
+  if (!r?.ok) await chrome.tabs.create({ url: chrome.runtime.getURL('ui/dashboard.html') });
+});
 
 chrome.notifications?.onClicked?.addListener(async id => {
   const t = (await chrome.storage.session.get('notifTargets')).notifTargets || {};
@@ -238,31 +317,54 @@ chrome.notifications?.onClicked?.addListener(async id => {
 });
 
 const handlers = {
-  async getState() {
+  /**
+   * Estado para as telas. Lê só o resumo leve dos dados (view_*), nunca o conjunto completo.
+   * Com { lite: true } não inclui a análise: o painel a lê direto do armazenamento, uma vez por mudança.
+   */
+  async getState({ lite } = {}) {
     const mode = await store.getMode();
     const m = mode || 'real';
-    const [config, analysis, ds, webhook, prog] = await Promise.all([store.getConfig(m), store.getAnalysis(m), store.getDataset(m),
-      store.getWebhook(), chrome.storage.session.get('syncProgress')]);
+    const [config, analysis, view, webhook, sess, me] = await Promise.all([store.getConfig(m), lite ? null : store.getAnalysis(m), store.getView(m),
+      store.getWebhook(), chrome.storage.session.get(['syncProgress', 'lastBitrixUrl', 'lastPageTypes', 'reinjected']), chrome.storage.local.get('me_real')]);
     let hasPermission = false;
     if (config.portalOrigin && m === 'real') {
       try { hasPermission = await chrome.permissions.contains({ origins: [`${config.portalOrigin}/*`] }); } catch { /* */ }
     }
-    const providers = {};
-    for (const list of Object.values(ds.activities || {})) for (const a of list) providers[a.providerId] = (providers[a.providerId] || 0) + 1;
-    const userIds = new Set(Object.values(ds.cards || {}).map(c => c.assignedById));
+    const meId = m === 'real' && me.me_real?.origin === config.portalOrigin ? me.me_real.id : null;
     return {
-      mode, config, analysis, sync: ds.sync, meta: { entities: ds.meta.entities, categories: ds.meta.categories, stages: ds.meta.stages,
-        fields: ds.meta.fields, users: ds.meta.users, departments: ds.meta.departments },
+      mode, config, ...(lite ? {} : { analysis }), sync: view.sync, meta: view.meta,
       connection: { origin: config.portalOrigin, authMode: config.authMode || null, hasCredential: config.authMode === 'login' ? true : !!webhook,
         persisted: config.credentialMode === 'persist', hasPermission,
         bitrixTabs: config.portalOrigin ? (await bitrixTabs(config.portalOrigin)).length : 0 },
-      lastBitrixUrl: (await chrome.storage.session.get('lastBitrixUrl')).lastBitrixUrl || null,
-      lastPageTypes: (await chrome.storage.session.get('lastPageTypes')).lastPageTypes || null,
-      observedProviders: providers, monitoredUserIds: [...userIds], syncing: !!running, progress: prog.syncProgress || null,
-      alertState: { snoozed: ds.alertState?.snoozed || {} },
+      lastBitrixUrl: sess.lastBitrixUrl || null,
+      lastPageTypes: sess.lastPageTypes || null,
+      observedProviders: view.observedProviders, monitoredUserIds: view.monitoredUserIds,
+      // progresso só vale com uma sincronização de fato em andamento neste service worker
+      syncing: !!running, progress: running ? (sess.syncProgress || { step: 'inicio', at: runningSince, since: runningSince }) : null,
+      alertState: { snoozed: view.snoozed || {} },
+      me: meId ? { id: meId, name: view.meta.users?.[meId]?.name || null } : null,
+      version: chrome.runtime.getManifest().version,
       notificationsPermission: await chrome.permissions.contains({ permissions: ['notifications'] })
     };
   },
+
+  /** Popup: só indicadores e os primeiros cards da fila (resumo gravado a cada análise). */
+  async getSummary() {
+    const mode = await store.getMode();
+    const m = mode || 'real';
+    const [config, view, summary] = await Promise.all([store.getConfig(m), store.getView(m), store.getSummary(m)]);
+    return { mode, syncing: !!running, sync: view.sync, summary, portalOrigin: config.portalOrigin || null,
+      timezone: config.calendar?.timezone || 'America/Sao_Paulo', version: chrome.runtime.getManifest().version };
+  },
+
+  async getDiagnostics() {
+    const mode = await store.getMode();
+    const [diag, sess] = await Promise.all([getDiag(), chrome.storage.session.get('reinjected')]);
+    return { ok: true, ...diag, mode, version: chrome.runtime.getManifest().version, reinjected: sess.reinjected || null, syncing: !!running };
+  },
+  async clearDiagnostics() { await clearDiag(); return { ok: true }; },
+  /** Erros das telas da extensão (mascarados antes de gravar). */
+  async logError({ where, message }) { await logError(`tela:${String(where || '').slice(0, 30)}`, message); return { ok: true }; },
 
   /** Testa o webhook e carrega a estrutura. A permissão do domínio é pedida antes, pela página. */
   async connect({ webhookUrl, persist, requestsPerSecond }) {
@@ -276,7 +378,7 @@ const handlers = {
       const config = await store.getConfig('real');
       const { meta, warnings } = await loadStructure(client, { manualTypes: config.portalOrigin === wh.origin ? config.cardTypes : {} });
       if (config.portalOrigin && config.portalOrigin !== wh.origin) {
-        await chrome.storage.local.remove(['ds_real', 'an_real']); // outro portal: descarta cache anterior
+        await chrome.storage.local.remove(['ds_real', 'an_real', 'view_real', 'summary_real', 'me_real']); // outro portal: descarta cache anterior
         config.monitored = [];
       }
       config.portalOrigin = wh.origin;
@@ -317,7 +419,7 @@ const handlers = {
     const client = new BitrixClient({ origin, transport: loginTransport(origin), requestsPerSecond: config.requestsPerSecond || 2 });
     try {
       const { meta, warnings } = await loadStructure(client, { manualTypes: config.portalOrigin === origin ? config.cardTypes : {} });
-      if (config.portalOrigin && config.portalOrigin !== origin) { await chrome.storage.local.remove(['ds_real', 'an_real']); config.monitored = []; config.cardTypes = {}; }
+      if (config.portalOrigin && config.portalOrigin !== origin) { await chrome.storage.local.remove(['ds_real', 'an_real', 'view_real', 'summary_real', 'me_real']); config.monitored = []; config.cardTypes = {}; }
       config.portalOrigin = origin;
       config.portalAddress = origin;
       config.authMode = 'login';
@@ -329,6 +431,10 @@ const handlers = {
       await store.saveDataset('real', ds);
       await store.setMode('real');
       await setupAlarm(config);
+      for (const t of (await bitrixTabs(origin)).slice(0, 1)) {
+        const ping = await chrome.tabs.sendMessage(t.id, { type: 'slaPing' }).catch(() => null);
+        if (ping?.loggedIn) await rememberMe(origin, ping.userId);
+      }
       const pending = (await chrome.storage.session.get('pendingFocus')).pendingFocus
         || (await chrome.storage.session.get('lastPageTypes')).lastPageTypes;
       const focus = pending ? await applyFocus(pending) : { applied: false };
@@ -340,12 +446,13 @@ const handlers = {
   },
 
   /** O script do Bitrix avisa que o portal foi aberto: atualiza a análise se estiver desatualizada. */
-  async bitrixOpened({ url, loggedIn }, sender) {
+  async bitrixOpened({ url, loggedIn, userId }, sender) {
     await chrome.storage.session.set({ lastBitrixUrl: url });
+    let origin; try { origin = new URL(url).origin; } catch { return { ok: true }; }
+    if (loggedIn) await rememberMe(origin, userId);
     const mode = await store.getMode();
     if (mode !== 'real' || !loggedIn) return { ok: true };
     const config = await store.getConfig('real');
-    let origin; try { origin = new URL(url).origin; } catch { return { ok: true }; }
     if (config.authMode !== 'login' || origin !== config.portalOrigin) return { ok: true };
     if (sender?.tab?.id) preferredTab = sender.tab.id;
     const ds = await store.getDataset('real');
@@ -485,7 +592,7 @@ const handlers = {
   },
 
   async exitDemo() {
-    await chrome.storage.local.remove(['ds_demo', 'an_demo', 'config_demo', 'demoAnchor']);
+    await chrome.storage.local.remove(['ds_demo', 'an_demo', 'view_demo', 'summary_demo', 'config_demo', 'demoAnchor']);
     const cfg = await store.getConfig('real');
     await store.setMode(cfg.portalOrigin ? 'real' : null);
     const an = cfg.portalOrigin ? await store.getAnalysis('real') : null;
@@ -498,7 +605,7 @@ const handlers = {
     const cfg = await store.getConfig('real');
     await store.clearWebhook();
     if (cfg.portalOrigin) { try { await chrome.permissions.remove({ origins: [`${cfg.portalOrigin}/*`] }); } catch { /* */ } }
-    if (wipe) await chrome.storage.local.remove(['ds_real', 'an_real']);
+    if (wipe) await chrome.storage.local.remove(['ds_real', 'an_real', 'view_real', 'summary_real', 'me_real']);
     cfg.portalOrigin = wipe ? null : cfg.portalOrigin;
     await store.saveConfig('real', cfg);
     const mode = await store.getMode();
@@ -527,6 +634,9 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (sender.id !== chrome.runtime.id || !msg || !handlers[msg.type]) return false;
   const fromExtensionPage = (sender.url || '').startsWith(`chrome-extension://${chrome.runtime.id}/`);
   if (!fromExtensionPage && !FROM_PAGE.has(msg.type)) return false;
-  handlers[msg.type](msg, sender).then(reply, e => reply({ ok: false, error: e?.message || String(e) }));
+  handlers[msg.type](msg, sender).then(reply, e => {
+    logError(`acao:${msg.type}`, e);
+    reply({ ok: false, error: sanitizeMessage(e?.message || e) });
+  });
   return true;
 });

@@ -1,5 +1,8 @@
 // Painel principal: indicadores, fila priorizada, central de alertas, análises e configurações.
-import { send, esc, fmtDT, fmtAgo, fmtMoney, fmtDate, fmtAge, fmtMoneyMap, LEVELS, STATUS_TEXT, downloadCsv } from './common.js';
+// Os dados chegam por eventos: o service worker grava um aviso pequeno (uiRev) a cada mudança e o painel
+// relê só o que mudou — sem consultar de tempos em tempos e sem receber o conjunto de dados inteiro.
+import { send, esc, fmtDT, fmtAgo, fmtMoney, fmtDate, fmtAge, fmtMoneyMap, LEVELS, STATUS_TEXT, downloadCsv, getTheme, setTheme, applyTheme, THEMES } from './common.js';
+import { icon } from './icons.js';
 import { PERIODS, GROUPS, DEFAULT_MEETINGS } from '../src/core/meetings.js';
 import { CLOSED_PERIODS, DEFAULT_CLOSED_STUDY, reasonFieldFor } from '../src/core/closed.js';
 import { ALERT_TYPES } from '../src/core/detect.js';
@@ -9,61 +12,243 @@ import { newId, defaultConfig, mergeConfig, DEFAULT_PORTAL, DEFAULT_FOCUS_PAGE, 
 import { fmtMinutes } from '../src/core/time.js';
 import { parseWebhook, normalizePortal } from '../src/integration/bitrix-client.js';
 
-let S = null;          // estado vindo do service worker
+let S = null;          // estado vindo do service worker (+ análise lida do armazenamento)
 let cfg = null;        // cópia editável da configuração
 let dirty = false;
 const QUEUE_PAGE = 150; // linhas desenhadas por vez na fila (o restante sob demanda)
+const STAGE_PAGE = 40;  // linhas por etapa na aba Etapas (o restante sob demanda)
+const pref = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
+const savePref = (k, v) => { try { localStorage.setItem(k, v); } catch { /* preferência só desta sessão */ } };
+const EMPTY_F = () => ({ q: '', resp: '', com: '', team: '', cat: '', stage: '', type: '', level: '', snoozed: false, me: false, novos: false, key: '' });
 const ui = {
   tab: 'painel', cfgTab: 'conexao', expanded: new Set(), queueLimit: QUEUE_PAGE, mt: { period: 'mes', group: null }, cs: { period: '90d', type: '', com: '', sort: 'encerramento', limit: 150 },
-  f: { q: '', resp: '', com: '', team: '', cat: '', stage: '', type: '', level: '', snoozed: false }, sort: 'criacao',
-  dir: (() => { try { return localStorage.getItem('ordemCriacao') === 'recentes' ? 'recentes' : 'antigos'; } catch { return 'antigos'; } })()
+  f: { ...EMPTY_F(), me: pref('meusCards', '0') === '1' }, sort: 'criacao', stLimit: {}, stOpen: {}, stFocus: null,
+  dir: pref('ordemCriacao', 'antigos') === 'recentes' ? 'recentes' : 'antigos'
 };
+const TABS = ['painel', 'etapas', 'reunioes', 'encerrados', 'alertas', 'analises', 'config'];
 const $ = s => document.querySelector(s);
 const EMBED = new URLSearchParams(location.search).get('embed') === '1';
 if (EMBED) document.body.classList.add('embed');
 const LT = EMBED ? '_top' : '_blank'; // dentro do Bitrix, os links abrem o card na própria página
 const main = $('#main');
 const tz = () => (S?.config?.calendar?.timezone) || 'America/Sao_Paulo';
+// "Novos desde a sua última visita": alertas detectados depois da visita anterior a este painel
+const PREV_VISIT = Number(pref('ultimaVisita', '')) || null;
+const markVisit = () => savePref('ultimaVisita', String(Date.now()));
 
 // ---------------------------------------------------------------- carregamento
-async function load({ keepCfg = false } = {}) {
-  S = await send('getState');
-  if (!keepCfg || !cfg) { cfg = structuredClone(S.config); dirty = false; }
-  render();
+let loadSeq = 0, lastLoadAt = 0;
+let anCache = { key: null, data: null };
+async function readAnalysis(mode) {
+  const key = mode === 'demo' ? 'an_demo' : 'an_real';
+  return (await chrome.storage.local.get(key))[key] || null;
 }
-function toast(msg, ms = 3500) {
-  const t = $('#toast'); t.textContent = msg; t.classList.remove('hidden');
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.add('hidden'), ms);
+/** Lê o estado; a análise (a parte grande) só é relida quando ela mudou. Respostas atrasadas são descartadas. */
+async function load({ keepCfg = false, reasons = null, background = false } = {}) {
+  const seq = ++loadSeq;
+  const st = await send('getState', { lite: true });
+  // Só começou/terminou uma sincronização (sem dados novos): atualiza o indicador, não redesenha a tela.
+  if (reasons && S?.analysis && reasons.every(r => r === 'sync')) {
+    if (seq !== loadSeq) return;
+    Object.assign(S, { syncing: st.syncing, progress: st.progress, sync: st.sync });
+    lastLoadAt = Date.now();
+    renderSyncInfo(); armWatchdog();
+    return;
+  }
+  const key = st.mode === 'demo' ? 'an_demo' : 'an_real';
+  const needAn = !reasons || reasons.includes('analysis') || reasons.includes('mode') || anCache.key !== key;
+  const an = needAn ? await readAnalysis(st.mode) : anCache.data;
+  if (seq !== loadSeq) return; // uma leitura mais nova já está a caminho
+  anCache = { key, data: an };
+  st.analysis = an;
+  S = st;
+  lastLoadAt = Date.now();
+  // Em segundo plano, a decisão de manter a edição é tomada agora (a pessoa pode ter começado a editar
+  // enquanto a leitura estava a caminho): configuração com alterações não salvas nunca é sobrescrita.
+  const keep = background ? dirty : keepCfg;
+  if (!keep || !cfg) { cfg = structuredClone(S.config); dirty = false; }
+  // A tela de configurações não usa a análise: se só ela mudou, atualiza o topo e não mexe no formulário.
+  if (background && ui.tab === 'config' && reasons && !reasons.some(r => ['view', 'config', 'mode'].includes(r))) {
+    renderSyncInfo(); renderBadges(); armWatchdog();
+    return;
+  }
+  render({ background });
+  armWatchdog();
 }
-chrome.storage.onChanged.addListener((ch, area) => {
-  if (area === 'local' && (ch.an_real || ch.an_demo || ch.mode || ch.config_real)) load({ keepCfg: dirty });
-  if (area === 'session' && ch.syncProgress) renderSyncInfo(ch.syncProgress.newValue);
+
+// Fora de vista (aba em segundo plano ou gaveta do Bitrix fechada) o painel não relê nada: atualiza ao voltar.
+let drawerOpen = true;
+const inView = () => document.visibilityState === 'visible' && drawerOpen;
+addEventListener('message', e => {
+  if (!EMBED || e.source !== window.parent || e.data?.type !== 'slaDrawer' || typeof e.data.open !== 'boolean') return;
+  drawerOpen = e.data.open;
+  if (drawerOpen && pendingReasons.size) scheduleLoad([]);
 });
 
+let pendingReasons = new Set(), evTimer = null;
+function scheduleLoad(reasons) {
+  for (const r of reasons || ['analysis']) pendingReasons.add(r);
+  clearTimeout(evTimer);
+  if (!inView() || !pendingReasons.size) return;
+  evTimer = setTimeout(() => {
+    const r = [...pendingReasons];
+    pendingReasons = new Set();
+    load({ keepCfg: dirty, reasons: r, background: true }).catch(e => reportError('atualizacao', e));
+  }, 120);
+}
+chrome.storage.session.onChanged.addListener(ch => {
+  if (ch.syncProgress && S) {
+    S.progress = ch.syncProgress.newValue || null;
+    if (S.progress) S.syncing = true;
+    renderSyncInfo();
+    armWatchdog();
+  }
+  if (ch.uiRev) scheduleLoad(ch.uiRev.newValue?.reasons);
+});
+// Rede de segurança: se uma sincronização parar de dar sinal (service worker encerrado), relê o estado.
+let watchdog = null;
+function armWatchdog() {
+  clearTimeout(watchdog);
+  if (S?.syncing) watchdog = setTimeout(() => load({ keepCfg: dirty, background: true }).catch(() => {}), 90000);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') markVisit();
+  else if (pendingReasons.size) scheduleLoad([]);
+  else if (S && Date.now() - lastLoadAt > 60000) load({ keepCfg: dirty, background: true }).catch(() => {});
+});
+addEventListener('pagehide', markVisit);
+
+// ---------------------------------------------------------------- avisos flutuantes e erros
+function toast(msg, opt = 3500) {
+  const o = typeof opt === 'number' ? { ms: opt } : opt;
+  const type = o.type || (/^(Falha|Erro|A sincronização não foi concluída|Arquivo inválido|Permissão)/.test(msg) ? 'err' : '');
+  const box = $('#toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.setAttribute('role', type === 'err' ? 'alert' : 'status');
+  el.innerHTML = `${icon(type === 'err' ? 'alert' : type === 'ok' ? 'check' : 'info')}<span style="flex:1">${esc(msg)}</span><button type="button" aria-label="Fechar aviso">${icon('close')}</button>`;
+  el.querySelector('button').addEventListener('click', () => el.remove());
+  box.appendChild(el);
+  while (box.children.length > 3) box.firstElementChild.remove();
+  setTimeout(() => el.remove(), o.ms || 3500);
+}
+/** Erros nunca somem em silêncio: aparecem na tela e ficam no diagnóstico (mascarados). */
+function reportError(where, err) {
+  const msg = err?.message || String(err || 'Erro desconhecido');
+  toast(`Erro: ${msg}`, { type: 'err', ms: 8000 });
+  send('logError', { where, message: msg }).catch(() => {});
+}
+addEventListener('error', e => reportError('script', e.error || e.message));
+addEventListener('unhandledrejection', e => reportError('promessa', e.reason));
+
 // ---------------------------------------------------------------- topo
-function renderSyncInfo(progress) {
+function renderSyncInfo() {
   const el = $('#syncinfo');
   if (!S) return;
   const s = S.sync || {};
   const st = STATUS_TEXT[s.status] || s.status || '';
-  const prog = progress !== undefined ? progress : S.progress;
-  if (prog) { el.innerHTML = `<b>Sincronizando…</b><br>${esc(stepText(prog.step))}${prog.detail ? ' · ' + esc(prog.detail) : ''}`; return; }
-  el.innerHTML = `<b>${esc(st)}</b><br>Última consulta bem-sucedida: ${s.lastSuccess ? `${fmtDT(s.lastSuccess, tz())} (${fmtAgo(s.lastSuccess)})` : 'nenhuma'}`;
+  const prog = S.progress;
+  const busy = !!(prog || S.syncing);
+  $('#progress').classList.toggle('hidden', !busy);
+  const btn = $('#btnSync');
+  btn.disabled = !S.mode || busy;
+  btn.setAttribute('aria-busy', String(busy));
+  if (busy) {
+    el.innerHTML = `<span class="dot run"></span><span class="txt"><b>Sincronizando…</b><br>${esc(stepText(prog?.step || 'inicio'))}${prog?.detail ? ' · ' + esc(prog.detail) : ''}</span>`;
+    return;
+  }
+  const cls = s.status === 'ok' ? 'ok' : ['parcial', 'sem_aba', 'sem_sessao', 'sem_conexao'].includes(s.status) ? 'warn'
+    : ['erro', 'auth_error', 'sem_credencial', 'sem_permissao'].includes(s.status) ? 'err' : '';
+  el.innerHTML = `<span class="dot ${cls}"></span><span class="txt"><b>${esc(st)}</b><br>Última consulta bem-sucedida: ${s.lastSuccess
+    ? `<span title="${fmtDT(s.lastSuccess, tz(), true)}">${fmtAgo(s.lastSuccess)}</span>` : 'nenhuma'}</span>`;
 }
+setInterval(() => { if (document.visibilityState === 'visible') renderSyncInfo(); }, 60000); // "há N min" sem reler nada
 function stepText(s) {
   return { inicio: 'iniciando', estrutura: 'lendo funis e etapas', cards: 'lendo cards', historico: 'lendo histórico de etapas',
     atividades: 'lendo atividades', comentarios: 'lendo comentários', usuarios: 'lendo usuários', reunioes: 'lendo reuniões', encerrados: 'lendo cards encerrados' }[s] || s;
 }
 
-function render() {
-  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === ui.tab));
+function render({ background = false } = {}) {
+  if (!S) return;
+  const keep = snapshotFocus();
+  const typed = background ? snapshotInputs() : null;
+  document.querySelectorAll('#tabs button').forEach(b => { const on = b.dataset.tab === ui.tab; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
   $('#modePill').innerHTML = S.mode === 'demo' ? '<span class="pill demo">DEMONSTRAÇÃO · DADOS FICTÍCIOS</span>' : '';
   renderSyncInfo();
-  $('#btnSync').disabled = !S.mode || S.syncing;
+  renderBadges();
   $('#savebar').classList.toggle('hidden', !(ui.tab === 'config' && dirty));
   const html = ui.tab === 'painel' ? renderPainel() : ui.tab === 'etapas' ? renderEtapas() : ui.tab === 'reunioes' ? renderReunioes() : ui.tab === 'encerrados' ? renderEncerrados()
     : ui.tab === 'alertas' ? renderAlertas() : ui.tab === 'analises' ? renderAnalises() : renderConfig();
   main.innerHTML = html;
+  main.setAttribute('aria-busy', 'false');
+  if (typed) restoreInputs(typed);
+  restoreFocus(keep, background);
+  fillDiag();
+}
+
+/** Atualizações em segundo plano não podem tirar o cursor do campo em que a pessoa está digitando. */
+function snapshotFocus() {
+  const a = document.activeElement;
+  const out = { y: window.scrollY, sel: null };
+  if (!a || !main.contains(a)) return out;
+  out.sel = a.dataset.filter ? `[data-filter="${a.dataset.filter}"]` : a.dataset.bind ? `[data-bind="${CSS.escape(a.dataset.bind)}"]`
+    : a.id ? `#${CSS.escape(a.id)}` : a.dataset.act ? `[data-act="${CSS.escape(a.dataset.act)}"]${a.dataset.etid ? `[data-etid="${CSS.escape(a.dataset.etid)}"]` : ''}` : null;
+  try { out.s0 = a.selectionStart; out.s1 = a.selectionEnd; } catch { /* campo sem seleção */ }
+  return out;
+}
+/** Campos sem vínculo com a configuração (endereço do portal, webhook, busca…): o que foi digitado sobrevive. */
+function snapshotInputs() {
+  const out = [];
+  for (const el of main.querySelectorAll('input[id], select[id], textarea[id], input[data-filter="q"]')) {
+    if (el.type === 'file') continue;
+    out.push([el.id ? `#${CSS.escape(el.id)}` : '[data-filter="q"]', el.type === 'checkbox' ? el.checked : el.value, el.type]);
+  }
+  // mensagens de resultado de uma ação (ex.: "Falha: credencial inválida") também ficam
+  for (const el of main.querySelectorAll('[id$="Result"]')) if (el.innerHTML.trim()) out.push([`#${CSS.escape(el.id)}`, el.innerHTML, 'html']);
+  return out;
+}
+function restoreInputs(list) {
+  for (const [sel, v, type] of list) {
+    const el = main.querySelector(sel);
+    if (!el) continue;
+    if (type === 'html') { if (!el.innerHTML.trim()) el.innerHTML = v; }
+    else if (type === 'checkbox') { if (el.checked !== v) { el.checked = v; el.dispatchEvent(new Event('change', { bubbles: true })); } }
+    else if (el.value !== v) el.value = v;
+  }
+}
+function restoreFocus(st, background) {
+  if (st.sel) {
+    const el = main.querySelector(st.sel);
+    if (el) { el.focus({ preventScroll: true }); try { if (st.s0 != null) el.setSelectionRange(st.s0, st.s1); } catch { /* */ } }
+  }
+  if (background && Math.abs(window.scrollY - st.y) > 1) window.scrollTo(0, st.y);
+}
+
+const TAB_ICON = { painel: 'painel', etapas: 'etapas', reunioes: 'reunioes', encerrados: 'encerrados', alertas: 'alertas', analises: 'analises', config: 'config' };
+function initShell() {
+  for (const b of document.querySelectorAll('#tabs button')) {
+    const label = b.textContent.trim();
+    b.innerHTML = `${icon(TAB_ICON[b.dataset.tab])}<span>${esc(label)}</span><span class="badge" data-badge="${b.dataset.tab}"></span>`;
+  }
+  $('#gsIco').innerHTML = icon('search');
+  $('#btnHelp').innerHTML = icon('keyboard');
+  $('#btnSync').innerHTML = `${icon('sync')}<span>Sincronizar</span>`;
+  paintThemeButton();
+}
+function isNew(a) { return !!(PREV_VISIT && a.firstSeen && a.firstSeen > PREV_VISIT); }
+function renderBadges() {
+  const A = S?.analysis, now = Date.now();
+  const set = (tab, n, cls, title) => {
+    const el = document.querySelector(`[data-badge="${tab}"]`);
+    if (!el) return;
+    el.textContent = n ? (n > 999 ? '999+' : String(n)) : '';
+    el.className = `badge ${cls || ''}`;
+    el.title = n ? title : '';
+  };
+  if (!A || !S.sync?.lastSuccess) { TABS.forEach(t => set(t, 0)); return; }
+  set('painel', A.kpis.comAtraso, 'crit', `${A.kpis.comAtraso} card(s) em atraso`);
+  const novos = A.cards.reduce((n, c) => n + c.alerts.filter(a => isNew(a) && !(a.snoozedUntil > now)).length, 0);
+  set('alertas', novos, 'new', `${novos} alerta(s) novos desde a sua última visita`);
 }
 
 // ---------------------------------------------------------------- avisos de estado
@@ -71,32 +256,35 @@ function banners() {
   const out = [];
   const s = S.sync || {};
   if (S.mode === 'demo') {
-    out.push(`<div class="banner demo"><div><div class="t">Modo demonstração — todos os cards, pessoas, empresas e prazos são fictícios.</div>
+    out.push(`<div class="banner demo">${icon('info')}<div><div class="t">Modo demonstração — todos os cards, pessoas, empresas e prazos são fictícios.</div>
       <div class="small">Os dados vêm de um portal simulado embutido na extensão, separado da conexão real. Nenhuma informação do seu Bitrix24 é usada aqui.
       <button class="link" data-act="exit-demo">Sair da demonstração</button></div></div></div>`);
   }
   if (S.mode === 'real' && ['auth_error', 'sem_credencial', 'sem_permissao'].includes(s.status)) {
-    out.push(`<div class="banner err"><div><div class="t">Não foi possível consultar o Bitrix24: ${esc(STATUS_TEXT[s.status])}.</div>
+    out.push(`<div class="banner err">${icon('alert')}<div><div class="t">Não foi possível consultar o Bitrix24: ${esc(STATUS_TEXT[s.status])}.</div>
       <div class="small">${esc(s.errors?.[0]?.message || '')} <button class="link" data-act="goto-conn">Reconectar</button></div></div></div>`);
   } else if (S.mode === 'real' && ['sem_aba', 'sem_sessao'].includes(s.status)) {
-    out.push(`<div class="banner warn"><div><div class="t">${s.status === 'sem_aba' ? 'O Bitrix24 está fechado.' : 'Você não está logado no Bitrix24.'}</div>
+    out.push(`<div class="banner warn">${icon('info')}<div><div class="t">${s.status === 'sem_aba' ? 'O Bitrix24 está fechado.' : 'Você não está logado no Bitrix24.'}</div>
       <div class="small">A análise usa o seu login do Bitrix e atualiza quando o portal está aberto.
       ${s.lastSuccess ? `Os números abaixo são da última atualização (${fmtDT(s.lastSuccess, tz())}).` : ''}
       ${S.connection.origin ? `<a href="${esc(S.connection.origin)}/" target="${LT}" rel="noopener noreferrer">Abrir o Bitrix24</a>` : ''}</div></div></div>`);
+  } else if (s.status === 'sem_conexao') {
+    out.push(`<div class="banner warn">${icon('info')}<div><div class="t">Sem conexão com a internet.</div>
+      <div class="small">${s.lastSuccess ? `Os números abaixo são da última atualização (${fmtDT(s.lastSuccess, tz())}).` : ''} A extensão tenta de novo sozinha quando a conexão voltar.</div></div></div>`);
   } else if (s.status === 'erro') {
     const e = s.errors?.[0] || {};
-    out.push(`<div class="banner err"><div><div class="t">A última consulta falhou${e.at ? ` (${fmtDT(e.at, tz())})` : ''}.</div>
+    out.push(`<div class="banner err">${icon('alert')}<div><div class="t">A última consulta falhou${e.at ? ` (${fmtDT(e.at, tz())})` : ''}.</div>
       <div class="small">${esc(e.message || '')}${e.retryAt ? ` Nova tentativa automática às ${fmtDT(e.retryAt, tz())}.` : ''}
       ${s.lastSuccess ? ` Os números abaixo são da última sincronização bem-sucedida (${fmtDT(s.lastSuccess, tz())}) e podem estar desatualizados.` : ''}</div></div></div>`);
   }
   if ((s.warnings || []).length && s.status !== 'erro') {
-    out.push(`<div class="banner warn"><div><div class="t">Sincronização com ressalvas (${s.warnings.length})</div>
+    out.push(`<div class="banner warn">${icon('info')}<div><div class="t">Sincronização com ressalvas (${s.warnings.length})</div>
       <ul class="small" style="margin:4px 0 0;padding-left:18px">${s.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul></div></div>`);
   }
   const gap = S.analysis?.gap;
   const missed = (S.analysis?.cards || []).flatMap(c => c.alerts).filter(a => a.missedWhileOffline).length;
   if (missed) {
-    out.push(`<div class="banner warn"><div><div class="t">${missed} alerta(s) venceram durante um intervalo sem monitoramento.</div>
+    out.push(`<div class="banner warn">${icon('clock')}<div><div class="t">${missed} alerta(s) venceram durante um intervalo sem monitoramento.</div>
       <div class="small">${gap ? `Sem sincronização entre ${fmtDT(gap.from, tz())} e ${fmtDT(gap.to, tz())} (Chrome fechado ou computador desligado).` : ''}
       Veja em <button class="link" data-act="tab" data-tab="alertas">Central de alertas</button>.</div></div></div>`);
   }
@@ -104,7 +292,7 @@ function banners() {
 }
 
 function onboarding() {
-  return `<div class="empty"><div class="ico">🔗</div><h3>Conecte seu Bitrix24 ou veja uma demonstração</h3>
+  return `<div class="empty"><div class="ico">${icon('link')}</div><h3>Conecte seu Bitrix24 ou veja uma demonstração</h3>
     <p class="muted">A extensão lê (sem alterar) negócios, leads e processos inteligentes para identificar atrasos e SLAs vencidos.</p>
     <div class="row" style="justify-content:center"><button class="btn primary" data-act="connect-login">Analisar com meu login do Bitrix</button>
     <button class="btn" data-act="goto-conn">Outras formas de conexão</button>
@@ -118,10 +306,12 @@ function cardsFiltered() {
   const A = S.analysis; if (!A) return [];
   const f = ui.f, now = Date.now(), q = f.q.trim().toLowerCase();
   let list = A.cards.filter(c => c.alerts.length);
+  if (f.key) list = list.filter(c => c.key === f.key);
   list = list.map(c => {
-    const alerts = c.alerts.filter(a => (f.snoozed || !(a.snoozedUntil > now)) && (!f.type || a.type === f.type));
+    const alerts = c.alerts.filter(a => (f.snoozed || f.key || !(a.snoozedUntil > now)) && (!f.type || a.type === f.type) && (!f.novos || isNew(a)));
     return { ...c, vis: alerts };
   }).filter(c => c.vis.length);
+  if (f.me && S.me) list = list.filter(c => isMine(c));
   if (f.resp) list = list.filter(c => String(c.responsibleId) === f.resp);
   if (f.com) list = list.filter(c => (c.commercialIds || []).join(',') === f.com || (f.com === '-' && !(c.commercialIds || []).length) || (c.commercialIds || []).includes(f.com));
   if (f.team) list = list.filter(c => c.teams.includes(f.team));
@@ -141,6 +331,28 @@ function cardsFiltered() {
     recente: (a, b) => Math.max(0, ...b.vis.map(x => x.firstSeen || 0)) - Math.max(0, ...a.vis.map(x => x.firstSeen || 0))
   };
   return list.sort(sorters[ui.sort] || byCreation);
+}
+
+/** Card do usuário logado no Bitrix: é o assessor ou o comercial dele. */
+function isMine(c) {
+  const id = S.me?.id;
+  return !!id && (String(c.responsibleId) === id || (c.commercialIds || []).includes(id));
+}
+
+/** Atalhos de filtro acima da fila: meus cards, novos desde a última visita, críticos e SLA vencido. */
+function quickChipsHtml() {
+  const A = S.analysis, now = Date.now();
+  const active = A.cards.filter(c => c.alerts.some(a => !(a.snoozedUntil > now)));
+  // atalho com zero cards só aparece se estiver ligado ("Meus cards" sempre aparece: zero também informa)
+  const chip = (k, on, ic, label, n, title) => (!n && !on && k !== 'me' ? ''
+    : `<button type="button" class="qchip ${on ? 'on' : ''}" data-act="qf" data-k="${k}" aria-pressed="${on}" title="${esc(title)}">${icon(ic)}${esc(label)} <span class="n">${n}</span></button>`);
+  const out = [];
+  if (S.me) out.push(chip('me', ui.f.me, 'user', 'Meus cards', active.filter(isMine).length, 'Cards em que você é o assessor ou o comercial'));
+  if (PREV_VISIT) out.push(chip('novos', ui.f.novos, 'sparkle', 'Novos desde a sua última visita', active.filter(c => c.alerts.some(a => isNew(a) && !(a.snoozedUntil > now))).length,
+    `Alertas detectados depois de ${fmtDT(PREV_VISIT, tz())}`));
+  out.push(chip('critica', ui.f.level === 'critica', 'alert', 'Críticos', active.filter(c => c.priority.level === 'critica').length, 'Só cards de prioridade crítica'));
+  out.push(chip('sla', ui.f.type === 'sla_etapa_vencido', 'clock', 'SLA da etapa vencido', active.filter(c => c.alerts.some(a => a.type === 'sla_etapa_vencido' && !(a.snoozedUntil > now))).length, 'Só cards com o SLA da etapa vencido'));
+  return `<div class="qchips" role="group" aria-label="Filtros rápidos">${out.join('')}</div>`;
 }
 
 /** Ordem por data de criação do card: mais antigos primeiro (padrão) ou mais recentes primeiro. Sem data vai para o fim. */
@@ -164,7 +376,7 @@ function awaitingFocusHtml() {
   const portal = S.connection.origin || S.config.portalAddress || DEFAULT_PORTAL;
   const url = portal + S.config.focusPage;
   const det = S.lastPageTypes && S.lastPageTypes.pagePath === S.config.focusPage ? S.lastPageTypes : null;
-  return `<div class="empty"><div class="ico">🔎</div><h3>Abra a página be.smart Saúde no Bitrix</h3>
+  return `<div class="empty"><div class="ico">${icon('search')}</div><h3>Abra a página be.smart Saúde no Bitrix</h3>
     <p class="muted">A extensão monitora <b>somente os cards abertos</b> de <span class="mono">${esc(url)}</span>.
     Para saber qual é o processo dessa página, ela precisa ver a lista carregada, ou um card aberto dela, com você logado.</p>
     <div class="row" style="justify-content:center"><a class="btn primary" href="${esc(url)}" target="${LT}" rel="noopener noreferrer">Abrir be.smart Saúde</a></div>
@@ -179,12 +391,12 @@ function renderPainel() {
   if (awaitingFocus()) return html + awaitingFocusHtml();
   if (!A || !s.lastSuccess) {
     if (s.status === 'sem_configuracao' || (S.mode === 'real' && !(S.config.monitored || []).length)) {
-      return html + `<div class="empty"><div class="ico">🧭</div><h3>Escolha os funis que serão monitorados</h3>
+      return html + `<div class="empty"><div class="ico">${icon('layers')}</div><h3>Escolha os funis que serão monitorados</h3>
         <p class="muted">A conexão foi feita. Selecione os funis e etapas para começar.</p>
         <button class="btn primary" data-act="goto-cfg" data-cfg="funis">Selecionar funis</button></div>`;
     }
-    if (S.syncing) return html + `<div class="empty"><div class="ico">⏳</div><h3>Primeira sincronização em andamento…</h3></div>`;
-    return html + `<div class="empty err"><div class="ico">⚠️</div><h3>Não foi possível consultar o Bitrix24</h3>
+    if (S.syncing) return html + `<div class="empty"><div class="ico">${icon('sync')}</div><h3>Primeira sincronização em andamento…</h3><p class="muted">Os cards aparecem aqui assim que a leitura terminar.</p></div>`;
+    return html + `<div class="empty err"><div class="ico">${icon('alert')}</div><h3>Não foi possível consultar o Bitrix24</h3>
       <p>${esc(s.errors?.[0]?.message || 'Nenhuma sincronização concluída ainda.')}</p>
       <div class="row" style="justify-content:center"><button class="btn primary" data-act="sync">Tentar novamente</button>
       <button class="btn" data-act="goto-conn">Verificar conexão</button></div></div>`;
@@ -218,7 +430,7 @@ function renderPainel() {
 
   const list = cardsFiltered();
   html += `<section class="panel"><div class="hd"><h2>Fila priorizada de atendimento</h2><span class="spacer"></span>
-    <span class="small muted" id="queueCount">${list.length} card(s)</span></div>${filtersHtml()}<div id="queueBox">${queueHtml(list)}</div></section>`;
+    <span class="small muted" id="queueCount">${list.length} card(s)</span></div>${quickChipsHtml()}${filtersHtml()}<div id="queueBox">${queueHtml(list)}</div></section>`;
   return html;
 }
 
@@ -298,11 +510,11 @@ function filtersHtml() {
 function queueHtml(list = cardsFiltered()) {
   const A = S.analysis;
   if (!A.cards.some(c => c.alerts.length)) {
-    return `<div class="empty ok"><div class="ico">✅</div><h3>Nenhuma pendência encontrada</h3>
+    return `<div class="empty ok"><div class="ico">${icon('check')}</div><h3>Nenhuma pendência encontrada</h3>
       <p class="muted">Consulta concluída em ${fmtDT(S.sync.lastSuccess, tz())} sobre ${A.kpis.monitorados} card(s) monitorados, com as regras atuais.
       Se você esperava alertas, confira se há regras de SLA e acompanhamento configuradas.</p></div>`;
   }
-  if (!list.length) return `<div class="empty"><h3>Nenhum card corresponde aos filtros</h3><button class="link" data-act="clear-filters">limpar filtros</button></div>`;
+  if (!list.length) return `<div class="empty"><div class="ico">${icon('filter')}</div><h3>Nenhum card corresponde aos filtros</h3><button class="link" data-act="clear-filters">limpar filtros</button></div>`;
   const shown = list.slice(0, ui.queueLimit);
   const cols = `<div class="qcols" aria-hidden="true"><span>Prioridade</span><span>Card · criado em</span><span>Etapa</span><span>Assessor</span>
     <span>Comercial</span><span>Maior atraso</span><span>Valor</span><span></span></div>`;
@@ -314,10 +526,12 @@ function queueHtml(list = cardsFiltered()) {
 function rowHtml(c) {
   const now = Date.now();
   const worst = c.vis.reduce((m, a) => (a.overdueMin || 0) > (m?.overdueMin || 0) ? a : m, null);
-  const chips = c.vis.map(a => `<span class="chip ${ALERT_TYPES[a.type].group} ${a.snoozedUntil > now ? 'snoozed' : ''}" title="${esc(a.reason)}">${esc(a.title)}${a.overdueText ? ' · ' + esc(a.overdueText) : ''}</span>`).join('');
+  const fresh = c.vis.some(isNew);
+  const chips = (fresh ? '<span class="chip new" title="Detectado depois da sua última visita">novo</span>' : '') +
+    c.vis.map(a => `<span class="chip ${ALERT_TYPES[a.type].group} ${a.snoozedUntil > now ? 'snoozed' : ''}" title="${esc(a.reason)}">${esc(a.title)}${a.overdueText ? ' · ' + esc(a.overdueText) : ''}</span>`).join('');
   const open = ui.expanded.has(c.key);
-  return `<div class="qrow ${c.priority.level}">
-    <div class="qhead" data-act="toggle" data-key="${esc(c.key)}" aria-expanded="${open}">
+  return `<div class="qrow ${c.priority.level} ${ui.f.key === c.key ? 'hl' : ''}" data-key="${esc(c.key)}">
+    <div class="qhead" data-act="toggle" data-key="${esc(c.key)}" aria-expanded="${open}" tabindex="0" role="button" aria-label="${esc(c.title)}: ver detalhes">
       <div><span class="pill ${c.priority.level}">${LEVELS[c.priority.level]}</span><div class="small faint num" style="margin-top:3px">${c.priority.score} pts</div></div>
       <div style="min-width:0"><div class="title" title="${esc(c.title)}">${esc(c.title)}</div>
         <div class="sub">#${c.id} · ${esc(c.entityName)}${c.partial ? ' · <span class="pill partial">cálculo parcial</span>' : ''}${c.returned ? ' · <span class="pill neutral">retornou de etapa</span>' : ''}</div>
@@ -329,7 +543,7 @@ function rowHtml(c) {
       <div class="c-com" style="min-width:0">${c.commercialField ? `<div title="${esc(c.commercialField)}">${esc(c.commercialName)}</div><div class="sub" title="${esc(c.commercialEmail || '')}">${esc(comSource(c))}</div>` : '<span class="faint">—</span>'}</div>
       <div class="c-over"><div class="num">${worst?.overdueText ? esc(worst.overdueText) : '—'}</div><div class="sub">maior atraso</div></div>
       <div class="c-val num">${c.opportunity ? fmtMoney(c.opportunity, c.currency) : '<span class="faint">—</span>'}</div>
-      <div>${c.link ? `<a class="btn sm" href="${esc(c.link)}" target="${LT}" rel="noopener noreferrer">Abrir no Bitrix ↗</a>` : ''}</div>
+      <div>${c.link ? `<a class="btn sm" href="${esc(c.link)}" target="${LT}" rel="noopener noreferrer">Abrir no Bitrix ${icon('external')}</a>` : ''}</div>
     </div>${open ? detailHtml(c) : ''}</div>`;
 }
 
@@ -435,7 +649,12 @@ function renderEtapas() {
       const cnt = k => cs.filter(x => x.c.stageSlaStatus === k).length;
       const avg = cs.length ? cs.reduce((s, x) => s + (x.corr || 0), 0) / cs.length : null;
       const ha = histAvg[`${fn.etid}:${st.statusId}`];
-      html += `<details class="panel stage" id="st-${esc(st.statusId)}" ${cs.length ? 'open' : ''} style="margin-bottom:10px">
+      // Muitos cards: desenha os primeiros e o restante sob demanda (a etapa com o card procurado mostra todos).
+      const stKey = `${fn.etid}:${st.statusId}`;
+      const limit = ui.stFocus && cs.some(x => x.c.key === ui.stFocus) ? Infinity : (ui.stLimit[stKey] || STAGE_PAGE);
+      const shown = cs.slice(0, limit);
+      const isOpen = ui.stOpen[stKey] ?? (cs.length > 0);
+      html += `<details class="panel stage" id="st-${esc(st.statusId)}" data-st="${esc(stKey)}" ${isOpen || limit === Infinity ? 'open' : ''} style="margin-bottom:10px">
         <summary><div class="row" style="gap:10px"><h3 style="margin:0">${esc(st.name)}</h3><span class="pill neutral">${cs.length} card(s)</span>
           ${cnt('vencido') ? `<span class="pill critica">${cnt('vencido')} SLA vencido</span>` : ''}${cnt('aviso') ? `<span class="pill media">${cnt('aviso')} perto do vencimento</span>` : ''}
           ${cnt('pausado') ? `<span class="pill neutral">${cnt('pausado')} pausado(s)</span>` : ''}
@@ -443,9 +662,9 @@ function renderEtapas() {
           <span class="spacer"></span><span class="small muted">SLA: ${rule ? esc(ruleText(rule)) : '<button class="link" data-act="goto-cfg" data-cfg="sla">definir</button>'}
           ${avg != null ? ` · média atual ${esc(fmtMinutes(avg, 'corrido'))}` : ''}${ha ? ` · histórico ${esc(fmtMinutes(ha.avgMin, 'corrido'))} (${ha.n} passagens)` : ''}</span></div></summary>
         ${cs.length ? `<div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Card</th><th>Assessor</th><th>Comercial</th><th>Criado em</th><th class="n">Valor</th><th class="n">Na etapa há</th><th>SLA da etapa</th><th>Próxima atividade</th><th>Alertas</th></tr></thead><tbody>
-          ${cs.map(({ c, corr }) => {
+          ${shown.map(({ c, corr }) => {
             const pill = SLA_PILL[c.stageSlaStatus];
-            return `<tr><td data-l="Card">${c.link ? `<a href="${esc(c.link)}" target="${LT}" rel="noopener noreferrer"><b>${esc(c.title)}</b></a>` : `<b>${esc(c.title)}</b>`}<div class="small faint">#${c.id}${c.returned ? ' · voltou de etapa' : ''}</div></td>
+            return `<tr data-key="${esc(c.key)}" class="${ui.stFocus === c.key ? 'hl' : ''}"><td data-l="Card">${c.link ? `<a href="${esc(c.link)}" target="${LT}" rel="noopener noreferrer"><b>${esc(c.title)}</b></a>` : `<b>${esc(c.title)}</b>`}<div class="small faint">#${c.id}${c.returned ? ' · voltou de etapa' : ''}</div></td>
               <td data-l="Assessor">${esc(c.responsibleName)}</td>
               <td data-l="Comercial">${c.commercialField ? `${esc(c.commercialName)}<div class="small faint">${esc(comSource(c))}</div>` : '<span class="faint">—</span>'}</td>
               <td data-l="Criado em">${c.createdTime != null ? `${fmtDate(c.createdTime, t)}<div class="small faint">${esc(fmtAge(c.ageDays))}</div>` : '<span class="faint">—</span>'}</td>
@@ -455,7 +674,10 @@ function renderEtapas() {
               <td data-l="SLA da etapa">${pill ? `<span class="pill ${pill[0]}">${pill[1]}</span>` : '<span class="faint small">sem SLA definido</span>'}</td>
               <td class="small" data-l="Próxima atividade">${c.nextActivity ? `${fmtDT(c.nextActivity.deadline, t)}<div class="faint">${esc(c.nextActivity.subject || '')}</div>` : '<span style="color:var(--high)">nenhuma agendada</span>'}</td>
               <td data-l="Alertas">${c.alerts.length ? `<span class="pill ${c.priority.level}">${LEVELS[c.priority.level]}</span> <span class="small">${c.alerts.length} alerta(s)</span>` : '<span class="pill ok">ok</span>'}</td></tr>`;
-          }).join('')}</tbody></table></div>` : '<p class="muted small" style="margin:8px 0 0">Nenhum card aberto nesta etapa.</p>'}</details>`;
+          }).join('')}</tbody></table></div>${cs.length > shown.length ? `<div class="row" style="justify-content:center;margin-top:10px">
+            <span class="small muted">Mostrando ${shown.length} de ${cs.length}.</span>
+            <button class="btn sm" type="button" data-act="st-more" data-st="${esc(stKey)}">Mostrar mais ${Math.min(100, cs.length - shown.length)}</button>
+            <button class="btn sm" type="button" data-act="st-all" data-st="${esc(stKey)}">Mostrar todos</button></div>` : ''}` : '<p class="muted small" style="margin:8px 0 0">Nenhum card aberto nesta etapa.</p>'}</details>`;
     }
   }
   if (!funnels.length) html += '<div class="empty"><h3>Nenhum funil monitorado</h3></div>';
@@ -488,7 +710,7 @@ function renderReunioes() {
   const M = S.analysis?.meetings;
   if (!M || !S.sync?.lastSuccess) return html + '<div class="empty"><h3>Sem dados ainda</h3><p class="muted">Sincronize para montar o ranking.</p></div>';
   if (M.enabled === false) {
-    return html + `<div class="empty"><div class="ico">📅</div><h3>Ranking de reuniões desativado</h3>
+    return html + `<div class="empty"><div class="ico">${icon('reunioes')}</div><h3>Ranking de reuniões desativado</h3>
       <button class="btn primary" data-act="goto-cfg" data-cfg="reunioes">Ativar e configurar</button></div>`;
   }
   const t = tz(), g = meetingGroup();
@@ -731,8 +953,54 @@ function renderAnalises() {
         ${H.breaches.map(r => `<tr><td>${esc(r.name)}</td><td class="n">${r.visitas}</td><td class="n">${r.vencidas}</td><td class="n">${Math.round(r.vencidas / r.visitas * 100)}%</td></tr>`).join('')}</tbody></table></div>`
         : '<p class="muted">Dados insuficientes para comparar passagens anteriores com as regras atuais.</p>'}
       <p class="help">Diferente do atraso atual: aqui contam passagens já encerradas que ficaram acima do SLA configurado hoje. Não entram na fila de pendências.</p></div>
-  </section>`;
+  </section>
+  <section class="panel"><div class="hd"><h2>Histórico de sincronizações</h2><span class="spacer"></span>
+    <span class="small faint">últimas 30 · guardado só neste navegador</span></div><div id="diagSyncs" class="small muted">Carregando…</div></section>`;
   return html;
+}
+
+// ---------------------------------------------------------------- diagnóstico (histórico e erros, sem credenciais)
+let diagCache = null;
+async function fillDiag() {
+  const a = $('#diagSyncs'), b = $('#diagErrors');
+  if (!a && !b) return;
+  try { diagCache = await send('getDiagnostics'); } catch (e) { if (a) a.textContent = e.message; if (b) b.textContent = e.message; return; }
+  const d = diagCache, t = tz();
+  if (a && a.isConnected) {
+    a.className = '';
+    a.innerHTML = (d.syncs || []).length ? `<div class="tablewrap"><table><thead><tr><th>Quando</th><th>Tipo</th><th class="n">Duração</th><th class="n">Requisições</th>
+      <th>Resultado</th><th class="n">Cards</th><th class="n">Com alerta</th><th>Detalhe</th></tr></thead><tbody>
+      ${d.syncs.map(x => `<tr><td>${fmtDT(x.at, t, true)}${x.count > 1 ? `<div class="small faint">repetiu ${x.count} vezes, até ${fmtDT(x.lastAt, t)}</div>` : ''}</td><td>${x.full ? 'completa' : 'incremental'}${x.mode === 'demo' ? ' <span class="pill neutral">demo</span>' : ''}</td>
+        <td class="n">${x.ms != null ? `${(x.ms / 1000).toFixed(1)} s` : '—'}</td><td class="n">${x.requests ?? '—'}</td>
+        <td>${['ok', 'parcial'].includes(x.status) ? `<span class="pill ok">${esc(STATUS_TEXT[x.status] || x.status)}</span>` : `<span class="pill critica">${esc(STATUS_TEXT[x.status] || x.status)}</span>`}</td>
+        <td class="n">${x.cards ?? '—'}</td><td class="n">${x.comAlerta ?? '—'}</td><td class="small">${esc(x.error || '')}</td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="muted">Nenhuma sincronização registrada ainda nesta versão.</p>';
+  }
+  if (b && b.isConnected) {
+    const last = (d.syncs || [])[0];
+    b.innerHTML = `<div class="diag-status">
+        <div><span class="small muted">Versão</span><b>${esc(d.version)}</b></div>
+        <div><span class="small muted">Modo</span><b>${d.mode === 'demo' ? 'Demonstração' : d.mode === 'real' ? 'Portal real' : 'Não configurado'}</b></div>
+        <div><span class="small muted">Última sincronização</span><b>${last ? `${esc(STATUS_TEXT[last.status] || last.status)}` : '—'}</b><span class="small faint">${last ? fmtDT(last.at, t, true) : ''}</span></div>
+        <div><span class="small muted">Abas do Bitrix religadas na atualização</span><b>${d.reinjected ? d.reinjected.tabs : '—'}</b><span class="small faint">${d.reinjected ? fmtDT(d.reinjected.at, t, true) : 'nenhuma atualização nesta sessão'}</span></div>
+      </div>
+      <h3 style="margin:14px 0 6px">Erros recentes</h3>
+      ${(d.errors || []).length ? `<div class="tablewrap"><table><thead><tr><th>Quando</th><th>Onde</th><th>Mensagem</th><th class="n">Vezes</th></tr></thead><tbody>
+        ${d.errors.map(x => `<tr><td>${fmtDT(x.at, t, true)}</td><td class="mono">${esc(x.where)}</td><td class="small">${esc(x.message)}${x.code ? ` <span class="faint">(${esc(x.code)})</span>` : ''}</td><td class="n">${x.count || 1}</td></tr>`).join('')}</tbody></table></div>`
+        : '<p class="muted small">Nenhum erro registrado.</p>'}`;
+  }
+}
+async function copyDiag() {
+  const d = diagCache || await send('getDiagnostics');
+  const text = JSON.stringify({ versao: d.version, modo: d.mode, geradoEm: new Date().toISOString(), sincronizacoes: d.syncs, erros: d.errors, reinjecao: d.reinjected }, null, 2);
+  try { await navigator.clipboard.writeText(text); toast('Diagnóstico copiado (sem credenciais nem dados de cards).', { type: 'ok' }); }
+  catch {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    a.download = 'diagnostico-monitor-sla.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    toast('Diagnóstico baixado como arquivo (sem credenciais nem dados de cards).', { type: 'ok' });
+  }
 }
 function spark(snaps) {
   const W = 520, Hh = 70, max = Math.max(1, ...snaps.map(s => s.comAtraso));
@@ -1134,6 +1402,11 @@ function cfgDados() {
   <div class="panel"><h2>Configurações</h2><div class="row"><button class="btn" data-act="export">Exportar configurações (JSON)</button>
     <label class="btn">Importar configurações<input type="file" accept="application/json" id="importFile" class="hidden"></label></div>
     <p class="help">A exportação não contém o webhook nem dados de cards.</p></div>
+  <div class="panel"><div class="hd"><h2>Diagnóstico</h2><span class="spacer"></span>
+      <button class="btn sm" type="button" data-act="diag-copy">${icon('copy')}Copiar diagnóstico</button>
+      <button class="btn sm" type="button" data-act="diag-clear">Limpar histórico</button></div>
+    <div id="diagErrors" class="small muted">Carregando…</div>
+    <p class="help" style="margin-top:8px">O histórico de sincronizações e os erros ficam só neste navegador (no máximo 30 e 40 registros). Endereços de webhook, sessid e e-mails são mascarados antes de gravar; o diagnóstico copiado não tem dados de cards.</p></div>
   <div class="panel"><h2>Limpar</h2><div class="row"><button class="btn danger" data-act="clear-data">Apagar dados locais (mantém configurações)</button>
     <button class="btn danger" data-act="clear-all">Apagar tudo e desconectar</button></div></div>`;
 }
@@ -1251,16 +1524,49 @@ main.addEventListener('change', async e => {
   if (el.id === 'whShow') { const i = $('#whUrl'); if (i) i.type = el.checked ? 'text' : 'password'; }
 });
 
-document.addEventListener('click', async e => {
+// Ações que falam com o service worker: o botão fica ocupado até terminar (sem clique duplo) e erros viram aviso.
+const ASYNC_ACTS = new Set(['snooze', 'load-demo', 'exit-demo', 'connect', 'connect-login', 'set-focus', 'clear-focus', 'refresh-structure',
+  'disconnect', 'disconnect-wipe', 'clear-data', 'clear-all', 'save', 'add-card-type', 'rm-card-type', 'load-fields', 'diag-copy', 'diag-clear']);
+document.addEventListener('click', e => {
   const t = e.target.closest('[data-act], [data-tab]');
   if (!t) return;
-  if (t.closest('#tabs') && t.dataset.tab) { ui.tab = t.dataset.tab; location.hash = ui.tab === 'painel' ? '' : ui.tab; render(); return; }
+  const busy = t.tagName === 'BUTTON' && ASYNC_ACTS.has(t.dataset.act);
+  if (busy) {
+    if (t.getAttribute('aria-busy') === 'true') return;
+    t.setAttribute('aria-busy', 'true');
+  }
+  Promise.resolve(onClick(e, t)).catch(err => reportError(`acao:${t.dataset.act || t.dataset.tab}`, err))
+    .finally(() => { if (busy && t.isConnected) t.removeAttribute('aria-busy'); });
+});
+main.addEventListener('keydown', e => {
+  const h = e.target.closest?.('.qhead');
+  if (h && (e.key === 'Enter' || e.key === ' ') && e.target === h) { e.preventDefault(); h.click(); }
+});
+main.addEventListener('toggle', e => { const d = e.target; if (d.matches?.('details.stage') && d.dataset.st) ui.stOpen[d.dataset.st] = d.open; }, true);
+
+function goTab(tab) { ui.tab = tab; ui.stFocus = null; try { history.replaceState(null, '', tab === 'painel' ? location.pathname + location.search : `#${tab}`); } catch { /* */ } render(); window.scrollTo(0, 0); }
+
+async function onClick(e, t) {
+  if (t.closest('#tabs') && t.dataset.tab) { goTab(t.dataset.tab); return; }
   const act = t.dataset.act;
   if (!act || t.tagName === 'INPUT' && !['connect'].includes(act)) return;
   const etid = Number(t.dataset.etid), cid = Number(t.dataset.cid);
   switch (act) {
     case 'toggle': if (e.target.closest('a')) return; ui.expanded.has(t.dataset.key) ? ui.expanded.delete(t.dataset.key) : ui.expanded.add(t.dataset.key); render(); break;
-    case 'tab': ui.tab = t.dataset.tab; render(); break;
+    case 'tab': goTab(t.dataset.tab); break;
+    case 'qf': {
+      const k = t.dataset.k;
+      if (k === 'me') { ui.f.me = !ui.f.me; savePref('meusCards', ui.f.me ? '1' : '0'); }
+      if (k === 'novos') ui.f.novos = !ui.f.novos;
+      if (k === 'critica') ui.f.level = ui.f.level === 'critica' ? '' : 'critica';
+      if (k === 'sla') ui.f.type = ui.f.type === 'sla_etapa_vencido' ? '' : 'sla_etapa_vencido';
+      ui.queueLimit = QUEUE_PAGE; render(); break;
+    }
+    case 'reload': location.reload(); break;
+    case 'st-more': ui.stLimit[t.dataset.st] = (ui.stLimit[t.dataset.st] || STAGE_PAGE) + 100; render(); break;
+    case 'st-all': ui.stLimit[t.dataset.st] = Infinity; render(); break;
+    case 'diag-copy': await copyDiag(); break;
+    case 'diag-clear': await send('clearDiagnostics'); diagCache = null; await fillDiag(); toast('Histórico de diagnóstico apagado.'); break;
     case 'more': ui.queueLimit += QUEUE_PAGE; refreshQueueOnly(); break;
     case 'ordem':
       ui.dir = ui.dir === 'recentes' ? 'antigos' : 'recentes';
@@ -1282,7 +1588,7 @@ document.addEventListener('click', async e => {
       render(); main.querySelector('.filters')?.scrollIntoView({ behavior: 'smooth' }); break;
     }
     case 'filter': ui.f[t.dataset.f] = t.dataset.v; if (t.dataset.f === 'stage') ui.f.cat = ''; render(); main.querySelector('.filters')?.scrollIntoView({ behavior: 'smooth' }); break;
-    case 'clear-filters': ui.f = { q: '', resp: '', com: '', team: '', cat: '', stage: '', type: '', level: '', snoozed: false }; render(); break;
+    case 'clear-filters': ui.f = EMPTY_F(); savePref('meusCards', '0'); render(); break;
     case 'snooze': await send('snooze', { keys: t.dataset.keys.split(','), hours: Number(t.dataset.h) }); await load({ keepCfg: dirty });
       toast(Number(t.dataset.h) ? 'Alerta silenciado.' : 'Alerta reativado.'); break;
     case 'sync': doSync(); break;
@@ -1336,10 +1642,11 @@ document.addEventListener('click', async e => {
     case 'export': {
       const out = structuredClone(cfg); delete out.webhook;
       const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'monitor-sla-bitrix24-config.json'; a.click(); break;
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'monitor-sla-bitrix24-config.json'; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000); break;
     }
   }
-});
+}
 
 function validateCfg(c) {
   const errs = [];
@@ -1419,17 +1726,126 @@ async function connectLogin(btn) {
 }
 
 async function doSync(full = false) {
-  if (!S?.mode) return;
-  $('#btnSync').disabled = true;
-  const r = await send('syncNow', { full });
-  await load({ keepCfg: dirty });
+  if (!S?.mode || S.syncing) return;
+  S.syncing = true; S.progress = S.progress || { step: 'inicio', at: Date.now() };
+  renderSyncInfo();
+  let r;
+  try { r = await send('syncNow', { full }); }
+  catch (e) { S.syncing = false; S.progress = null; renderSyncInfo(); throw e; }
+  await load({ keepCfg: dirty, background: true });
   if (r?.ok === false) toast('A sincronização não foi concluída: ' + r.error, 6000);
   else if (r?.status && !['ok', 'parcial'].includes(r.status)) toast('A sincronização não foi concluída: ' + (STATUS_TEXT[r.status] || r.status));
 }
-$('#btnSync').addEventListener('click', () => doSync());
+$('#btnSync').addEventListener('click', () => doSync().catch(e => reportError('sincronizar', e)));
+
+// ---------------------------------------------------------------- tema
+const THEME_LABEL = { auto: 'automático (segue o sistema)', claro: 'claro', escuro: 'escuro' };
+function paintThemeButton() {
+  const t = getTheme();
+  const b = $('#btnTheme');
+  b.innerHTML = icon(t === 'claro' ? 'sun' : t === 'escuro' ? 'moon' : 'auto');
+  b.title = `Tema: ${THEME_LABEL[t]} (T)`;
+  b.setAttribute('aria-label', `Tema: ${THEME_LABEL[t]}. Clique para trocar.`);
+}
+function cycleTheme() {
+  const t = THEMES[(THEMES.indexOf(getTheme()) + 1) % THEMES.length];
+  setTheme(t);
+  paintThemeButton();
+  toast(`Tema ${THEME_LABEL[t]}.`, 1800);
+}
+$('#btnTheme').addEventListener('click', cycleTheme);
+// a escolha vale para o painel em aba, na gaveta do Bitrix e no popup
+chrome.storage.local.get('uiTheme').then(r => {
+  if (THEMES.includes(r.uiTheme) && r.uiTheme !== getTheme()) { savePref('tema', r.uiTheme); applyTheme(r.uiTheme); paintThemeButton(); }
+}).catch(() => {});
+
+// ---------------------------------------------------------------- busca global
+const gq = $('#gq'), gres = $('#gresults');
+const norm = v => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+let gHits = [], gSel = -1, gTimer = null;
+function closeResults() { gres.classList.add('hidden'); gq.setAttribute('aria-expanded', 'false'); gSel = -1; }
+function runGlobalSearch() {
+  const q = norm(gq.value.trim());
+  if (!q || !S?.analysis) { closeResults(); return; }
+  const now = Date.now();
+  gHits = [];
+  for (const c of S.analysis.cards) {
+    if (!c._hay) Object.defineProperty(c, '_hay', { value: norm(`${c.title} #${c.id} ${c.responsibleName} ${c.commercialName || ''} ${c.stageName} ${c.categoryName}`) });
+    if (c._hay.includes(q)) { gHits.push(c); if (gHits.length >= 8) break; }
+  }
+  gSel = gHits.length ? 0 : -1;
+  gres.innerHTML = gHits.length ? gHits.map((c, i) => {
+    const act = c.alerts.filter(a => !(a.snoozedUntil > now)).length;
+    return `<div class="gr-item" role="option" id="gr-${i}" data-i="${i}" aria-selected="${i === gSel}">
+      ${act ? `<span class="pill ${c.priority.level}">${LEVELS[c.priority.level]}</span>` : '<span class="pill ok">em dia</span>'}
+      <div style="min-width:0"><div class="t">${esc(c.title)}</div><div class="s">#${c.id} · ${esc(c.stageName)} · Assessor: ${esc(c.responsibleName)}${c.commercialField ? ` · Comercial: ${esc(c.commercialName)}` : ''}</div></div>
+      <span class="small faint">${act ? `${act} alerta(s)` : 'ver na etapa'}</span></div>`;
+  }).join('') : `<div class="gr-empty">Nenhum card aberto encontrado para “${esc(gq.value.trim())}”.</div>`;
+  gres.classList.remove('hidden');
+  gq.setAttribute('aria-expanded', 'true');
+  gq.setAttribute('aria-activedescendant', gSel >= 0 ? `gr-${gSel}` : '');
+}
+function markSel() { gres.querySelectorAll('.gr-item').forEach((el, i) => el.setAttribute('aria-selected', String(i === gSel))); gq.setAttribute('aria-activedescendant', gSel >= 0 ? `gr-${gSel}` : ''); }
+/** Abre o card encontrado: na fila (com alertas) ou na etapa dele (sem alertas). */
+function openHit(c) {
+  closeResults(); gq.value = ''; gq.blur();
+  const now = Date.now();
+  if (c.alerts.length) {
+    ui.f = { ...EMPTY_F(), key: c.key, snoozed: c.alerts.every(a => a.snoozedUntil > now) };
+    ui.expanded.add(c.key); ui.tab = 'painel'; ui.stFocus = null;
+    render();
+    document.querySelector(`.qrow[data-key="${CSS.escape(c.key)}"]`)?.scrollIntoView({ block: 'center' });
+  } else {
+    ui.tab = 'etapas'; ui.stFocus = c.key;
+    render();
+    document.querySelector(`tr[data-key="${CSS.escape(c.key)}"]`)?.scrollIntoView({ block: 'center' });
+  }
+}
+gq.addEventListener('input', () => { clearTimeout(gTimer); gTimer = setTimeout(runGlobalSearch, 80); });
+gq.addEventListener('focus', () => { if (gq.value.trim()) runGlobalSearch(); });
+gq.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' && gHits.length) { e.preventDefault(); gSel = (gSel + 1) % gHits.length; markSel(); }
+  else if (e.key === 'ArrowUp' && gHits.length) { e.preventDefault(); gSel = (gSel - 1 + gHits.length) % gHits.length; markSel(); }
+  else if (e.key === 'Enter' && gSel >= 0) { e.preventDefault(); openHit(gHits[gSel]); }
+  else if (e.key === 'Escape') { gq.value = ''; closeResults(); gq.blur(); }
+});
+gres.addEventListener('mousedown', e => { const it = e.target.closest('.gr-item'); if (it) { e.preventDefault(); openHit(gHits[Number(it.dataset.i)]); } });
+gq.addEventListener('blur', () => setTimeout(closeResults, 120));
+
+// ---------------------------------------------------------------- atalhos de teclado
+const SHORTCUTS = [[['/'], 'Buscar card'], [['Ctrl', 'K'], 'Buscar card (de qualquer campo)'], [['1', '…', '7'], 'Ir para Painel, Etapas, Reuniões, Encerrados, Alertas, Análises, Configurações'],
+  [['S'], 'Sincronizar agora'], [['T'], 'Trocar o tema (automático, claro, escuro)'], [['?'], 'Mostrar esta lista'], [['Esc'], 'Fechar busca ou esta janela'],
+  [['Alt', 'Shift', 'S'], 'Abrir/fechar o monitor dentro do Bitrix (atalho do Chrome)']];
+function showShortcuts() {
+  const ov = $('#overlay');
+  ov.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="ovTitle"><h2 id="ovTitle">${icon('keyboard')}Atalhos de teclado</h2>
+    <dl class="shortcuts">${SHORTCUTS.map(([keys, d]) => `<dt>${keys.map(k => (k === '…' ? '…' : `<kbd>${esc(k)}</kbd>`)).join(' ')}</dt><dd>${esc(d)}</dd>`).join('')}</dl>
+    <p class="help" style="margin-top:12px">O atalho do Chrome pode ser trocado em chrome://extensions/shortcuts.</p>
+    <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn primary" type="button" data-close>Fechar</button></div></div>`;
+  ov.classList.remove('hidden');
+  ov.querySelector('[data-close]').focus();
+}
+function closeOverlay() { const ov = $('#overlay'); ov.classList.add('hidden'); ov.innerHTML = ''; }
+$('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay' || e.target.closest('[data-close]')) closeOverlay(); });
+$('#btnHelp').addEventListener('click', showShortcuts);
+document.addEventListener('keydown', e => {
+  const typing = e.target.closest?.('input, select, textarea, [contenteditable="true"]');
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); gq.focus(); gq.select(); return; }
+  if (e.key === 'Escape' && !$('#overlay').classList.contains('hidden')) { closeOverlay(); return; }
+  if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === '/') { e.preventDefault(); gq.focus(); }
+  else if (/^[1-7]$/.test(e.key)) goTab(TABS[Number(e.key) - 1]);
+  else if (e.key === 's' || e.key === 'S') doSync().catch(err => reportError('sincronizar', err));
+  else if (e.key === 't' || e.key === 'T') cycleTheme();
+  else if (e.key === '?') showShortcuts();
+});
 
 // ---------------------------------------------------------------- início
+initShell();
 const h = location.hash.replace('#', '');
-if (['etapas', 'reunioes', 'encerrados', 'alertas', 'analises', 'config'].includes(h)) ui.tab = h;
-load().catch(e => { main.innerHTML = `<div class="empty err"><h3>Erro ao carregar</h3><p>${esc(e.message)}</p></div>`; });
-setInterval(() => { if (S?.syncing && !dirty) load(); }, 4000);
+if (TABS.includes(h)) ui.tab = h;
+load().catch(e => {
+  main.setAttribute('aria-busy', 'false');
+  main.innerHTML = `<div class="empty err"><div class="ico">${icon('alert')}</div><h3>Não foi possível carregar o painel</h3><p>${esc(e.message)}</p>
+    <button class="btn primary" type="button" data-act="reload">Tentar de novo</button></div>`;
+});

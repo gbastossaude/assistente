@@ -42,12 +42,12 @@
   {
     "name": "Cada card mostra data de criação e há quantos dias foi criado",
     "ok": true,
-    "detail": "Criado em 16/09/2026 · há 40 dias"
+    "detail": "Criado em 17/09/2026 · há 40 dias"
   },
   {
     "name": "Idade calculada corretamente (Hotel Mirante criado há 30 dias)",
     "ok": true,
-    "detail": "Criado em 26/09/2026 · há 30 dias"
+    "detail": "Criado em 27/09/2026 · há 30 dias"
   },
   {
     "name": "Ordem padrão: data de criação, mais antigos primeiro",
@@ -92,7 +92,7 @@
   {
     "name": "Cards de cada etapa em ordem de criação",
     "ok": true,
-    "detail": "20261012 20261022 20261024 20261025 20261026"
+    "detail": "20261013 20261023 20261025 20261026 20261027"
   },
   {
     "name": "Etapas não mostram o funil Pós-venda",
@@ -117,7 +117,7 @@
   {
     "name": "Exportação CSV do ranking (sem células de fórmula)",
     "ok": true,
-    "detail": "1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;26/09/2026 16:39;26/10/2026 16:38"
+    "detail": "1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;27/09/2026 19:06;27/10/2026 19:05"
   },
   {
     "name": "Painel mostra concluídos e cancelados dos últimos 30 dias",
@@ -152,7 +152,7 @@
   {
     "name": "Lista de encerrados segue o botão inverter (antigos ↔ recentes)",
     "ok": true,
-    "detail": "20260916 … / 20261023 …"
+    "detail": "20260917 … / 20261024 …"
   },
   {
     "name": "Configuração \"contar cards ganhos/perdidos\" altera o ranking",

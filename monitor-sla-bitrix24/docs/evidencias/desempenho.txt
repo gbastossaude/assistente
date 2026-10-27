@@ -20,3 +20,20 @@ Versão 1.5.0 com o ranking de reuniões (padrão):
 Análise de 1.500 cards: mediana 160 ms.
 Sincronização completa (a cada 6 h): 8.75 s / 27 requisições (inclui reuniões e cards encerrados com histórico).
 Sincronização incremental (a cada 15 min): 1.01 s / 6 requisições — sem custo extra para os novos estudos.
+
+## Versão 1.8.0 — medição no navegador (tools/bench-ui.mjs, Chromium com a extensão carregada, 1.500 cards FICTÍCIOS)
+Mesma máquina, mesmo conjunto de dados (2,3 MB de dados, 6,4 MB de análise), 1.7.0 e 1.8.0 medidas com a mesma ferramenta:
+| Medida                                                        | 1.7.0     | 1.8.0     |
+|---------------------------------------------------------------|-----------|-----------|
+| Leitura que o painel faz para se atualizar                    | 784 ms    | 453 ms    |
+| Abertura do painel até a fila aparecer                        | 1184 ms   | 665 ms    |
+| Troca para a aba Etapas (montagem + layout)                   | 633 ms    | 148 ms    |
+| Linhas desenhadas na aba Etapas                               | 1500      | 200 (+ "Mostrar mais") |
+| Recálculo no service worker (fim de toda sincronização)       | 3264 ms   | 2155 ms   |
+| Painel aberto: tempo bloqueado por recálculo                  | 720 ms    | 509 ms    |
+| Aba do Bitrix aberta: tempo bloqueado por recálculo           | 506–698 ms| 0 ms      |
+| Memória da aba do Bitrix antes da coleta de lixo              | 14,7 MB   | 2,3 MB    |
+| Memória após coleta de lixo (painel / aba do Bitrix)          | 9,4 / 1,5 MB | 9,7 / 1,6 MB (igual) |
+| Popup: dados lidos para abrir                                 | estado completo (6,4 MB) | resumo (~4 KB, ~110 ms) |
+"Tempo bloqueado" = soma dos atrasos acima de 50 ms de um temporizador de 10 ms na página (amostrador da thread principal).
+Variação entre execuções: ±15%. Os números absolutos dependem da máquina; a comparação vale por ter sido feita lado a lado.

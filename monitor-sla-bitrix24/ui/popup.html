@@ -1,10 +1,12 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><title>Monitor de SLA</title><link rel="stylesheet" href="styles.css"></head>
+<head><meta charset="utf-8"><meta name="color-scheme" content="light dark"><title>Monitor de SLA</title>
+<script src="theme.js"></script><link rel="stylesheet" href="styles.css"></head>
 <body class="popup">
-  <div class="hdr"><img src="../icons/icon32.png" width="20" height="20" alt=""><b>Monitor de SLA</b><span id="pill"></span><span class="spacer"></span>
-    <button class="btn sm" id="sync">Sincronizar</button></div>
-  <div class="body" id="body"><div class="muted">Carregando…</div></div>
+  <div class="hdr"><img src="../icons/icon32.png" width="22" height="22" alt="">
+    <div style="display:grid;line-height:1.2"><b>Monitor de SLA</b><span class="st" id="st"></span></div><span id="pill"></span><span class="spacer"></span>
+    <button class="btn sm" id="sync" type="button" title="Buscar alterações no Bitrix24 agora">Sincronizar</button></div>
+  <div class="body" id="body"><div class="skeleton"><div class="sk-list"><i></i><i></i><i></i></div></div></div>
   <script type="module" src="popup.js"></script>
 </body>
 </html>

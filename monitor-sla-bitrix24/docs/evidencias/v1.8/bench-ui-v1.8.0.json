@@ -1,0 +1,18 @@
+{
+  "versao": "v1.8.0",
+  "cards": 1500,
+  "datasetKB": 2344,
+  "analiseKB": 6446,
+  "getStateMs": 733.3,
+  "getStateKB": 6452,
+  "leituraPainelMs": 453.4,
+  "leituraPainelKB": 6452,
+  "aberturaPainelMs": 665,
+  "abaEtapasMs": 148.4,
+  "etapasLinhas": 200,
+  "painelHeapMB": 9.7,
+  "recalculoMs": 2155,
+  "painelBloqueadoMsPorRecalculo": 509,
+  "bitrixBloqueadoMsPorRecalculo": 0,
+  "bitrixHeapMB": 1.6
+}

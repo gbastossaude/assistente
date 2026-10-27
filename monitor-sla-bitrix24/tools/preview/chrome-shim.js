@@ -3,7 +3,9 @@
 const listeners = { msg: [], changed: [], alarm: [] };
 function area(name) {
   const data = {};
+  const own = [];
   return {
+    onChanged: { addListener: f => own.push(f) },
     async get(keys) {
       if (keys == null) return structuredClone(data);
       const ks = Array.isArray(keys) ? keys : typeof keys === 'string' ? [keys] : Object.keys(keys);
@@ -14,7 +16,7 @@ function area(name) {
     async set(obj) {
       const ch = {};
       for (const [k, v] of Object.entries(obj)) { ch[k] = { oldValue: data[k], newValue: v }; data[k] = structuredClone(v); }
-      setTimeout(() => listeners.changed.forEach(f => f(ch, name)), 0);
+      setTimeout(() => { listeners.changed.forEach(f => f(ch, name)); own.forEach(f => f(ch)); }, 0);
     },
     async remove(keys) { for (const k of [].concat(keys)) delete data[k]; },
     async clear() { for (const k of Object.keys(data)) delete data[k]; }
@@ -26,6 +28,7 @@ globalThis.chrome = {
   runtime: {
     id: 'preview', lastError: null,
     getURL: p => p,
+    getManifest: () => ({ version: 'prévia', content_scripts: [] }),
     onMessage: ev(listeners.msg), onInstalled: ev([]), onStartup: ev([]),
     sendMessage(msg, cb) {
       const f = listeners.msg[0];
@@ -38,5 +41,7 @@ globalThis.chrome = {
   action: { setBadgeText: noop, setBadgeBackgroundColor: noop, setBadgeTextColor: noop, setTitle: noop, getBadgeText: async () => '' },
   permissions: { contains: async () => false, request: async () => false, remove: noop },
   notifications: { create: noop, clear: noop, onClicked: ev([]) },
-  tabs: { create: ({ url }) => window.open(url, '_blank'), query: async () => [], sendMessage: async () => null }
+  tabs: { create: ({ url }) => window.open(url, '_blank'), query: async () => [], sendMessage: async () => null },
+  scripting: { executeScript: noop },
+  commands: { onCommand: ev([]) }
 };

@@ -1,13 +1,35 @@
 // Utilidades compartilhadas pelas páginas da extensão.
 import { zonedParts } from '../src/core/time.js';
 
+/** Mensagem ao service worker. Erros de ligação viram mensagem clara (ex.: extensão atualizada com a tela aberta). */
 export function send(type, payload = {}) {
   return new Promise((resolve, reject) => {
+    let id;
+    try { id = chrome.runtime?.id; } catch { id = null; }
+    if (!id) { reject(new Error('A extensão foi atualizada ou recarregada. Feche e abra o painel de novo.')); return; }
     chrome.runtime.sendMessage({ type, ...payload }, res => {
       const err = chrome.runtime.lastError;
-      if (err) reject(new Error(err.message)); else resolve(res);
+      if (err) reject(new Error(/Receiving end|message port closed/i.test(err.message)
+        ? 'O serviço da extensão não respondeu. Tente de novo em instantes.' : err.message));
+      else resolve(res);
     });
   });
+}
+
+/** Tema: "auto" (segue o sistema), "claro" ou "escuro". Guardado para todas as telas da extensão. */
+export const THEMES = ['auto', 'claro', 'escuro'];
+export function getTheme() { try { return THEMES.includes(localStorage.getItem('tema')) ? localStorage.getItem('tema') : 'auto'; } catch { return 'auto'; } }
+export function applyTheme(t = getTheme()) {
+  const el = document.documentElement;
+  // troca instantânea: sem transições, nada aparece em cores intermediárias
+  el.classList.add('no-anim');
+  if (t === 'claro') el.dataset.theme = 'light'; else if (t === 'escuro') el.dataset.theme = 'dark'; else delete el.dataset.theme;
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('no-anim')));
+}
+export function setTheme(t) {
+  try { localStorage.setItem('tema', t); } catch { /* preferência só desta tela */ }
+  applyTheme(t);
+  chrome.storage.local.set({ uiTheme: t }).catch(() => {});
 }
 
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -30,8 +52,10 @@ export function fmtAgo(ts, now = Date.now()) {
 }
 
 export function fmtMoney(v, cur = 'BRL') {
-  try { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: cur || 'BRL', maximumFractionDigits: 0 }).format(v || 0); }
-  catch { return `${cur} ${Math.round(v || 0)}`; }
+  // código de moeda vem do Bitrix: só letras (evita injetar texto na tela se o código for inválido)
+  const code = /^[A-Za-z]{3}$/.test(String(cur || '')) ? String(cur).toUpperCase() : 'BRL';
+  try { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(Number(v) || 0); }
+  catch { return `${code} ${Math.round(Number(v) || 0)}`; }
 }
 
 /** Data sem hora (dd/mm/aaaa) no fuso. */
@@ -60,7 +84,8 @@ export const LEVELS = { critica: 'Crítica', alta: 'Alta', media: 'Média', baix
 export const STATUS_TEXT = {
   ok: 'Sincronizado', parcial: 'Sincronizado com ressalvas', erro: 'Falha na última consulta', auth_error: 'Credencial inválida',
   sem_credencial: 'Credencial ausente', sem_permissao: 'Sem permissão de domínio', nunca: 'Ainda não sincronizado',
-  sem_configuracao: 'Nenhum funil selecionado', sem_sessao: 'Sem login no Bitrix24', sem_aba: 'Bitrix24 fechado', aguardando_pagina: 'Aguardando a página be.smart Saúde'
+  sem_configuracao: 'Nenhum funil selecionado', sem_sessao: 'Sem login no Bitrix24', sem_aba: 'Bitrix24 fechado', aguardando_pagina: 'Aguardando a página be.smart Saúde',
+  sem_conexao: 'Sem conexão com a internet'
 };
 
 /** Célula de CSV (separador ";") protegida contra fórmulas de planilha (=, +, -, @, tab). */

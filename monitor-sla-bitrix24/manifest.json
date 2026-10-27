@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Monitor de SLA – Bitrix24",
   "short_name": "SLA Bitrix24",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Monitora cards do Bitrix24 (somente leitura) e mostra, dentro do próprio Bitrix, atrasos, SLAs vencidos, atividades pendentes e cards sem acompanhamento.",
   "minimum_chrome_version": "116",
   "action": {
@@ -32,19 +32,29 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
-    "alarms"
+    "alarms",
+    "scripting"
   ],
   "optional_permissions": [
     "notifications"
   ],
-  "optional_host_permissions": [
-    "https://*/*",
-    "http://127.0.0.1/*",
-    "http://localhost/*"
-  ],
   "host_permissions": [
     "https://crm.hub-bnk.com/*"
   ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+  },
+  "commands": {
+    "toggle-drawer": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
+      "description": "Abrir ou fechar o Monitor de SLA dentro do Bitrix24"
+    }
+  },
   "content_scripts": [
     {
       "matches": [

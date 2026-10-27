@@ -6,8 +6,8 @@ OK   Coluna do comercial visível na largura da gaveta (1040 px)
 OK   Funil "Pós-venda" excluído (nenhum card dele aparece)
 OK   Sem horário comercial: nenhum tempo em "úteis"
 OK   Sem aviso de confirmação de expediente
-OK   Cada card mostra data de criação e há quantos dias foi criado — Criado em 16/09/2026 · há 40 dias
-OK   Idade calculada corretamente (Hotel Mirante criado há 30 dias) — Criado em 26/09/2026 · há 30 dias
+OK   Cada card mostra data de criação e há quantos dias foi criado — Criado em 17/09/2026 · há 40 dias
+OK   Idade calculada corretamente (Hotel Mirante criado há 30 dias) — Criado em 27/09/2026 · há 30 dias
 OK   Ordem padrão: data de criação, mais antigos primeiro — 40, 30, 25, 20, 20, 15
 OK   Botão inverte: mais recentes primeiro — 0, 1, 2, 3, 4, 7
 OK   A ordem escolhida é lembrada ao reabrir o painel
@@ -16,19 +16,19 @@ OK   Painel mostra o ranking de reuniões do mês
 OK   Fluxo das etapas mostra o valor de cada etapa — Em cotação 5 R$ 174.400 | Aguardando retorno da operadora 3 R$ 25.400 | Proposta apresentada 2 R$ 101.700 | Enviado para assinatura 1 R$ 22.500 | Aguardando assinatura 2 R$ 16.000 | Em digitação 2 R$ 48.000 | Pendência de documentos 1 R$ 20.300 | Em análise 1 R$ 27.600 | Aguardando boleto 1 R$ 49.900 | Aguardando implantação 2 R$ 23.700 | Solicitação recebida 1 sem valor | Em atendimento 2 sem valor | Aguardando operadora 1 sem valor
 OK   Valor da etapa = soma dos valores dos cards dela — Valor: R$ 174.400 = 174400
 OK   Tabela da etapa tem Assessor, Comercial, Criado em e Valor — Card Assessor Comercial Criado em Valor Na etapa há SLA da etapa Próxima atividade Alertas 
-OK   Cards de cada etapa em ordem de criação — 20261012 20261022 20261024 20261025 20261026
+OK   Cards de cada etapa em ordem de criação — 20261013 20261023 20261025 20261026 20261027
 OK   Etapas não mostram o funil Pós-venda
 OK   Ranking por comercial usa o nome tirado do e-mail do especialista — 🥇 1º Rafael Dias 3 | 🥈 2º Bruno Teixeira (fictício) 2 | 🥈 2º Joana Matos 2 | 🥈 2º Maria da Silva 2 | 5º Ana Ribeiro (fictícia) 1 | 6º Carla Nunes (fictícia) 0
 OK   Totais do período: realizadas, agendadas e pendentes — Reuniões realizadas 10 concluídas no período Agendadas 0 ainda vão acontecer no período Pendentes 1 passaram do horário 
 OK   Agrupar por responsável pela reunião — 🥇 1º Bruno Teixeira (fictício) 4 0 0 3 4
-OK   Exportação CSV do ranking (sem células de fórmula) — 1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;26/09/2026 16:39;26/10/2026 16:38
+OK   Exportação CSV do ranking (sem células de fórmula) — 1;Bruno Teixeira (fictício);4;0;0;3;4;Últimos 30 dias;27/09/2026 19:06;27/10/2026 19:05
 OK   Painel mostra concluídos e cancelados dos últimos 30 dias — Encerrados · últimos 30 dias ver estudo 5 concluídos 6 cancelados 45% taxa de conclusão Valor concluído: R$ 168.200
 OK   Estudo (180 dias): 6 concluídos, 7 cancelados, taxa 46% — Concluídos 6 R$ 258.200 Cancelados 7 R$ 65.400 Taxa de conclusão 46% concluídos ÷ encerrados Ciclo dos concluídos 16 dia(s) mediana 18 dia(s), da criação ao enc
 OK   Mostra em que etapa os cards foram cancelados e os motivos
 OK   Lista dos encerrados com filtro por situação — 13 encerrados, 7 cancelados
 OK   Resumo do estudo com fatos calculados — 13 cards encerrados: 6 concluídos e 7 cancelados — taxa de conclusão de 46%.
 OK   Exportação CSV dos encerrados — 527;[DEMO] Escola Saber — 18 vidas;Cancelado;Comercial PME;Proposta apresentada;Perdido;An
-OK   Lista de encerrados segue o botão inverter (antigos ↔ recentes) — 20260916 … / 20261023 …
+OK   Lista de encerrados segue o botão inverter (antigos ↔ recentes) — 20260917 … / 20261024 …
 OK   Configuração "contar cards ganhos/perdidos" altera o ranking — Reuniões realizadas 7 concluídas no período Agendadas 0 aind
 OK   Sem erros de console
 

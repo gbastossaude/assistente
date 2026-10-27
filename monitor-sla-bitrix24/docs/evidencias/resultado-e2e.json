@@ -1,10 +1,10 @@
 {
-  "at": "2026-10-26T19:39:27.415Z",
+  "at": "2026-10-27T22:06:20.993Z",
   "results": [
     {
       "name": "Extensão carregada (service worker MV3 ativo)",
       "ok": true,
-      "detail": "mnninphfpgdbfiobacbpflineblkfimb"
+      "detail": "oepbpfgdanoafjcaidkaimholclekimb"
     },
     {
       "name": "Tela inicial sem configuração",
@@ -174,7 +174,7 @@
     {
       "name": "Apagar tudo remove dados locais",
       "ok": true,
-      "detail": "inpage"
+      "detail": "view_real"
     },
     {
       "name": "Sem erros de console",

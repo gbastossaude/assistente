@@ -1,0 +1,39 @@
+OK   Preparação: análise pelo login do Bitrix simulado
+OK   Usuário logado identificado só pelo número (Meus cards) — {"id":"11","origin":"http://127.0.0.1:8793"}
+OK   Atalho "Meus cards" aparece na fila
+OK   "Meus cards" filtra a fila — 3 de 10
+OK   Navegação interna percebida por evento (Navigation API, sem consulta periódica) — http://127.0.0.1:8793/crm/deal/details/503/
+OK   Lote (batch) com um comando de escrita é bloqueado no script da página — escrita: 403, leitura: 200
+OK   Comando de teclado abre e fecha a gaveta dentro do Bitrix — false → true
+OK   Após atualizar a extensão, a aba do Bitrix é religada sem recarregar a página — instância mvr8jv → mvr8jx, 1 aba(s) SLA
+OK   Service worker registra quantas abas foram religadas — {"at":1793138816172,"reason":"update","tabs":1}
+OK   Gaveta abre normalmente depois da atualização
+OK   Consulta pelo login funciona depois da atualização, sem recarregar o Bitrix — status ok
+OK   Segunda aba do Bitrix também tem uma única aba "SLA"
+OK   Fechando a aba usada, a consulta segue pela outra aba aberta — ok
+OK   Contador da aba "SLA" atualizado por mensagem (o script da página não escuta o armazenamento) — 8
+OK   Gaveta fechada não redesenha a cada sincronização; atualiza ao abrir — fechada: 0, ao abrir: 1
+OK   Portal fora do ar: aviso de falha e últimos dados mantidos — A última consulta falhou (27/10 19:07). Falha temporária no servidor do Bitrix24 ou na red · 10 cards
+OK   Botão de sincronizar volta a funcionar após a falha
+OK   Portal de volta: sincronização se recupera e o aviso some
+OK   Serviço indisponível (503): para de insistir e agenda nova tentativa — erro · Limite de requisições do Bitrix24 atingido (QUERY_LIMIT_EXCEEDED). [crm.item.lis · nova tentativa 22:09
+OK   Sem internet: não insiste e mostra "sem conexão" — sem_conexao
+OK   Diagnóstico mostra os erros recentes — Versão 1.8.0 Modo Portal real Última sincronização Sem conexão com a internet 27/10/2026 19:08 Abas do Bitrix religadas 
+OK   Diagnóstico sem credenciais nem sessid
+OK   Histórico de sincronizações com duração, requisições e resultado — 11 registros
+OK   Progresso gravado sem sincronização em andamento é ignorado
+OK   Painel não fica em "Sincronizando…" por um progresso antigo
+OK   Atualização em segundo plano não apaga edição não salva — valor 37
+OK   Atalho 2 abre Etapas
+OK   Atalho / foca a busca
+OK   Busca global leva ao card na fila e abre o detalhe
+OK   Atalho ? mostra a lista de atalhos
+OK   Tema alterna automático → claro → escuro e fica salvo — auto → light → dark (escuro)
+OK   Popup abre com o resumo gravado (sem ler todos os dados) — 136 ms, 4 KB
+OK   Depois de reiniciar o navegador, o painel abre com a última análise
+OK   Aba "SLA" volta sozinha no Bitrix após reiniciar
+OK   Etapas com 1.500 cards: desenha 40 por etapa e carrega mais sob demanda — 200 → 300 linhas
+OK   Busca global em 1.500 cards responde rápido — 85 ms (inclui 80 ms de espera entre teclas)
+OK   Sem erros de script nas páginas
+
+37/37 verificações OK

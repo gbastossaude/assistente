@@ -1,4 +1,4 @@
-OK   Extensão carregada (service worker MV3 ativo) — mnninphfpgdbfiobacbpflineblkfimb
+OK   Extensão carregada (service worker MV3 ativo) — oepbpfgdanoafjcaidkaimholclekimb
 OK   Tela inicial sem configuração
 OK   Demonstração carregada
 OK   Indicadores exibidos — Cards monitorados 24 18 com algum alerta Cards com atraso 18 prazo, atividade, SLA ou parado SLA vencido 17 17 etapa · 2 processo Próximos do vencimento 2 aviso
@@ -33,7 +33,7 @@ OK   Servidor recebeu apenas métodos de leitura — crm.type.list, crm.automate
 OK   Sem credencial: painel diferencia "não foi possível consultar" — Não foi possível consultar o Bitrix24: Credencial ausente.
 A credencial não está disponível (o Chrome foi reiniciado e e
 OK   Ícone sinaliza reconexão necessária
-OK   Apagar tudo remove dados locais — inpage
+OK   Apagar tudo remove dados locais — view_real
 OK   Sem erros de console
 
 36/36 verificações OK

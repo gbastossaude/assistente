@@ -2,8 +2,10 @@
 // (ex.: /page/besmart/besmart_saude/). Roda na página e nos quadros internos (kanban, lista, card aberto).
 // Lê apenas endereços de links e identificadores técnicos (números de tipo) — nunca o conteúdo dos cards.
 (() => {
-  if (window.__slaDetectLoaded) return;
-  window.__slaDetectLoaded = true;
+  // Reinjetado após atualizar a extensão: a instância nova assume e a antiga para de observar a página.
+  const TOKEN = Math.random().toString(36).slice(2);
+  window.__slaDetectToken = TOKEN;
+  const alive = () => { try { return !!chrome.runtime?.id && window.__slaDetectToken === TOKEN; } catch { return false; } };
 
   let topPath = location.pathname;
   try { topPath = window.top.location.pathname; } catch { /* quadro de outra origem */ }
@@ -50,6 +52,7 @@
 
   let reported = '';
   const report = () => {
+    if (!alive()) { stop(); return; }
     const types = scan();
     const key = JSON.stringify(types.map(t => [t.entityTypeId, t.linkPath]));
     if (!types.length || key === reported) return;
@@ -62,6 +65,7 @@
   let t = null;
   const mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(report, 800); });
   mo.observe(document.documentElement, { childList: true, subtree: true });
-  setTimeout(() => mo.disconnect(), 3 * 60000);
+  const stopTimer = setTimeout(() => mo.disconnect(), 3 * 60000);
+  function stop() { clearInterval(iv); clearTimeout(t); clearTimeout(stopTimer); mo.disconnect(); }
   report();
 })();

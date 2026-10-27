@@ -1,8 +1,22 @@
 // Ícone (contador) e notificações do Chrome. Nunca envia e-mail, WhatsApp ou comentário no Bitrix.
 import { badgeCount } from './alert-state.js';
 
-/** Indicador mostrado na aba "SLA" dentro do Bitrix (lido pelo script da página). */
-async function setInpage(v) { try { await chrome.storage.local.set({ inpage: v }); } catch { /* */ } }
+/**
+ * Indicador mostrado na aba "SLA" dentro do Bitrix. Fica gravado (para a página que abrir depois) e é
+ * enviado por mensagem só às abas do portal: o script da página não precisa escutar o armazenamento,
+ * que lhe entregaria a cada sincronização todos os dados gravados.
+ */
+let lastInpage = '';
+export async function setInpage(v) {
+  const sig = JSON.stringify(v);
+  try { if (sig !== lastInpage) await chrome.storage.local.set({ inpage: v }); } catch { /* */ }
+  lastInpage = sig;
+  try {
+    const matches = [...new Set((chrome.runtime.getManifest().content_scripts || []).flatMap(c => c.matches || []))];
+    const tabs = matches.length ? await chrome.tabs.query({ url: matches }) : [];
+    await Promise.all(tabs.map(t => chrome.tabs.sendMessage(t.id, { type: 'slaInpage', info: v }).catch(() => {})));
+  } catch { /* sem abas do portal */ }
+}
 
 export async function updateBadge({ analysis, mode, syncStatus, badgeMode, now = Date.now() }) {
   const a = chrome.action;

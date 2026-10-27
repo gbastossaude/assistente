@@ -1,0 +1,2 @@
+{"versao":"v1.7.0","abasSlaNaPagina":1,"gavetaAbreComPainel":true,"sincronizacaoPeloLogin":"sem_aba"}
+{"versao":"v1.8.0","abasSlaNaPagina":1,"gavetaAbreComPainel":true,"sincronizacaoPeloLogin":"ok"}

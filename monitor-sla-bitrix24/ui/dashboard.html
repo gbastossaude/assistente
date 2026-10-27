@@ -3,33 +3,55 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>Monitor de SLA – Bitrix24</title>
+  <script src="theme.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand"><img src="../icons/icon48.png" alt=""><div>Monitor de SLA <small>Bitrix24</small></div></div>
-    <span id="modePill"></span>
-    <nav class="tabs" id="tabs">
-      <button data-tab="painel" class="on">Painel</button>
-      <button data-tab="etapas">Etapas</button>
-      <button data-tab="reunioes">Ranking de reuniões</button>
-      <button data-tab="encerrados">Concluídos e cancelados</button>
-      <button data-tab="alertas">Central de alertas</button>
-      <button data-tab="analises">Análises</button>
-      <button data-tab="config">Configurações</button>
+  <a class="skip" href="#main">Pular para o conteúdo</a>
+  <div class="shell-top">
+    <header class="topbar">
+      <div class="brand"><img src="../icons/icon48.png" alt=""><div class="bt"><b>Monitor de SLA</b><small>Bitrix24</small></div></div>
+      <span id="modePill"></span>
+      <div class="gsearch" role="search">
+        <span class="gs-ico" id="gsIco"></span>
+        <input id="gq" type="search" placeholder="Buscar card, nº, assessor ou comercial…" aria-label="Buscar cards" autocomplete="off" spellcheck="false"
+          role="combobox" aria-expanded="false" aria-controls="gresults" aria-autocomplete="list">
+        <kbd class="gs-kbd" aria-hidden="true">/</kbd>
+        <div id="gresults" class="gresults hidden" role="listbox" aria-label="Resultados da busca"></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="syncinfo" id="syncinfo" aria-live="polite"></div>
+      <button class="btn icon" id="btnTheme" type="button" title="Tema: automático (T)" aria-label="Alternar tema"></button>
+      <button class="btn icon" id="btnHelp" type="button" title="Atalhos de teclado (?)" aria-label="Atalhos de teclado"></button>
+      <button class="btn primary" id="btnSync" type="button" title="Buscar alterações no Bitrix24 agora (S)">Sincronizar</button>
+    </header>
+    <div class="progress hidden" id="progress" role="progressbar" aria-label="Sincronização em andamento"><i></i></div>
+    <nav class="tabs" id="tabs" aria-label="Seções do painel">
+      <button data-tab="painel" class="on" type="button">Painel</button>
+      <button data-tab="etapas" type="button">Etapas</button>
+      <button data-tab="reunioes" type="button">Ranking de reuniões</button>
+      <button data-tab="encerrados" type="button">Concluídos e cancelados</button>
+      <button data-tab="alertas" type="button">Central de alertas</button>
+      <button data-tab="analises" type="button">Análises</button>
+      <button data-tab="config" type="button">Configurações</button>
     </nav>
-    <div class="spacer"></div>
-    <div class="syncinfo" id="syncinfo"></div>
-    <button class="btn" id="btnSync" title="Buscar alterações no Bitrix24 agora">Sincronizar</button>
-  </header>
-  <main class="wrap" id="main"><div class="empty"><h3>Carregando…</h3></div></main>
+  </div>
+  <main class="wrap" id="main" tabindex="-1" aria-busy="true">
+    <div class="skeleton" aria-label="Carregando">
+      <div class="sk-row"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="sk-grid"><i></i><i></i></div>
+      <div class="sk-list"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+  </main>
   <div class="savebar hidden" id="savebar">
     <span class="muted">Alterações não salvas</span>
-    <button class="btn" data-act="discard">Descartar</button>
-    <button class="btn primary" data-act="save">Salvar configurações</button>
+    <button class="btn" data-act="discard" type="button">Descartar</button>
+    <button class="btn primary" data-act="save" type="button">Salvar configurações</button>
   </div>
-  <div id="toast" class="toast hidden"></div>
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+  <div id="overlay" class="overlay hidden"></div>
   <script type="module" src="dashboard.js"></script>
 </body>
 </html>
