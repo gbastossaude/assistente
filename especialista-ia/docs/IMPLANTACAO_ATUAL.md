@@ -17,7 +17,8 @@ isolado no mesmo projeto:
 | Edge Function `especialista-whatsapp-webhook` | ⏳ publicar quando houver credenciais da Meta |
 | Painel na Netlify: <https://especialista-ia-planos.netlify.app> | ✅ publicado (build na Netlify a partir do branch, com `_redirects`/`_headers`) |
 | Schema `especialista` exposto na API (mantidos `public` e `graphql_public`) | ✅ feito via configuração do PostgREST no banco (verificado) |
-| Worker local + Ollama | ⏳ instalar no computador do escritório |
+| Conta de máquina do worker (`gbastossaude+worker@gmail.com`, papel worker) | ✅ criada e testada (login + fila pela API) |
+| Worker local + Ollama | ⏳ instalar no computador do escritório (usar `deploy-out/worker.env`, já completo) |
 | Extensão Chrome | ⏳ instalar nos navegadores |
 
 ## Convivência com os sistemas existentes
@@ -58,9 +59,10 @@ Supabase → *Authentication → URL Configuration → Redirect URLs* → adicio
 Não altere o *Site URL* (ele é do Erbe).
 
 ### 4. Worker local
-No painel: *Colaboradores → Novo acesso* → papel **Worker (máquina)** com um e-mail exclusivo (ex.: worker@…) → copie a
-senha temporária. No computador do escritório, siga [GUIA_OLLAMA_WINDOWS.md](GUIA_OLLAMA_WINDOWS.md) usando o arquivo
-`deploy-out/worker.env` (já com URL e chave pública) como `apps\local-worker\.env`, preenchendo `WORKER_EMAIL` e `WORKER_PASSWORD`.
+A conta de máquina já existe (`gbastossaude+worker@gmail.com`, papel worker; também aparece como "pendente" no Erbe, sem
+acesso a nada lá). O arquivo `worker.env` entregue já contém URL, chave pública, e-mail e senha: no computador do
+escritório, instale Node.js e Ollama, clone o repositório e copie esse arquivo para `especialista-ia\apps\local-worker\.env`,
+depois rode `scripts\windows\instalar-worker.ps1` ([GUIA_OLLAMA_WINDOWS.md](GUIA_OLLAMA_WINDOWS.md)).
 
 ### 5. Extensão
 `deploy-out/especialista-ia-extensao-0.1.0.zip` (já aponta para o projeto) → descompacte → `chrome://extensions` →
