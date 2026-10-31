@@ -32,15 +32,16 @@ npx supabase secrets set \
   WHATSAPP_PHONE_NUMBER_ID="..." \
   WHATSAPP_APP_SECRET="..."      `# App → Configurações → Básico → Chave secreta do app` \
   WHATSAPP_VERIFY_TOKEN="uma-frase-longa-e-aleatoria"
-npx supabase functions deploy whatsapp-webhook whatsapp-send
+npx supabase functions deploy especialista-whatsapp-send
+npx supabase functions deploy especialista-whatsapp-webhook --no-verify-jwt
 ```
-`whatsapp-webhook` é publicado com `verify_jwt = false` (a Meta não envia JWT); a autenticidade de cada evento é
+`especialista-whatsapp-webhook` é publicado com `verify_jwt = false` (a Meta não envia JWT); a autenticidade de cada evento é
 verificada pelo cabeçalho **X-Hub-Signature-256** (HMAC-SHA256 do corpo bruto com o App Secret).
 
 ## 4. Configurar o webhook
 
 1. Na Meta: *WhatsApp → Configuração → Webhook → Editar*.
-2. **Callback URL**: `https://SEU-PROJETO.supabase.co/functions/v1/whatsapp-webhook` (também exibida no painel em
+2. **Callback URL**: `https://SEU-PROJETO.supabase.co/functions/v1/especialista-whatsapp-webhook` (também exibida no painel em
    *Configurações → WhatsApp e custos*).
 3. **Verify token**: o mesmo valor de `WHATSAPP_VERIFY_TOKEN` → *Verificar e salvar* (a função responde ao GET de verificação).
 4. Em *Campos do webhook*, assine **messages** (mensagens e status de entrega).
@@ -85,5 +86,5 @@ Com as funções rodando localmente (`npx supabase functions serve`), é possív
 ```bash
 BODY='{"object":"whatsapp_business_account","entry":[]}'
 SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$WHATSAPP_APP_SECRET" | awk '{print $2}')
-curl -X POST "http://127.0.0.1:54321/functions/v1/whatsapp-webhook" -H "x-hub-signature-256: sha256=$SIG" -d "$BODY"
+curl -X POST "http://127.0.0.1:54321/functions/v1/especialista-whatsapp-webhook" -H "x-hub-signature-256: sha256=$SIG" -d "$BODY"
 ```

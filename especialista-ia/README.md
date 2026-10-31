@@ -28,7 +28,7 @@ Prioridade absoluta: **custo zero de operação** — IA local (Ollama), Supabas
                                                ▼                 ▼
  Colaborador ── WhatsApp ── Meta Cloud API ──► Supabase (Free): PostgreSQL + pgvector + Auth + Storage
                                │  webhook       │   RLS em todas as tabelas · fila processing_jobs
-                               ▼                │   Edge Functions: whatsapp-webhook / whatsapp-send / admin-users
+                               ▼                │   Edge Functions: especialista-whatsapp-webhook / -whatsapp-send / -admin-users
                        Edge Function            │
                        (assinatura, fila)       ▼ (HTTPS de saída; nenhuma porta aberta no escritório)
                                          Worker local (Node) ── Ollama em 127.0.0.1:11434
@@ -77,7 +77,7 @@ npm ci
 ```
 
 1. **Supabase** — crie o projeto e aplique as migrations (`supabase link` + `supabase db push`, ou cole os arquivos de `supabase/migrations` em ordem no SQL Editor). Crie seu usuário em *Authentication → Users* e execute `scripts/sql/primeiro-admin.sql`. Passo a passo: [docs/IMPLANTACAO.md](docs/IMPLANTACAO.md).
-2. **Edge Functions** — `supabase functions deploy whatsapp-webhook whatsapp-send admin-users` (o webhook só é necessário para o WhatsApp).
+2. **Edge Functions** — `supabase functions deploy especialista-admin-users especialista-whatsapp-send` (+ `especialista-whatsapp-webhook --no-verify-jwt`) (o webhook só é necessário para o WhatsApp).
 3. **Painel** — copie `.env.example` para `.env`, preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`; publique na Netlify (`netlify.toml` incluso) ou rode `npm run dev:admin`.
 4. **Worker + Ollama** — no Windows: `scripts\windows\instalar-worker.ps1`. Guia: [docs/GUIA_OLLAMA_WINDOWS.md](docs/GUIA_OLLAMA_WINDOWS.md).
 5. **Extensão** — `npm run build:extension` e carregue `apps/chrome-extension/dist` em `chrome://extensions`. Guia: [docs/GUIA_EXTENSAO.md](docs/GUIA_EXTENSAO.md).

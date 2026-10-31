@@ -14,7 +14,7 @@
 
 ## Fluxo de uma pergunta
 
-1. **Entrada** — extensão/painel chamam `submit_question` (RPC): valida papel, tamanho e limite por minuto/dia, remove dados pessoais (2ª camada; a 1ª é no navegador), grava a pergunta e um gatilho cria a tarefa. No WhatsApp, a Edge Function `whatsapp-webhook` valida a assinatura, registra o `wamid` (idempotência), confere se o número está aprovado, trata comandos e cria a pergunta com `expires_at` = fim da janela de 24 h.
+1. **Entrada** — extensão/painel chamam `submit_question` (RPC): valida papel, tamanho e limite por minuto/dia, remove dados pessoais (2ª camada; a 1ª é no navegador), grava a pergunta e um gatilho cria a tarefa. No WhatsApp, a Edge Function `especialista-whatsapp-webhook` valida a assinatura, registra o `wamid` (idempotência), confere se o número está aprovado, trata comandos e cria a pergunta com `expires_at` = fim da janela de 24 h.
 2. **Worker** — acordado pelo Realtime (ou pela consulta periódica), chama `claim_jobs` e executa `answerQuestion()`:
    1. Minimização de dados (CPF, CNPJ, telefone, e-mail, CNS, RG, nascimento, nomes após "cliente").
    2. Bloqueio de prompt injection explícito; recusa de diagnóstico médico; aviso em temas jurídicos.

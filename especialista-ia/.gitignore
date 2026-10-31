@@ -10,3 +10,4 @@ apps/local-worker/data/
 coverage/
 supabase/.temp/
 supabase/.branches/
+deploy-out/

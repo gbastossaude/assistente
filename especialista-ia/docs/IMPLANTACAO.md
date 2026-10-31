@@ -13,15 +13,18 @@ Tempo estimado: 2 a 3 horas (sem o WhatsApp). Siga na ordem.
    npx supabase db push
    ```
    Opção B: copie e execute **em ordem** cada arquivo de `supabase/migrations/` no *SQL Editor*.
-4. *Authentication → Providers → Email*: mantenha e-mail habilitado e **desative "Allow new users to sign up"** (as contas são criadas pelo administrador).
-5. *Authentication → Users → Add user*: crie o seu usuário (marque *Auto Confirm User*). No SQL Editor rode `scripts/sql/primeiro-admin.sql` com o seu e-mail.
-6. *Authentication → URL Configuration*: `Site URL` = endereço do painel na Netlify (para links de redefinição de senha).
-7. Publique as Edge Functions:
+4. **Exponha o schema**: *Project Settings → Data API → Exposed schemas* → adicione `especialista` (todo o sistema vive
+   nesse schema para poder dividir o projeto com outros sistemas).
+5. *Authentication → Providers → Email*: mantenha e-mail habilitado e **desative "Allow new users to sign up"** (as contas são criadas pelo administrador).
+6. *Authentication → Users → Add user*: crie o seu usuário (marque *Auto Confirm User*). No SQL Editor rode `scripts/sql/primeiro-admin.sql` (se o projeto já tem usuários de outro sistema, pode usar sua conta existente) com o seu e-mail.
+7. *Authentication → URL Configuration*: `Site URL` = endereço do painel na Netlify (para links de redefinição de senha).
+8. Publique as Edge Functions:
    ```bash
-   npx supabase functions deploy admin-users whatsapp-send whatsapp-webhook
+   npx supabase functions deploy especialista-admin-users especialista-whatsapp-send
+   npx supabase functions deploy especialista-whatsapp-webhook --no-verify-jwt
    npx supabase secrets set ADMIN_ORIGINS=https://SEU-PAINEL.netlify.app
    ```
-8. Opcional: *Database → Extensions → pg_cron* habilitado faz a retenção rodar sozinha às 06:17 UTC (o worker também executa a limpeza uma vez por dia).
+9. Opcional: *Database → Extensions → pg_cron* habilitado faz a retenção rodar sozinha às 06:17 UTC (o worker também executa a limpeza uma vez por dia).
 
 ## 2. Painel na Netlify (gratuito)
 
