@@ -15,7 +15,7 @@ isolado no mesmo projeto:
 | Edge Function `especialista-admin-users` | ✅ publicada |
 | Edge Function `especialista-whatsapp-send` | ✅ publicada (inerte sem credenciais da Meta) |
 | Edge Function `especialista-whatsapp-webhook` | ⏳ publicar quando houver credenciais da Meta |
-| Projeto Netlify `especialista-ia-planos` + variáveis públicas | ✅ criado; ⏳ falta o primeiro deploy |
+| Painel na Netlify: <https://especialista-ia-planos.netlify.app> | ✅ publicado (build na Netlify a partir do branch, com `_redirects`/`_headers`) |
 | Schema `especialista` exposto na API (mantidos `public` e `graphql_public`) | ✅ feito via configuração do PostgREST no banco (verificado) |
 | Worker local + Ollama | ⏳ instalar no computador do escritório |
 | Extensão Chrome | ⏳ instalar nos navegadores |
@@ -46,13 +46,12 @@ Verificado: `especialista` responde (acesso anônimo negado, como esperado) e `p
 Se no futuro o Erbe precisar expor outro schema, inclua-o nesta lista (ou adicione `especialista` na tela e remova a
 configuração com `alter role authenticator reset pgrst.db_schemas; notify pgrst, 'reload config';`).
 
-### 2. Publicar o painel (1 minuto)
-Opção rápida: Netlify → projeto **especialista-ia-planos** → *Deploys* → arraste o arquivo
-`deploy-out/painel-especialista-ia-netlify.zip` (descompactado) para a área "Drag and drop".
-Opção contínua (recomendada): *Project configuration → Build & deploy → Link repository* → GitHub
-`gbastossaude/assistente`, **Base directory** `especialista-ia`, branch de produção a escolhida (ex.: `main` após o merge).
-As variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` já estão cadastradas no projeto.
-Endereço: <https://especialista-ia-planos.netlify.app> — entre com gbastossaude@gmail.com e a senha que você já usa no Erbe.
+### 2. Painel — ✅ publicado
+<https://especialista-ia-planos.netlify.app> — entre com gbastossaude@gmail.com e a senha que você já usa no Erbe.
+O primeiro deploy foi enviado pela integração Netlify (build feito pela própria Netlify). Para atualizações automáticas a
+cada push, vincule o repositório: *Project configuration → Build & deploy → Link repository* → `gbastossaude/assistente`,
+**Base directory** `especialista-ia`. A função temporária `especialista-netlify-deploy` usada no primeiro envio foi
+desativada (responde 410) e pode ser excluída em *Edge Functions*.
 
 ### 3. Permitir o link de redefinição de senha (opcional)
 Supabase → *Authentication → URL Configuration → Redirect URLs* → adicione `https://especialista-ia-planos.netlify.app`.
