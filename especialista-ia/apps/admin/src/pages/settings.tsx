@@ -2,7 +2,7 @@ import { Copy, Cpu, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { CONTRACT_TYPE_LABELS, CONTRACT_TYPES, OPERATOR_KIND_LABELS, OPERATOR_KINDS, type OperatorRow, type ProductRow } from "@especialista/shared";
+import { CONTRACT_TYPE_LABELS, CONTRACT_TYPES, EDGE_FUNCTIONS, OPERATOR_KIND_LABELS, OPERATOR_KINDS, type OperatorRow, type ProductRow } from "@especialista/shared";
 import {
   Alert, Badge, Button, Card, CardBody, CardHeader, Dialog, EmptyState, Field, Input, Select, Spinner, StatusDot, Switch, Tabs, TabsContent, TabsList, TabsTrigger, Textarea,
   errorMessage, timeAgo,
@@ -92,7 +92,7 @@ function AiTab() {
 function WhatsAppTab() {
   const s = useSetting<Json>("whatsapp");
   const usage = useData(async () => unwrap(await sb.rpc("whatsapp_usage_summary")) as { reserved: number; cap: number; sent: number; delivered: number; failed: number; blocked: number; today_reserved: number; daily_cap: number }, []);
-  const webhook = `${SUPABASE_URL || "https://SEU-PROJETO.supabase.co"}/functions/v1/whatsapp-webhook`;
+  const webhook = `${SUPABASE_URL || "https://SEU-PROJETO.supabase.co"}/functions/v1/${EDGE_FUNCTIONS.webhook}`;
   if (!s.value) return <Spinner />;
   const v = s.value;
   const cap = num(v.monthly_cap);

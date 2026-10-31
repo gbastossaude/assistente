@@ -2,6 +2,7 @@ import { hostname } from "node:os";
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { assertLoopbackUrl } from "@especialista/ai-core";
+import { EDGE_FUNCTIONS } from "@especialista/shared";
 
 export interface WorkerConfig {
   supabaseUrl: string;
@@ -75,6 +76,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, envFile?: strin
     ocrLanguage: env.OCR_LANGUAGE?.trim() || "por",
     logDir: env.LOG_DIR?.trim() || path.resolve(import.meta.dirname, "../logs"),
     logLevel: (["debug", "info", "warn", "error"].includes(env.LOG_LEVEL ?? "") ? env.LOG_LEVEL : "info") as WorkerConfig["logLevel"],
-    whatsappFunctionName: env.WHATSAPP_SEND_FUNCTION?.trim() || "whatsapp-send",
+    whatsappFunctionName: env.WHATSAPP_SEND_FUNCTION?.trim() || EDGE_FUNCTIONS.send,
   };
 }

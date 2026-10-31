@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- cliente Supabase sem tipos gerados, schema "especialista" */
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { History, LogOut, MessageSquarePlus, RotateCcw, Search, Star } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
@@ -65,7 +66,7 @@ function SetupScreen({ onSaved }: { onSaved: () => void }) {
   );
 }
 
-function LoginScreen({ sb }: { sb: SupabaseClient }) {
+function LoginScreen({ sb }: { sb: SupabaseClient<any, any, any> }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -105,7 +106,7 @@ function LoginScreen({ sb }: { sb: SupabaseClient }) {
   );
 }
 
-function Authenticated({ sb }: { sb: SupabaseClient }) {
+function Authenticated({ sb }: { sb: SupabaseClient<any, any, any> }) {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ full_name: string; role: string } | null>(null);
@@ -136,7 +137,7 @@ function Authenticated({ sb }: { sb: SupabaseClient }) {
   return <MainScreen sb={sb} userId={session.user.id} name={profile.full_name} />;
 }
 
-function useServiceStatus(sb: SupabaseClient) {
+function useServiceStatus(sb: SupabaseClient<any, any, any>) {
   const [state, setState] = useState<{ connected: boolean | null; worker: boolean | null; ai: boolean | null }>({ connected: null, worker: null, ai: null });
   const check = useCallback(async () => {
     try {
@@ -157,7 +158,7 @@ function useServiceStatus(sb: SupabaseClient) {
   return state;
 }
 
-function MainScreen({ sb, userId, name }: { sb: SupabaseClient; userId: string; name: string }) {
+function MainScreen({ sb, userId, name }: { sb: SupabaseClient<any, any, any>; userId: string; name: string }) {
   const [tab, setTab] = useState<Tab>("ask");
   const [operators, setOperators] = useState<Array<{ id: string; name: string }>>([]);
   const status = useServiceStatus(sb);
@@ -249,7 +250,7 @@ function MainScreen({ sb, userId, name }: { sb: SupabaseClient; userId: string; 
   );
 }
 
-function HistoryTab({ sb, userId, favorites, onOpen }: { sb: SupabaseClient; userId: string; favorites: boolean; onOpen: (q: QuestionWithAnswer) => void }) {
+function HistoryTab({ sb, userId, favorites, onOpen }: { sb: SupabaseClient<any, any, any>; userId: string; favorites: boolean; onOpen: (q: QuestionWithAnswer) => void }) {
   const [items, setItems] = useState<QuestionWithAnswer[] | null>(null);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);

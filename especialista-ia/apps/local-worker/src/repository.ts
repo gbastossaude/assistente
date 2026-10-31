@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- cliente Supabase sem tipos gerados, schema "especialista" */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { RequiredInfoRule, RetrievedChunk, RetrievedFaq, Retriever, SearchParams, SourceRef } from "@especialista/ai-core";
-import type { EntityCatalog, ProcessingJobRow, QuestionContext } from "@especialista/shared";
+import { DB_SCHEMA, KNOWLEDGE_BUCKET, type EntityCatalog, type ProcessingJobRow, type QuestionContext } from "@especialista/shared";
 import type { WorkerConfig } from "./config.ts";
 
 export interface QuestionForAnswer {
@@ -68,11 +69,12 @@ export interface WorkerRepository extends Retriever {
 const toVector = (v: number[]) => `[${v.join(",")}]`;
 
 export class SupabaseWorkerRepository implements WorkerRepository {
-  readonly client: SupabaseClient;
+  readonly client: SupabaseClient<any, any, any>;
 
   constructor(private readonly cfg: WorkerConfig) {
     this.client = createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
       auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false },
+      db: { schema: DB_SCHEMA },
       global: { headers: { "x-client-info": "especialista-worker" } },
     });
   }
@@ -193,7 +195,7 @@ export class SupabaseWorkerRepository implements WorkerRepository {
   }
 
   async downloadFile(storagePath: string): Promise<Uint8Array> {
-    const { data, error } = await this.client.storage.from("knowledge").download(storagePath);
+    const { data, error } = await this.client.storage.from(KNOWLEDGE_BUCKET).download(storagePath);
     if (error || !data) throw new Error(`Falha ao baixar o arquivo: ${error?.message ?? "vazio"}`);
     return new Uint8Array(await data.arrayBuffer());
   }
@@ -229,7 +231,7 @@ export class SupabaseWorkerRepository implements WorkerRepository {
   onNewJob(cb: () => void): () => void {
     const channel = this.client
       .channel("processing-jobs")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "processing_jobs" }, () => cb())
+      .on("postgres_changes", { event: "INSERT", schema: DB_SCHEMA, table: "processing_jobs" }, () => cb())
       .subscribe();
     return () => void this.client.removeChannel(channel);
   }

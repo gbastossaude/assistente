@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { DB_SCHEMA } from "@especialista/shared";
 
 export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "";
 const ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? "";
@@ -7,6 +8,7 @@ export const configured = Boolean(SUPABASE_URL && ANON);
 /** Cliente com a chave pública (anon): tudo é protegido por login + RLS. Nenhum segredo vai para o navegador. */
 export const sb = createClient(SUPABASE_URL || "http://localhost:54321", ANON || "anon-nao-configurada", {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "especialista.admin.auth" },
+  db: { schema: DB_SCHEMA },
   global: { headers: { "x-client-info": "especialista-admin" } },
 });
 

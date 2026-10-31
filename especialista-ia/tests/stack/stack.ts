@@ -5,6 +5,7 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
 import { adminUsersHandler, webhookHandler, whatsappSendHandler } from "../../supabase/functions/_shared/handlers.ts";
+import { DB_SCHEMA, EDGE_FUNCTIONS } from "../../packages/shared/src/index.ts";
 import { startGateway } from "./gateway.ts";
 import { signJwt } from "./jwt.ts";
 
@@ -81,13 +82,13 @@ export async function startStack(): Promise<Stack> {
   }
 
   docker(["run", "-d", "--name", "esp-postgrest", "--network", "host",
-    "-e", `PGRST_DB_URI=postgres://authenticator:stack-pass@127.0.0.1:5432/${DB}`, "-e", "PGRST_DB_SCHEMAS=public",
+    "-e", `PGRST_DB_URI=postgres://authenticator:stack-pass@127.0.0.1:5432/${DB}`, "-e", "PGRST_DB_SCHEMAS=public,especialista",
     "-e", "PGRST_DB_ANON_ROLE=anon", "-e", `PGRST_JWT_SECRET=${JWT_SECRET}`, "-e", "PGRST_DB_EXTRA_SEARCH_PATH=public,extensions",
     "-e", `PGRST_SERVER_PORT=${REST_PORT}`, "-e", "PGRST_SERVER_HOST=127.0.0.1", POSTGREST_IMAGE]);
   await waitFor(`http://127.0.0.1:${REST_PORT}/`, 60_000);
 
   // Cliente "do servidor" (service role) usado pelos handlers das Edge Functions.
-  const service = createClient(GATEWAY_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  const service = createClient(GATEWAY_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: DB_SCHEMA } });
   const graphSent: Stack["graphSent"] = [];
   const graphFetch = (async (_u: string, init: RequestInit) => {
     const b = JSON.parse(String(init.body));
@@ -103,9 +104,9 @@ export async function startStack(): Promise<Stack> {
   const gateway = await startGateway({
     port: GATEWAY_PORT, jwtSecret: JWT_SECRET, authPort: AUTH_PORT, restPort: REST_PORT, pool, storageDir,
     functions: {
-      "whatsapp-webhook": (req) => webhookHandler(req, env, service, graphFetch),
-      "whatsapp-send": (req) => whatsappSendHandler(req, env, service, graphFetch),
-      "admin-users": (req) => adminUsersHandler(req, env, service),
+      [EDGE_FUNCTIONS.webhook]: (req) => webhookHandler(req, env, service, graphFetch),
+      [EDGE_FUNCTIONS.send]: (req) => whatsappSendHandler(req, env, service, graphFetch),
+      [EDGE_FUNCTIONS.adminUsers]: (req) => adminUsersHandler(req, env, service),
     },
   });
   await waitFor(`${GATEWAY_URL}/rest/v1/`, 30_000);
@@ -116,7 +117,7 @@ export async function startStack(): Promise<Stack> {
     graphSent,
     async createUser(email, password, role, fullName) {
       const { data, error } = await service.auth.admin.createUser({
-        email, password, email_confirm: true, app_metadata: { role, active: true }, user_metadata: { full_name: fullName },
+        email, password, email_confirm: true, app_metadata: { especialista_role: role, especialista_active: true }, user_metadata: { full_name: fullName },
       });
       if (error) throw error;
       return data.user!.id;

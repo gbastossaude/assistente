@@ -131,22 +131,45 @@ export async function adminUsersHandler(req: Request, env: Env, client: ServiceC
         const email = (body.email ?? "").trim().toLowerCase();
         const role = body.role ?? "colaborador";
         if (!EMAIL.test(email) || !ROLES.includes(role)) return json(400, { error: "e-mail ou papel inválido" }, cors);
+        const fullName = (body.full_name ?? "").slice(0, 120);
+        // Chaves próprias no app_metadata: o projeto pode ser compartilhado com outros sistemas.
+        const appMeta = { especialista_role: role, especialista_active: true };
+
+        // Conta já existente no Auth (ex.: usuário de outro sistema do mesmo projeto): apenas vincula,
+        // sem alterar a senha nem os dados que pertencem ao outro sistema.
+        const { data: existingId } = await client.rpc("find_auth_user_by_email", { p_email: email });
+        if (existingId) {
+          const { data: current } = await client.auth.admin.getUserById(existingId);
+          const merged = { ...(current?.user?.app_metadata ?? {}), ...appMeta };
+          const upd = await client.auth.admin.updateUserById(existingId, { app_metadata: merged });
+          if (upd.error) return json(400, { error: upd.error.message }, cors);
+          await client.from("profiles").upsert({ id: existingId, email, full_name: fullName || email.split("@")[0], role, active: true });
+          await audit("vincular_usuario", existingId, { email, role });
+          return json(200, { id: existingId, email, role, temporary_password: null, linked_existing: true }, cors);
+        }
+
         const invite = body.mode === "invite" && role !== "worker";
         const password = invite ? undefined : strongPassword();
-        const meta = { app_metadata: { role, active: true }, user_metadata: { full_name: (body.full_name ?? "").slice(0, 120) } };
+        const createdMeta = { ...appMeta, especialista_created: true };
         const res = invite
-          ? await client.auth.admin.inviteUserByEmail(email, { data: meta.user_metadata, redirectTo: body.redirect_to })
-          : await client.auth.admin.createUser({ email, password, email_confirm: true, ...meta });
+          ? await client.auth.admin.inviteUserByEmail(email, { data: { full_name: fullName }, redirectTo: body.redirect_to })
+          : await client.auth.admin.createUser({ email, password, email_confirm: true, app_metadata: createdMeta, user_metadata: { full_name: fullName } });
         if (res.error || !res.data?.user) return json(400, { error: res.error?.message ?? "falha ao criar" }, cors);
         const id = res.data.user.id;
-        if (invite) await client.auth.admin.updateUserById(id, { app_metadata: meta.app_metadata });
-        await client.from("profiles").upsert({ id, email, full_name: meta.user_metadata.full_name, role, active: true });
+        if (invite) await client.auth.admin.updateUserById(id, { app_metadata: { ...(res.data.user.app_metadata ?? {}), ...createdMeta } });
+        await client.from("profiles").upsert({ id, email, full_name: fullName, role, active: true });
         await audit("criar_usuario", id, { email, role, convite: invite });
         // A senha temporária é exibida UMA vez ao administrador e não é armazenada.
         return json(200, { id, email, role, temporary_password: password ?? null }, cors);
       }
       case "reset_password": {
         if (!body.user_id || !UUID.test(body.user_id)) return json(400, { error: "user_id obrigatório" }, cors);
+        // Só redefine senhas de contas criadas pelo Especialista IA: em projeto compartilhado, a senha
+        // de uma conta vinculada também é usada em outro sistema.
+        const { data: target } = await client.auth.admin.getUserById(body.user_id);
+        if (!target?.user?.app_metadata?.especialista_created) {
+          return json(400, { error: "Conta compartilhada com outro sistema: a pessoa deve usar \"Esqueci minha senha\"." }, cors);
+        }
         const password = strongPassword();
         const { error } = await client.auth.admin.updateUserById(body.user_id, { password });
         if (error) return json(400, { error: error.message }, cors);
@@ -157,7 +180,12 @@ export async function adminUsersHandler(req: Request, env: Env, client: ServiceC
       case "unblock": {
         if (!body.user_id || !UUID.test(body.user_id) || body.user_id === actor.id) return json(400, { error: "usuário inválido" }, cors);
         const block = body.action === "block";
-        const { error } = await client.auth.admin.updateUserById(body.user_id, { ban_duration: block ? "876000h" : "none" });
+        // O bloqueio vale para o Especialista IA. Em projeto compartilhado, NÃO bane a conta no Auth
+        // (isso bloquearia também os outros sistemas): apenas desativa o perfil e o app_metadata próprio.
+        const { data: current } = await client.auth.admin.getUserById(body.user_id);
+        const { error } = await client.auth.admin.updateUserById(body.user_id, {
+          app_metadata: { ...(current?.user?.app_metadata ?? {}), especialista_active: !block },
+        });
         if (error) return json(400, { error: error.message }, cors);
         const { error: pErr } = await client.from("profiles").update({ active: !block }).eq("id", body.user_id);
         if (pErr) return json(400, { error: pErr.message }, cors);

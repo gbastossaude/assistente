@@ -2,18 +2,18 @@
 -- Configurações, auditoria e estado do worker local
 -- =====================================================================
 
-create table public.system_settings (
+create table especialista.system_settings (
   key text primary key check (key ~ '^[a-z_]+$'),
   value jsonb not null,
   description text,
   -- Somente chaves públicas (ex.: identidade visual) são legíveis por colaboradores.
   is_public boolean not null default false,
-  updated_by uuid references public.profiles (id) on delete set null,
+  updated_by uuid references especialista.profiles (id) on delete set null,
   updated_at timestamptz not null default now()
 );
 
 -- Segredos (tokens da Meta etc.) NUNCA ficam aqui: são variáveis secretas das Edge Functions.
-insert into public.system_settings (key, value, description, is_public) values
+insert into especialista.system_settings (key, value, description, is_public) values
   ('ai', '{
      "mode": "gratuito",
      "provider": "ollama",
@@ -88,7 +88,7 @@ insert into public.system_settings (key, value, description, is_public) values
      "accent_color": "#2563EB"
    }', 'Identidade visual (nome, logo e cores) — personalizável.', true);
 
-create table public.audit_logs (
+create table especialista.audit_logs (
   id bigint generated always as identity primary key,
   actor_id uuid,
   actor_role text,
@@ -98,12 +98,12 @@ create table public.audit_logs (
   details jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
-create index audit_logs_created_idx on public.audit_logs (created_at desc);
-create index audit_logs_entity_idx on public.audit_logs (entity, entity_id);
+create index audit_logs_created_idx on especialista.audit_logs (created_at desc);
+create index audit_logs_entity_idx on especialista.audit_logs (entity, entity_id);
 
-create table public.worker_heartbeats (
+create table especialista.worker_heartbeats (
   worker_id text primary key check (worker_id ~ '^[A-Za-z0-9_.-]{3,64}$'),
-  profile_id uuid references public.profiles (id) on delete set null,
+  profile_id uuid references especialista.profiles (id) on delete set null,
   machine_name text,
   app_version text,
   status text not null default 'online' check (status in ('online', 'ocupado', 'parando', 'erro')),
@@ -121,8 +121,8 @@ create table public.worker_heartbeats (
 -- ---------------------------------------------------------------------
 -- Auditoria automática das tabelas administrativas
 -- ---------------------------------------------------------------------
-create or replace function public.audit_row_change() returns trigger
-language plpgsql security definer set search_path = public as $$
+create or replace function especialista.audit_row_change() returns trigger
+language plpgsql security definer set search_path = especialista as $$
 declare
   v_old jsonb := case when tg_op in ('UPDATE', 'DELETE') then to_jsonb(old) else null end;
   v_new jsonb := case when tg_op in ('INSERT', 'UPDATE') then to_jsonb(new) else null end;
@@ -149,10 +149,10 @@ begin
     v_changes := v_old - v_skip;
   end if;
 
-  insert into public.audit_logs (actor_id, actor_role, action, entity, entity_id, details)
+  insert into especialista.audit_logs (actor_id, actor_role, action, entity, entity_id, details)
   values (
     auth.uid(),
-    coalesce(public.current_app_role(), case when auth.uid() is null then 'sistema' end),
+    coalesce(especialista.current_app_role(), case when auth.uid() is null then 'sistema' end),
     lower(tg_op),
     tg_table_name,
     coalesce(v_new ->> 'id', v_old ->> 'id', v_new ->> 'key', v_old ->> 'key'),
@@ -168,7 +168,7 @@ begin
   foreach t in array array[
     'profiles', 'operators', 'products', 'knowledge_documents', 'document_versions', 'knowledge_faq',
     'required_info_rules', 'knowledge_conflicts', 'system_settings', 'handoff_requests'] loop
-    execute format('create trigger %I after insert or update or delete on public.%I
-      for each row execute function public.audit_row_change()', t || '_audit', t);
+    execute format('create trigger %I after insert or update or delete on especialista.%I
+      for each row execute function especialista.audit_row_change()', t || '_audit', t);
   end loop;
 end $$;

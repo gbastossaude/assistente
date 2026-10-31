@@ -44,22 +44,22 @@ describe.skipIf(!available)("Ponta a ponta: bot oficial do WhatsApp (webhook →
   }
   const lastSent = () => graph.sent.at(-1)!;
   const outMessages = async (kind?: string) =>
-    (await pool.query(`select kind, status, error_code from public.whatsapp_messages where direction = 'out' ${kind ? "and kind = $1" : ""} order by created_at`, kind ? [kind] : [])).rows;
-  const usage = async () => (await pool.query("select coalesce(sum(reserved),0)::int reserved, coalesce(sum(sent),0)::int sent, coalesce(sum(delivered),0)::int delivered, coalesce(sum(failed),0)::int failed, coalesce(sum(blocked),0)::int blocked from public.whatsapp_usage where phone_number_id = $1", [PN])).rows[0];
+    (await pool.query(`select kind, status, error_code from especialista.whatsapp_messages where direction = 'out' ${kind ? "and kind = $1" : ""} order by created_at`, kind ? [kind] : [])).rows;
+  const usage = async () => (await pool.query("select coalesce(sum(reserved),0)::int reserved, coalesce(sum(sent),0)::int sent, coalesce(sum(delivered),0)::int delivered, coalesce(sum(failed),0)::int failed, coalesce(sum(blocked),0)::int blocked from especialista.whatsapp_usage where phone_number_id = $1", [PN])).rows[0];
 
   beforeAll(async () => {
     pool = await resetDatabase(`${process.env.TEST_DB_NAME ?? "especialista_test"}_wa`);
-    await pool.query(`update public.system_settings set value = value || '{"enabled": true, "monthly_cap": 900, "daily_cap": 500}' where key = 'whatsapp'`);
-    await pool.query(`update public.system_settings set value = value || '{"min_vector_similarity": 0.2}' where key = 'ai'`);
-    await pool.query(`update public.system_settings set value = value || '{"rate_limit_per_minute": 1000}' where key = 'security'`);
+    await pool.query(`update especialista.system_settings set value = value || '{"enabled": true, "monthly_cap": 900, "daily_cap": 500}' where key = 'whatsapp'`);
+    await pool.query(`update especialista.system_settings set value = value || '{"min_vector_similarity": 0.2}' where key = 'ai'`);
+    await pool.query(`update especialista.system_settings set value = value || '{"rate_limit_per_minute": 1000}' where key = 'security'`);
     admin = await createUser(pool, "admin@wa.test", "admin");
     colab = await createUser(pool, "colab@wa.test", "colaborador");
     await createUser(pool, "colab2@wa.test", "colaborador");
     const editor = await createUser(pool, "editor@wa.test", "editor");
     const workerUser = await createUser(pool, "worker@wa.test", "worker");
     // Número aprovado (com nono dígito); a Meta pode entregar o wa_id sem ele.
-    await asUser(pool, admin, (db) => db.query("update public.profiles set whatsapp_phone = $1, whatsapp_approved = true, full_name = 'Colaboradora' where id = $2", [COLAB_PHONE, colab]));
-    await asUser(pool, admin, (db) => db.query("update public.profiles set full_name = 'Ana Responsável' where id = $1", [admin]));
+    await asUser(pool, admin, (db) => db.query("update especialista.profiles set whatsapp_phone = $1, whatsapp_approved = true, full_name = 'Colaboradora' where id = $2", [COLAB_PHONE, colab]));
+    await asUser(pool, admin, (db) => db.query("update especialista.profiles set full_name = 'Ana Responsável' where id = $1", [admin]));
 
     const fetchImpl = (async (_url: string, init: RequestInit) => {
       const body = JSON.parse(init.body as string);
@@ -89,16 +89,16 @@ describe.skipIf(!available)("Ponta a ponta: bot oficial do WhatsApp (webhook →
     worker = new LocalWorker(cfg, repo, silent);
 
     // Base de conhecimento: um manual indexado pelo próprio worker
-    const bradesco = (await pool.query("select id from public.operators where slug = 'bradesco-saude'")).rows[0].id;
+    const bradesco = (await pool.query("select id from especialista.operators where slug = 'bradesco-saude'")).rows[0].id;
     const pdf = makePdf(["A Bradesco aceita empresas PME a partir de 3 vidas, com ao menos 1 titular socio."]);
     await asUser(pool, editor, async (db) => {
-      const d = await db.query("insert into public.knowledge_documents (title, operator_id, category, is_national, valid_until) values ('Manual PME Bradesco', $1, 'regras_elegibilidade', true, '2027-12-31') returning id", [bradesco]);
+      const d = await db.query("insert into especialista.knowledge_documents (title, operator_id, category, is_national, valid_until) values ('Manual PME Bradesco', $1, 'regras_elegibilidade', true, '2027-12-31') returning id", [bradesco]);
       repo.storage.set("docs/b.pdf", pdf);
-      await db.query("insert into public.document_versions (document_id, version_number, storage_path, file_name, mime_type, file_size, sha256) values ($1, 1, 'docs/b.pdf', 'b.pdf', 'application/pdf', $2, $3)",
+      await db.query("insert into especialista.document_versions (document_id, version_number, storage_path, file_name, mime_type, file_size, sha256) values ($1, 1, 'docs/b.pdf', 'b.pdf', 'application/pdf', $2, $3)",
         [d.rows[0].id, pdf.byteLength, createHash("sha256").update(pdf).digest("hex")]);
     });
     await worker.runOnce();
-    await pool.query("delete from public.worker_heartbeats"); // começa "offline"
+    await pool.query("delete from especialista.worker_heartbeats"); // começa "offline"
   });
   afterAll(async () => {
     await ollama?.stop();
@@ -111,8 +111,8 @@ describe.skipIf(!available)("Ponta a ponta: bot oficial do WhatsApp (webhook →
   it("assinatura inválida é recusada sem gravar mensagem", async () => {
     const r = await deliver(textEvent(COLAB_PHONE, "teste"), "segredo-errado");
     expect(r.status).toBe(401);
-    expect((await pool.query("select count(*)::int n from public.whatsapp_messages")).rows[0].n).toBe(0);
-    const ev = await pool.query("select signature_valid, outcome from public.whatsapp_webhook_events");
+    expect((await pool.query("select count(*)::int n from especialista.whatsapp_messages")).rows[0].n).toBe(0);
+    const ev = await pool.query("select signature_valid, outcome from especialista.whatsapp_webhook_events");
     expect(ev.rows[0]).toEqual({ signature_valid: false, outcome: "assinatura_invalida" });
   });
 
@@ -120,16 +120,16 @@ describe.skipIf(!available)("Ponta a ponta: bot oficial do WhatsApp (webhook →
     const r = await deliver(textEvent("5511911112222", "A Amil aceita 2 vidas?"));
     expect(r.status).toBe(200);
     expect(r.summary!.unauthorized).toBe(1);
-    const m = await pool.query("select status, body_redacted, profile_id from public.whatsapp_messages where direction = 'in'");
+    const m = await pool.query("select status, body_redacted, profile_id from especialista.whatsapp_messages where direction = 'in'");
     expect(m.rows[0]).toEqual({ status: "nao_autorizada", body_redacted: null, profile_id: null });
-    expect((await pool.query("select count(*)::int n from public.questions")).rows[0].n).toBe(0);
+    expect((await pool.query("select count(*)::int n from especialista.questions")).rows[0].n).toBe(0);
     expect(graph.sent).toHaveLength(0);
   });
 
   it("colaborador autorizado (wa_id sem o nono dígito): pergunta minimizada vai para a fila; aviso de offline enviado", async () => {
     const r = await deliver(textEvent("551187654321", "Cliente CPF 529.982.247-25: a Bradesco aceita empresa PME com 3 vidas?"));
     expect(r.summary).toMatchObject({ queued: 1, messages: 1 });
-    const q = await pool.query("select q.text_redacted, q.channel, q.status, j.expires_at > now() + interval '23 hours' as window_ok from public.questions q join public.processing_jobs j on j.question_id = q.id");
+    const q = await pool.query("select q.text_redacted, q.channel, q.status, j.expires_at > now() + interval '23 hours' as window_ok from especialista.questions q join especialista.processing_jobs j on j.question_id = q.id");
     expect(q.rows[0]).toMatchObject({ channel: "whatsapp", status: "pendente", window_ok: true });
     expect(q.rows[0].text_redacted).not.toContain("529.982");
     expect(graph.sent).toHaveLength(1);
@@ -141,7 +141,7 @@ describe.skipIf(!available)("Ponta a ponta: bot oficial do WhatsApp (webhook →
     await deliver(textEvent(COLAB_PHONE, "Qual a carência para consultas na Bradesco?", { id }));
     const again = await deliver(textEvent(COLAB_PHONE, "Qual a carência para consultas na Bradesco?", { id }));
     expect(again.summary!.duplicates).toBe(1);
-    const n = await pool.query("select count(*)::int n from public.whatsapp_messages where wa_message_id = $1", [id]);
+    const n = await pool.query("select count(*)::int n from especialista.whatsapp_messages where wa_message_id = $1", [id]);
     expect(n.rows[0].n).toBe(1);
   });
 
@@ -156,18 +156,18 @@ describe.skipIf(!available)("Ponta a ponta: bot oficial do WhatsApp (webhook →
     const out = await outMessages("resposta");
     expect(out.every((m) => m.status === "enviada")).toBe(true);
     // Reprocessar não reenvia (idempotência por pergunta)
-    const qid = (await pool.query("select id from public.questions where text_redacted like '%3 vidas%'")).rows[0].id;
+    const qid = (await pool.query("select id from especialista.questions where text_redacted like '%3 vidas%'")).rows[0].id;
     expect((await sendAnswer(deps, qid)).status).toBe("duplicada");
   });
 
   it("status de entrega da Meta atualiza a mensagem e o consumo", async () => {
-    const wamid = (await pool.query("select wa_message_id from public.whatsapp_messages where direction = 'out' and kind = 'resposta' and wa_message_id is not null limit 1")).rows[0].wa_message_id;
+    const wamid = (await pool.query("select wa_message_id from especialista.whatsapp_messages where direction = 'out' and kind = 'resposta' and wa_message_id is not null limit 1")).rows[0].wa_message_id;
     const statusEvent = { object: "whatsapp_business_account", entry: [{ changes: [{ field: "messages", value: {
       metadata: { phone_number_id: PN }, statuses: [{ id: wamid, status: "delivered", timestamp: String(ts), recipient_id: COLAB_PHONE,
         pricing: { billable: false, pricing_model: "PMP", category: "service" } }] } }] }] };
     const r = await deliver(statusEvent);
     expect(r.summary!.statuses).toBe(1);
-    const m = await pool.query("select status, billable, pricing_category from public.whatsapp_messages where wa_message_id = $1", [wamid]);
+    const m = await pool.query("select status, billable, pricing_category from especialista.whatsapp_messages where wa_message_id = $1", [wamid]);
     expect(m.rows[0]).toEqual({ status: "entregue", billable: false, pricing_category: "service" });
     expect((await usage()).delivered).toBe(1);
   });
@@ -178,7 +178,7 @@ describe.skipIf(!available)("Ponta a ponta: bot oficial do WhatsApp (webhook →
     expect(lastSent().body).toBe(MESSAGES.handoff);
     await deliver(textEvent(COLAB_PHONE, "falar com responsavel"));
     expect(lastSent().body).toBe(MESSAGES.handoffExisting);
-    const h = await asUser(pool, admin, (db) => db.query("select id, status, channel, profile_id from public.handoff_requests"));
+    const h = await asUser(pool, admin, (db) => db.query("select id, status, channel, profile_id from especialista.handoff_requests"));
     expect(h.rows).toHaveLength(1);
     expect(h.rows[0]).toMatchObject({ status: "aberto", channel: "whatsapp", profile_id: colab });
     const r = await sendHumanReply(deps, h.rows[0].id, "Olá! Pode me ligar no ramal 200.", "Ana Responsável");
@@ -210,7 +210,7 @@ describe.skipIf(!available)("Ponta a ponta: bot oficial do WhatsApp (webhook →
     await worker.runOnce();
     expect(lastSent().body).toContain("Qual operadora");
     await deliver(textEvent(COLAB_PHONE, "Bradesco"));
-    const q = await pool.query("select parent_question_id from public.questions where text_redacted = 'Bradesco'");
+    const q = await pool.query("select parent_question_id from especialista.questions where text_redacted = 'Bradesco'");
     expect(q.rows[0].parent_question_id).toBeTruthy();
     await worker.runOnce();
     expect(lastSent().body).toContain("3 vidas");
@@ -235,37 +235,37 @@ describe.skipIf(!available)("Ponta a ponta: bot oficial do WhatsApp (webhook →
   it("janela de 24 h expirada: a pergunta não é processada nem respondida", async () => {
     graph.sent = [];
     const old = Math.floor(Date.now() / 1000) - 25 * 3600;
-    await pool.query("update public.whatsapp_contacts set window_expires_at = null, last_inbound_at = null");
+    await pool.query("update especialista.whatsapp_contacts set window_expires_at = null, last_inbound_at = null");
     await deliver(textEvent(COLAB_PHONE, "A Bradesco aceita PME com 3 vidas?", { timestamp: old }));
     await worker.runOnce();
-    const q = await pool.query("select status from public.questions order by created_at desc limit 1");
+    const q = await pool.query("select status from especialista.questions order by created_at desc limit 1");
     expect(q.rows[0].status).toBe("expirada");
     expect(graph.sent.filter((s) => s.body.includes("3 vidas"))).toHaveLength(0);
   });
 
   it("teto mensal atingido: bloqueio preventivo sem chamar a Meta + alertas de consumo", async () => {
     const u = await usage();
-    await pool.query(`update public.system_settings set value = value || jsonb_build_object('monthly_cap', ${u.reserved}) where key = 'whatsapp'`);
+    await pool.query(`update especialista.system_settings set value = value || jsonb_build_object('monthly_cap', ${u.reserved}) where key = 'whatsapp'`);
     graph.sent = [];
     await deliver(textEvent(COLAB_PHONE, "A Bradesco aceita PME com 3 vidas, mesmo assim?"));
     await worker.runOnce();
     expect(graph.sent).toHaveLength(0);
     expect((await outMessages("resposta")).at(-1)!.status).toBe("bloqueada_limite");
     expect((await usage()).blocked).toBeGreaterThan(0);
-    const alerts = await asUser(pool, admin, (db) => db.query("select threshold from public.usage_alerts order by threshold"));
+    const alerts = await asUser(pool, admin, (db) => db.query("select threshold from especialista.usage_alerts order by threshold"));
     expect(alerts.rows.map((a) => Number(a.threshold))).toEqual([0.5, 0.8, 0.95, 1]);
-    const summary = await asUser(pool, admin, (db) => db.query("select public.whatsapp_usage_summary() as s"));
+    const summary = await asUser(pool, admin, (db) => db.query("select especialista.whatsapp_usage_summary() as s"));
     expect(summary.rows[0].s.reserved).toBe(u.reserved);
-    await pool.query(`update public.system_settings set value = value || '{"monthly_cap": 900}' where key = 'whatsapp'`);
+    await pool.query(`update especialista.system_settings set value = value || '{"monthly_cap": 900}' where key = 'whatsapp'`);
   });
 
   it("envio desativado no painel: nada é enviado", async () => {
-    await pool.query(`update public.system_settings set value = value || '{"enabled": false}' where key = 'whatsapp'`);
+    await pool.query(`update especialista.system_settings set value = value || '{"enabled": false}' where key = 'whatsapp'`);
     graph.sent = [];
     await deliver(textEvent(COLAB_PHONE, "Falar com responsável"));
     expect(graph.sent).toHaveLength(0);
     expect((await outMessages("encaminhamento")).at(-1)!.status).toBe("desativado");
-    await pool.query(`update public.system_settings set value = value || '{"enabled": true}' where key = 'whatsapp'`);
+    await pool.query(`update especialista.system_settings set value = value || '{"enabled": true}' where key = 'whatsapp'`);
   });
 
   it("evento de outro número da mesma conta é ignorado", async () => {
@@ -275,7 +275,7 @@ describe.skipIf(!available)("Ponta a ponta: bot oficial do WhatsApp (webhook →
 
   it("colaborador não acessa as funções internas do WhatsApp", async () => {
     await expect(pgRpc(pool, colab)("wa_context", {})).rejects.toThrow(/permission denied/);
-    const r = await asUser(pool, colab, (db) => db.query("select * from public.whatsapp_messages"));
+    const r = await asUser(pool, colab, (db) => db.query("select * from especialista.whatsapp_messages"));
     expect(r.rowCount).toBe(0);
   });
 });

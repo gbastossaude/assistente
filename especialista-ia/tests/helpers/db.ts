@@ -68,7 +68,7 @@ export async function asUser<T>(pool: pg.Pool, userId: string | null, fn: (db: D
 }
 
 export async function createUser(pool: pg.Pool, email: string, role: string | null, active = true): Promise<string> {
-  const meta = role ? { role, active } : {};
+  const meta = role ? { especialista_role: role, especialista_active: active } : {};
   const r = await pool.query("insert into auth.users (email, raw_app_meta_data) values ($1, $2) returning id", [email, meta]);
   return r.rows[0].id as string;
 }

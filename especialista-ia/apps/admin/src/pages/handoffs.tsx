@@ -1,7 +1,7 @@
 import { Headset, MessageCircle, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CHANNEL_LABELS, type Channel } from "@especialista/shared";
+import { CHANNEL_LABELS, EDGE_FUNCTIONS, type Channel } from "@especialista/shared";
 import { Alert, Badge, Button, Card, Dialog, EmptyState, Field, Select, Spinner, Textarea, errorMessage, formatDateTime } from "@especialista/ui";
 import { PageHeader, Table, Td } from "../components/layout.tsx";
 import { useAuth } from "../lib/auth.tsx";
@@ -64,7 +64,7 @@ function HandoffDialog({ h, onClose }: { h: Handoff; onClose: () => void }) {
   const send = async () => {
     setBusy(true);
     try {
-      const r = await invokeFunction<{ status: string; error?: string }>("whatsapp-send", { handoff_id: h.id, text: reply });
+      const r = await invokeFunction<{ status: string; error?: string }>(EDGE_FUNCTIONS.send, { handoff_id: h.id, text: reply });
       if (r.status === "enviada") { toast.success("Mensagem enviada pelo WhatsApp oficial."); setReply(""); }
       else toast.error(`Não enviada: ${r.status}${r.error ? ` (${r.error})` : ""}. Se a janela de 24 h expirou, contate o colaborador por outro canal.`);
     } catch (err) { toast.error(errorMessage(err)); } finally { setBusy(false); }

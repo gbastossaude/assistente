@@ -2,7 +2,7 @@
 project_id = "especialista-ia"
 
 [api]
-schemas = ["public"]
+schemas = ["public", "graphql_public", "especialista"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
@@ -20,12 +20,12 @@ enable_confirmations = false
 [storage]
 file_size_limit = "50MiB"
 
-[functions.whatsapp-webhook]
+[functions.especialista-whatsapp-webhook]
 # A Meta não envia JWT; a autenticidade é garantida pela assinatura X-Hub-Signature-256.
 verify_jwt = false
 
-[functions.whatsapp-send]
+[functions.especialista-whatsapp-send]
 verify_jwt = true
 
-[functions.admin-users]
+[functions.especialista-admin-users]
 verify_jwt = true

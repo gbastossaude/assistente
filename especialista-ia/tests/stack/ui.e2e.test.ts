@@ -9,6 +9,7 @@ import type { Server } from "node:http";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { DB_SCHEMA, EDGE_FUNCTIONS, KNOWLEDGE_BUCKET } from "../../packages/shared/src/index.ts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SupabaseWorkerRepository } from "../../apps/local-worker/src/repository.ts";
 import { LocalWorker } from "../../apps/local-worker/src/worker.ts";
@@ -48,7 +49,7 @@ describe.skipIf(!enabled)("Interface ponta a ponta (navegador real + Supabase Au
   beforeAll(async () => {
     mkdirSync(SHOTS, { recursive: true });
     stack = await startStack();
-    await stack.pool.query(`update public.system_settings set value = value || '{"min_vector_similarity": 0.2}' where key = 'ai'`);
+    await stack.pool.query(`update especialista.system_settings set value = value || '{"min_vector_similarity": 0.2}' where key = 'ai'`);
     ids.admin = await stack.createUser("admin@corretora.test", PASS, "admin", "Ana Administradora");
     ids.editor = await stack.createUser("editor@corretora.test", PASS, "editor", "Edu Editor");
     ids.colab = await stack.createUser("colab@corretora.test", PASS, "colaborador", "Carla Colaboradora");
@@ -59,7 +60,7 @@ describe.skipIf(!enabled)("Interface ponta a ponta (navegador real + Supabase Au
       supabaseUrl: GATEWAY_URL, supabaseAnonKey: ANON_KEY, workerEmail: "worker@corretora.test", workerPassword: PASS, workerId: "worker-e2e",
       machineName: "pc-escritorio", ollamaUrl: ollama.url, chatModel: "qwen3:4b", embeddingModel: "bge-m3", embeddingDimensions: 1024,
       answerConcurrency: 1, indexConcurrency: 1, pollSeconds: 2, ocrEnabled: false, ocrLanguage: "por", logDir: "", logLevel: "error" as const,
-      whatsappFunctionName: "whatsapp-send",
+      whatsappFunctionName: EDGE_FUNCTIONS.send,
     };
     const repo = new SupabaseWorkerRepository(cfg);
     await repo.signIn();
@@ -141,10 +142,10 @@ describe.skipIf(!enabled)("Interface ponta a ponta (navegador real + Supabase Au
     await page.getByText("Documento enviado").waitFor();
     // O worker (rodando em segundo plano) baixa do Storage, extrai, gera embeddings e ativa.
     try {
-      await expect.poll(async () => (await stack.pool.query("select status from public.knowledge_documents where title like 'Manual Comercial PME%'")).rows[0]?.status, { timeout: 60_000 }).toBe("ativo");
+      await expect.poll(async () => (await stack.pool.query("select status from especialista.knowledge_documents where title like 'Manual Comercial PME%'")).rows[0]?.status, { timeout: 60_000 }).toBe("ativo");
     } catch (err) {
       const state = await stack.pool.query(`select d.status doc, v.status ver, v.error_message, j.status job, j.attempts, j.last_error
-        from public.knowledge_documents d left join public.document_versions v on v.document_id = d.id left join public.processing_jobs j on j.document_version_id = v.id
+        from especialista.knowledge_documents d left join especialista.document_versions v on v.document_id = d.id left join especialista.processing_jobs j on j.document_version_id = v.id
         where d.title like 'Manual Comercial PME%'`);
       console.error("estado da indexação:", JSON.stringify(state.rows), "worker:", JSON.stringify(worker.state));
       throw err;
@@ -179,7 +180,7 @@ describe.skipIf(!enabled)("Interface ponta a ponta (navegador real + Supabase Au
     await page.getByText("Obrigado!").waitFor();
     await page.getByRole("tab", { name: "Favoritos" }).click();
     await page.getByText("A Bradesco aceita empresa PME com 3 vidas?").waitFor();
-    const fb = await stack.pool.query("select rating from public.feedback");
+    const fb = await stack.pool.query("select rating from especialista.feedback");
     expect(fb.rows[0].rating).toBe("util");
     await page.close();
   });
@@ -204,15 +205,15 @@ describe.skipIf(!enabled)("Interface ponta a ponta (navegador real + Supabase Au
   });
 
   it("acesso indevido pela API é bloqueado (RLS e Storage)", async () => {
-    const sb = createClient(GATEWAY_URL, ANON_KEY, { auth: { persistSession: false } });
+    const sb = createClient(GATEWAY_URL, ANON_KEY, { auth: { persistSession: false }, db: { schema: DB_SCHEMA } });
     await sb.auth.signInWithPassword({ email: "colab@corretora.test", password: PASS });
     const docs = await sb.from("knowledge_documents").select("*");
     expect(docs.data).toEqual([]);
-    const up = await sb.storage.from("knowledge").upload("intruso.txt", new Blob(["x"], { type: "text/plain" }), { contentType: "text/plain" });
+    const up = await sb.storage.from(KNOWLEDGE_BUCKET).upload("intruso.txt", new Blob(["x"], { type: "text/plain" }), { contentType: "text/plain" });
     expect(up.error).toBeTruthy();
     const esc = await sb.from("profiles").update({ role: "admin" }).eq("id", ids.colab).select();
     expect(esc.data).toEqual([]);
-    const fn = await sb.functions.invoke("admin-users", { body: { action: "create", email: "x@x.test", role: "admin" } });
+    const fn = await sb.functions.invoke(EDGE_FUNCTIONS.adminUsers, { body: { action: "create", email: "x@x.test", role: "admin" } });
     expect(fn.error).toBeTruthy();
   });
 
@@ -227,7 +228,7 @@ describe.skipIf(!enabled)("Interface ponta a ponta (navegador real + Supabase Au
     const temp = await page.getByRole("textbox", { name: "Senha temporária" }).inputValue();
     expect(temp.length).toBeGreaterThan(20);
     await page.screenshot({ path: path.join(SHOTS, "painel-colaboradores.png") });
-    const sb = createClient(GATEWAY_URL, ANON_KEY, { auth: { persistSession: false } });
+    const sb = createClient(GATEWAY_URL, ANON_KEY, { auth: { persistSession: false }, db: { schema: DB_SCHEMA } });
     const login = await sb.auth.signInWithPassword({ email: "vendedor@corretora.test", password: temp });
     expect(login.error).toBeNull();
     await page.close();

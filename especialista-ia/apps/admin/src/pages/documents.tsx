@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   ACCEPTED_EXTENSIONS, CONTRACT_TYPE_LABELS, CONTRACT_TYPES, DOCUMENT_CATEGORIES, DOCUMENT_CATEGORY_LABELS, DOCUMENT_STATUS_LABELS,
-  RULE_NATURE_LABELS, RULE_NATURES, UFS, daysBetween, formatDateBR, todayISO,
+  KNOWLEDGE_BUCKET, RULE_NATURE_LABELS, RULE_NATURES, UFS, daysBetween, formatDateBR, todayISO,
   type DocumentRow, type DocumentStatus, type DocumentVersionRow, type OperatorRow, type ProductRow,
 } from "@especialista/shared";
 import {
@@ -61,7 +61,7 @@ async function uploadVersion(documentId: string, file: File, meta: { version_lab
   }
   const safe = file.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "-").slice(-80);
   const path = `documentos/${documentId}/${Date.now()}-${safe}`;
-  const up = await sb.storage.from("knowledge").upload(path, file, { contentType: MIME_BY_EXT[ext], upsert: false });
+  const up = await sb.storage.from(KNOWLEDGE_BUCKET).upload(path, file, { contentType: MIME_BY_EXT[ext], upsert: false });
   if (up.error) throw up.error;
   const ins = await sb.from("document_versions").insert({
     document_id: documentId, version_number: 1, storage_path: path, file_name: file.name, mime_type: MIME_BY_EXT[ext], file_size: file.size, sha256: hash,
@@ -356,7 +356,7 @@ function DocumentDetailDialog({ id, catalog, onClose }: { id: string; catalog: {
     setF(null);
   };
   const download = async (v: DocumentVersionRow) => {
-    const { data, error } = await sb.storage.from("knowledge").createSignedUrl(v.storage_path, 60);
+    const { data, error } = await sb.storage.from(KNOWLEDGE_BUCKET).createSignedUrl(v.storage_path, 60);
     if (error) return toast.error(errorMessage(error));
     window.open(data.signedUrl, "_blank", "noopener");
   };

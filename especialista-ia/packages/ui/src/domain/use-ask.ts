@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- cliente Supabase sem tipos gerados, schema "especialista" */
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { redactSensitive } from "@especialista/shared";
+import { DB_SCHEMA, redactSensitive } from "@especialista/shared";
 import { answerOf, fetchQuestion, submitQuestion, type QuestionWithAnswer } from "./api.ts";
 
 export type AskPhase = "idle" | "sending" | "waiting" | "done" | "error";
@@ -9,7 +10,7 @@ export type AskPhase = "idle" | "sending" | "waiting" | "done" | "error";
  * Envia a pergunta e aguarda a resposta do worker: Realtime (instantâneo) + consulta periódica
  * como garantia. Dados pessoais são removidos ANTES de sair do navegador.
  */
-export function useAsk(sb: SupabaseClient, channel: "extension" | "admin") {
+export function useAsk(sb: SupabaseClient<any, any, any>, channel: "extension" | "admin") {
   const [phase, setPhase] = useState<AskPhase>("idle");
   const [question, setQuestion] = useState<QuestionWithAnswer | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -40,8 +41,8 @@ export function useAsk(sb: SupabaseClient, channel: "extension" | "admin") {
     cleanup();
     rt.current = sb
       .channel(`answer-${id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "answers", filter: `question_id=eq.${id}` }, () => void refresh(id))
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "questions", filter: `id=eq.${id}` }, () => void refresh(id))
+      .on("postgres_changes", { event: "INSERT", schema: DB_SCHEMA, table: "answers", filter: `question_id=eq.${id}` }, () => void refresh(id))
+      .on("postgres_changes", { event: "UPDATE", schema: DB_SCHEMA, table: "questions", filter: `id=eq.${id}` }, () => void refresh(id))
       .subscribe();
     let ticks = 0;
     timer.current = setInterval(() => {

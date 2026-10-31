@@ -1,7 +1,7 @@
 import { Ban, CheckCircle2, Copy, KeyRound, Pencil, ShieldCheck, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ROLE_LABELS, ROLES, maskPhone, normalizePhoneBR, type ProfileRow, type Role } from "@especialista/shared";
+import { EDGE_FUNCTIONS, ROLE_LABELS, ROLES, maskPhone, normalizePhoneBR, type ProfileRow, type Role } from "@especialista/shared";
 import { Alert, Badge, Button, Card, Dialog, EmptyState, Field, Input, Select, Spinner, errorMessage, timeAgo } from "@especialista/ui";
 import { PageHeader, Table, Td } from "../components/layout.tsx";
 import { useAuth } from "../lib/auth.tsx";
@@ -23,14 +23,14 @@ export function CollaboratorsPage() {
 
   const block = async (p: ProfileRow, blocked: boolean) => {
     try {
-      await invokeFunction("admin-users", { action: blocked ? "block" : "unblock", user_id: p.id });
+      await invokeFunction(EDGE_FUNCTIONS.adminUsers, { action: blocked ? "block" : "unblock", user_id: p.id });
       toast.success(blocked ? "Acesso bloqueado." : "Acesso reativado.");
       void list.reload();
     } catch (err) { toast.error(errorMessage(err)); }
   };
   const reset = async (p: ProfileRow) => {
     try {
-      const r = await invokeFunction<{ temporary_password: string }>("admin-users", { action: "reset_password", user_id: p.id });
+      const r = await invokeFunction<{ temporary_password: string }>(EDGE_FUNCTIONS.adminUsers, { action: "reset_password", user_id: p.id });
       setSecret({ email: p.email ?? "", password: r.temporary_password });
     } catch (err) { toast.error(errorMessage(err)); }
   };
@@ -98,10 +98,10 @@ function CreateUserDialog({ onClose, onCreated }: { onClose: () => void; onCreat
     setBusy(true);
     setError(null);
     try {
-      const r = await invokeFunction<{ temporary_password: string | null; email: string }>("admin-users", {
+      const r = await invokeFunction<{ temporary_password: string | null; email: string; linked_existing?: boolean }>(EDGE_FUNCTIONS.adminUsers, {
         action: "create", email, full_name: name, role, mode: role === "worker" ? "password" : mode, redirect_to: window.location.origin,
       });
-      toast.success("Acesso criado.");
+      toast.success(r.linked_existing ? "Conta já existente vinculada — a pessoa entra com a senha atual." : "Acesso criado.");
       onCreated(r.temporary_password ? { email: r.email, password: r.temporary_password } : null);
     } catch (err) {
       setError(errorMessage(err));

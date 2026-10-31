@@ -3,6 +3,17 @@
  * Este arquivo não pode importar nada externo: ele é copiado para supabase/functions/_shared/vendor.
  */
 
+/** Schema próprio no PostgreSQL (permite compartilhar o projeto Supabase com outros sistemas). */
+export const DB_SCHEMA = "especialista";
+/** Bucket privado dos arquivos da base de conhecimento. */
+export const KNOWLEDGE_BUCKET = "especialista-conhecimento";
+/** Nomes das Edge Functions (prefixados para não colidir com funções de outros sistemas no mesmo projeto). */
+export const EDGE_FUNCTIONS = {
+  webhook: "especialista-whatsapp-webhook",
+  send: "especialista-whatsapp-send",
+  adminUsers: "especialista-admin-users",
+} as const;
+
 export const PRODUCT_NAME_DEFAULT = "Especialista IA — Planos de Saúde";
 
 /** Resposta obrigatória quando não há documento confiável (texto definido pela diretoria). */
