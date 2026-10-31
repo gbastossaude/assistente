@@ -225,7 +225,7 @@ export interface AnswerDeps {
 
 /** IA local indisponível (Ollama parado, modelo ausente, tempo esgotado): a tarefa deve ser reprocessada. */
 export class AiUnavailableError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(message: string, override readonly cause?: unknown) {
     super(message);
     this.name = "AiUnavailableError";
   }

@@ -71,6 +71,16 @@ export interface RankingOptions {
   nearExpiryDays: number;
 }
 
+/** Datas chegam como string (PostgREST) ou Date (driver pg): normaliza para AAAA-MM-DD. */
+export function isoDate(v: unknown): string | null {
+  if (v === null || v === undefined || v === "") return null;
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v.toISOString().slice(0, 10);
+  const s = String(v);
+  return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
+}
+
+const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+
 export function chunkToCandidate(c: RetrievedChunk): Candidate {
   return {
     kind: "documento",
@@ -95,13 +105,13 @@ export function chunkToCandidate(c: RetrievedChunk): Candidate {
     cities: c.cities ?? [],
     lives_min: c.lives_min,
     lives_max: c.lives_max,
-    published_at: c.published_at ?? c.doc_updated_at?.slice(0, 10) ?? null,
-    valid_from: c.valid_from,
-    valid_until: c.valid_until,
-    vector_similarity: c.vector_similarity,
-    text_rank: c.text_rank,
-    rrf_score: c.rrf_score,
-    priority: c.doc_priority ?? 0,
+    published_at: isoDate(c.published_at) ?? isoDate(c.doc_updated_at),
+    valid_from: isoDate(c.valid_from),
+    valid_until: isoDate(c.valid_until),
+    vector_similarity: num(c.vector_similarity),
+    text_rank: num(c.text_rank),
+    rrf_score: Number(c.rrf_score) || 0,
+    priority: Number(c.doc_priority ?? 0),
     score: 0,
     flags: emptyFlags(),
   };
@@ -131,13 +141,13 @@ export function faqToCandidate(f: RetrievedFaq): Candidate {
     cities: [],
     lives_min: f.lives_min,
     lives_max: f.lives_max,
-    published_at: f.updated_at?.slice(0, 10) ?? null,
+    published_at: isoDate(f.updated_at),
     valid_from: null,
-    valid_until: f.valid_until,
-    vector_similarity: f.vector_similarity,
-    text_rank: f.text_rank,
-    rrf_score: f.rrf_score,
-    priority: f.priority ?? 0,
+    valid_until: isoDate(f.valid_until),
+    vector_similarity: num(f.vector_similarity),
+    text_rank: num(f.text_rank),
+    rrf_score: Number(f.rrf_score) || 0,
+    priority: Number(f.priority ?? 0),
     score: 0,
     flags: emptyFlags(),
   };
@@ -182,6 +192,8 @@ export function rankCandidates(chunks: RetrievedChunk[], faqs: RetrievedFaq[], o
 
     let score = (c.rrf_score || 0) / maxRrf;
     if (c.vector_similarity !== null) score += c.vector_similarity * 0.5;
+    if (c.lives_min !== null) c.lives_min = Number(c.lives_min);
+    if (c.lives_max !== null) c.lives_max = Number(c.lives_max);
     if (f.operatorMatch) score += w.operator_match;
     if (f.otherOperator) score -= w.operator_match * 2;
     if (c.product_id && entities.productIds.includes(c.product_id)) score += w.product_match;

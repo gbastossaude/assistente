@@ -503,10 +503,20 @@ begin
   -- Conflito detectado na resposta → registro para o administrador
   if v_outcome = 'conflito' then
     v_doc_ids := array(select jsonb_array_elements_text(coalesce(p_answer -> 'conflict_document_ids', '[]'::jsonb))::uuid);
-    insert into public.knowledge_conflicts (document_a_id, document_b_id, question_id, source, description)
-    values (v_doc_ids[1], v_doc_ids[2], q.id, 'resposta',
-            left(coalesce(p_answer ->> 'conflict_description', 'Fontes divergentes encontradas ao responder uma pergunta.'), 2000))
-    on conflict do nothing;
+    -- Já existe conflito aberto para o mesmo par? Vincula a pergunta e acrescenta a evidência.
+    update public.knowledge_conflicts k set
+      question_id = coalesce(k.question_id, q.id),
+      description = left(k.description || E'\nConfirmado ao responder pergunta: ' ||
+                         coalesce(p_answer ->> 'conflict_description', 'fontes divergentes'), 4000)
+     where k.status = 'aberto' and cardinality(v_doc_ids) >= 2
+       and least(k.document_a_id, k.document_b_id) = least(v_doc_ids[1], v_doc_ids[2])
+       and greatest(k.document_a_id, k.document_b_id) = greatest(v_doc_ids[1], v_doc_ids[2]);
+    if not found then
+      insert into public.knowledge_conflicts (document_a_id, document_b_id, question_id, source, description)
+      values (v_doc_ids[1], v_doc_ids[2], q.id, 'resposta',
+              left(coalesce(p_answer ->> 'conflict_description', 'Fontes divergentes encontradas ao responder uma pergunta.'), 2000))
+      on conflict do nothing;
+    end if;
   end if;
 
   -- Pedido de complemento pelo WhatsApp: a próxima mensagem do colaborador completa esta pergunta.
@@ -699,6 +709,33 @@ begin
      and (expires_at is null or expires_at > now());
   if not found then raise exception 'Não foi possível reprocessar (tarefa em andamento ou janela do WhatsApp expirada).' using errcode = '22023'; end if;
   update public.questions set status = 'pendente', answered_at = null where id = p_question_id;
+end $$;
+
+-- FAQ: o worker grava somente o embedding (sem permissão de editar o conteúdo)
+create or replace function public.save_faq_embedding(p_job_id uuid, p_worker_id text, p_embedding extensions.vector, p_model text)
+returns void
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  r public.processing_jobs := public.lock_owned_job(p_job_id, p_worker_id);
+begin
+  if r.type <> 'index_faq' then raise exception 'Tarefa não é de FAQ.' using errcode = '22023'; end if;
+  update public.knowledge_faq set embedding = p_embedding, embedding_model = left(p_model, 80) where id = r.faq_id;
+  update public.processing_jobs set status = 'concluido', completed_at = now(), locked_by = null, lock_expires_at = null
+   where id = p_job_id;
+end $$;
+
+-- Remove trechos de uma versão antes de reindexar (somente a versão da tarefa bloqueada pelo worker)
+create or replace function public.clear_version_chunks(p_job_id uuid, p_worker_id text) returns integer
+language plpgsql security definer set search_path = public as $$
+declare
+  r public.processing_jobs := public.lock_owned_job(p_job_id, p_worker_id);
+  v_count int;
+begin
+  if r.type <> 'index_document' then raise exception 'Tarefa não é de indexação.' using errcode = '22023'; end if;
+  delete from public.document_chunks where version_id = r.document_version_id;
+  get diagnostics v_count = row_count;
+  update public.document_versions set status = 'processando', error_message = null where id = r.document_version_id;
+  return v_count;
 end $$;
 
 -- ---------------------------------------------------------------------
