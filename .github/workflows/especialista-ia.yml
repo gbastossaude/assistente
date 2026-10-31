@@ -1,0 +1,43 @@
+# Verificações do Especialista IA (pasta especialista-ia/). Não afeta o sistema da raiz.
+name: Especialista IA — testes
+
+on:
+  push:
+    paths: ["especialista-ia/**", ".github/workflows/especialista-ia.yml"]
+  pull_request:
+    paths: ["especialista-ia/**", ".github/workflows/especialista-ia.yml"]
+  workflow_dispatch: {}
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: especialista-ia
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: especialista-ia/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Código compartilhado das Edge Functions sincronizado
+        run: node scripts/sync-edge-shared.mjs --check
+      - name: Tipos (TypeScript)
+        run: npx tsc -b
+      - name: Testes unitários, de banco (RLS, fila, WhatsApp) e ponta a ponta do worker
+        env:
+          TEST_PG_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
+        run: npx vitest run --project unit --project db
+      - name: Build do painel e da extensão
+        run: npm run build:admin && npm run build:extension

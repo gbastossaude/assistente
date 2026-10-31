@@ -2,7 +2,8 @@
   "name": "especialista-ia",
   "version": "0.1.0",
   "private": true,
-  "description": "Especialista virtual em planos de sa\u00fade para a equipe interna da corretora (extens\u00e3o Chrome + bot oficial do WhatsApp) com custo zero de opera\u00e7\u00e3o.",
+  "type": "module",
+  "description": "Especialista virtual em planos de saúde para a equipe interna da corretora (extensão Chrome + bot oficial do WhatsApp) com custo zero de operação.",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -22,13 +23,15 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@types/node": "^22.20.4",
     "@types/pg": "^8.23.1",
-    "pg": "^8.23.1",
-    "typescript": "~5.9.3",
-    "vitest": "^3.2.7",
     "exceljs": "^4.4.0",
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.7"
   },
   "engines": {
     "node": ">=20"

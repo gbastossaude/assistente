@@ -131,3 +131,26 @@ begin
 end $$;
 
 revoke all on function public.promote_first_admin(text) from public, anon, authenticated;
+
+-- O Auth (GoTrue) pode gravar o app_metadata após o INSERT. Sincroniza papel/ativação quando o
+-- app_metadata é alterado (somente o servidor, com service role, consegue alterar app_metadata).
+create or replace function public.handle_auth_user_metadata() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  v_role text := new.raw_app_meta_data ->> 'role';
+begin
+  if (new.raw_app_meta_data -> 'role') is distinct from (old.raw_app_meta_data -> 'role')
+     or (new.raw_app_meta_data -> 'active') is distinct from (old.raw_app_meta_data -> 'active') then
+    update public.profiles set
+      role = case when v_role in ('admin', 'editor', 'colaborador', 'worker') then v_role else role end,
+      active = coalesce((new.raw_app_meta_data ->> 'active')::boolean, active)
+    where id = new.id;
+  end if;
+  if new.email is distinct from old.email then
+    update public.profiles set email = new.email where id = new.id;
+  end if;
+  return new;
+end $$;
+
+create trigger on_auth_user_updated after update on auth.users
+  for each row execute function public.handle_auth_user_metadata();

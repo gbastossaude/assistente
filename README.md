@@ -139,3 +139,9 @@ compromissos com antecedência de minutos, agende a rotina a cada 5–15 minutos
 ## Deploy, backup e segurança
 
 Passo a passo completo (Supabase + Render + GitHub Actions) em [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+## Especialista IA — Planos de Saúde (sistema independente)
+
+A pasta [`especialista-ia/`](especialista-ia) contém um sistema separado — extensão do Chrome, bot oficial do WhatsApp,
+painel administrativo e worker local com IA (Ollama) — com dependências, testes e implantação próprios. Ele não altera
+este aplicativo; veja [`especialista-ia/README.md`](especialista-ia/README.md).

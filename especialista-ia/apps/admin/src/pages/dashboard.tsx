@@ -30,7 +30,7 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader title="Dashboard" description="Uso do especialista, qualidade das respostas e saúde dos serviços."
-        actions={<Select value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Período" className="w-40">
+        actions={<Select value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Período" className="w-48">
           <option value={7}>Últimos 7 dias</option><option value={30}>Últimos 30 dias</option><option value={90}>Últimos 90 dias</option>
         </Select>} />
       {error ? <Alert tone="danger">{errorMessage(error)}</Alert> : loading && !data ? <Spinner /> : data && (

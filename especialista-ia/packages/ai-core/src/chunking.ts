@@ -167,11 +167,14 @@ export function assessExtractionQuality(pages: PageText[], minCharsPerPage = 40)
   const reasons: string[] = [];
   if (pages.length === 0 || chars === 0) reasons.push("Nenhum texto extraído (arquivo vazio, protegido ou digitalizado como imagem).");
   else {
-    const bad = emptyPages.length + lowTextPages.length;
-    if (bad / pages.length >= 0.3) {
+    // Páginas totalmente vazias são o sinal típico de digitalização (imagem sem camada de texto).
+    // Páginas curtas isoladas (capa, assinaturas) são normais e não exigem revisão.
+    if (emptyPages.length / pages.length >= 0.3) {
       reasons.push(
-        `${bad} de ${pages.length} página(s) com pouco ou nenhum texto — provável PDF digitalizado; considere OCR e revise o conteúdo.`,
+        `${emptyPages.length} de ${pages.length} página(s) sem texto — provável PDF digitalizado; considere OCR e revise o conteúdo.`,
       );
+    } else if (chars / pages.length < minCharsPerPage) {
+      reasons.push(`Pouco texto por página (${Math.round(chars / pages.length)} caracteres em média) — confira se o arquivo foi lido corretamente.`);
     }
     if (garbledRatio > 0.02) reasons.push("Texto com caracteres corrompidos — verifique a codificação/fonte do arquivo.");
   }

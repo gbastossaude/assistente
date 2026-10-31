@@ -21,6 +21,16 @@ export default defineConfig({
           fileParallelism: false,
         },
       },
+      {
+        test: {
+          name: "stack",
+          environment: "node",
+          include: ["tests/stack/**/*.test.ts"],
+          testTimeout: 180_000,
+          hookTimeout: 900_000,
+          fileParallelism: false,
+        },
+      },
     ],
   },
 });

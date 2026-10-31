@@ -39,6 +39,10 @@ describe("assessExtractionQuality", () => {
     expect(q.emptyPages).toEqual([1]);
     expect(q.lowTextPages).toEqual([2]);
   });
+  it("capa curta não exige revisão; pouca densidade exige", () => {
+    expect(assessExtractionQuality([{ page: 1, text: "Manual 2026" }, { page: 2, text: "Conteúdo normal e legível. ".repeat(10) }]).needsReview).toBe(false);
+    expect(assessExtractionQuality([{ page: 1, text: "abc" }, { page: 2, text: "def" }]).needsReview).toBe(true);
+  });
   it("aprova extração boa", () => {
     expect(assessExtractionQuality([{ page: 1, text: "Conteúdo normal e legível. ".repeat(10) }]).needsReview).toBe(false);
   });
