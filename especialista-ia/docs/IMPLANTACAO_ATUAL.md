@@ -74,3 +74,11 @@ Cadastre os segredos (`WHATSAPP_*`) em *Edge Functions → Secrets* e publique o
 npx supabase functions deploy especialista-whatsapp-webhook --no-verify-jwt --project-ref yhzdwghgnobhmfitdzfb
 ```
 Callback URL: `https://yhzdwghgnobhmfitdzfb.supabase.co/functions/v1/especialista-whatsapp-webhook`. Guia: [GUIA_WHATSAPP.md](GUIA_WHATSAPP.md).
+
+### Painel como aplicativo (PWA) — ✅ publicado
+O painel pode ser instalado como aplicativo, com ícone próprio e abrindo direto em **Consultar**:
+- **Computador (Chrome/Edge):** menu lateral → **Instalar como aplicativo** (ou o ícone de instalar na barra de endereço).
+- **Android (Chrome):** botão **Instalar** no topo, ou menu ⋮ → *Instalar app*.
+- **iPhone/iPad (Safari):** Compartilhar → *Adicionar à Tela de Início*.
+
+O service worker não guarda respostas nem dados em cache; o login continua obrigatório. Ícones: `apps/admin/scripts/make-pwa-icons.mjs`.
