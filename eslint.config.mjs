@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // sistema independente com toolchain própria (ver especialista-ia/README.md)
+      "especialista-ia/**",
     ],
   },
 ];

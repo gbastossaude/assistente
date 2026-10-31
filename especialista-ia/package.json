@@ -1,0 +1,34 @@
+{
+  "name": "especialista-ia",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Especialista virtual em planos de saúde para a equipe interna da corretora (extensão Chrome + bot oficial do WhatsApp) com custo zero de operação.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @especialista/admin && npm run build -w @especialista/chrome-extension && npm run build -w @especialista/local-worker",
+    "build:admin": "npm run build -w @especialista/admin",
+    "build:extension": "npm run build -w @especialista/chrome-extension",
+    "build:worker": "npm run build -w @especialista/local-worker",
+    "dev:admin": "npm run dev -w @especialista/admin",
+    "worker": "npm run start -w @especialista/local-worker",
+    "worker:doctor": "npm run doctor -w @especialista/local-worker",
+    "typecheck": "tsc -b tsconfig.json",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:db": "vitest run --project db",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@especialista/ai-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/providers/mock.ts"
+  },
+  "dependencies": {
+    "@especialista/shared": "0.1.0"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "composite": true, "noEmit": false, "emitDeclarationOnly": true, "outDir": "dist/types", "lib": ["ES2023", "DOM"] },
+  "include": ["src"],
+  "references": [{ "path": "../shared" }]
+}
