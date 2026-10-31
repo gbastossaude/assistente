@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Download, Eye, FilePlus2, FileUp, Power, RefreshCw, ScanText, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ClipboardPaste, Download, Eye, FilePlus2, FileUp, Power, RefreshCw, ScanText, Search, Trash2 } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -68,6 +68,52 @@ async function uploadVersion(documentId: string, file: File, meta: { version_lab
     version_label: meta.version_label || null, change_notes: meta.change_notes || null, ocr_requested: !!meta.ocr_requested,
   });
   if (ins.error) throw ins.error;
+}
+
+const MIN_TEXT = 40;
+
+/** Converte o texto colado em um arquivo .txt (UTF-8) — segue o mesmo fluxo de indexação e revisão dos arquivos. */
+function textToFile(text: string, title: string): File | null {
+  const clean = text.replace(/\r\n?/g, "\n").trim();
+  if (clean.length < MIN_TEXT) return null;
+  const base = (title.trim() || "texto").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "texto";
+  return new File([clean + "\n"], `${base}.txt`, { type: "text/plain" });
+}
+
+/** Origem do conteúdo: arquivo enviado ou texto colado/digitado. */
+function SourceInput({ title, onChange, fileLabel = "Arquivo *" }: { title: string; onChange: (file: File | null, problem: string | null) => void; fileLabel?: string }) {
+  const [mode, setMode] = useState<"arquivo" | "texto">("arquivo");
+  const [text, setText] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const emit = (m: typeof mode, t: string, fl: File | null) => {
+    if (m === "arquivo") return onChange(fl, null);
+    const f = textToFile(t, title);
+    onChange(f, f ? null : `Cole ou digite o texto (mínimo de ${MIN_TEXT} caracteres).`);
+  };
+  const tab = (m: typeof mode, label: string, Icon: typeof FileUp) => (
+    <button type="button" role="tab" aria-selected={mode === m} onClick={() => { setMode(m); emit(m, text, file); }}
+      className={cn("flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-sm", mode === m ? "bg-white font-medium text-ink-950 shadow-sm" : "text-ink-500 hover:text-ink-900")}>
+      <Icon className="h-4 w-4" aria-hidden /> {label}
+    </button>
+  );
+  return (
+    <div className="flex flex-col gap-3">
+      <div role="tablist" aria-label="Origem do conteúdo" className="inline-flex w-fit gap-1 rounded-lg bg-ink-100 p-1">
+        {tab("arquivo", "Enviar arquivo", FileUp)}
+        {tab("texto", "Colar texto", ClipboardPaste)}
+      </div>
+      {mode === "arquivo" ? (
+        <Field label={fileLabel} hint={`PDF, DOCX, XLSX, CSV ou TXT — até ${MAX_MB} MB`}>
+          <Input type="file" accept={ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(",")} onChange={(e) => { const fl = e.target.files?.[0] ?? null; setFile(fl); emit("arquivo", text, fl); }} />
+        </Field>
+      ) : (
+        <Field label="Texto *" hint={`${text.trim().length.toLocaleString("pt-BR")} caracteres · cole o conteúdo oficial (comunicado, e-mail da operadora, tabela). Não cole dados de clientes.`}>
+          <Textarea value={text} onChange={(e) => { setText(e.target.value); emit("texto", e.target.value, file); }} className="min-h-[220px] font-mono text-xs"
+            placeholder={"Ex.: Comunicado Operadora X — 01/11/2026\nCarência para consultas: 30 dias para contratos PME a partir de 3 vidas..."} />
+        </Field>
+      )}
+    </div>
+  );
 }
 
 function validityBadge(d: { valid_until: string | null; status: string }) {
@@ -269,6 +315,7 @@ function DocumentFormDialog({ catalog, onClose, onSaved }: { catalog: { operator
   const { profile } = useAuth();
   const [f, setF] = useState<DocForm>(toForm());
   const [file, setFile] = useState<File | null>(null);
+  const [sourceProblem, setSourceProblem] = useState<string | null>(null);
   const [ocr, setOcr] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -277,7 +324,7 @@ function DocumentFormDialog({ catalog, onClose, onSaved }: { catalog: { operator
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const problem = validateForm(f) ?? validateFile(file);
+    const problem = validateForm(f) ?? sourceProblem ?? validateFile(file);
     if (problem) return setError(problem);
     setError(null);
     setBusy(true);
@@ -305,16 +352,12 @@ function DocumentFormDialog({ catalog, onClose, onSaved }: { catalog: { operator
   };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()} title="Novo documento" description="O arquivo fica em armazenamento privado; o texto é extraído e indexado pelo worker local." wide
+    <Dialog open onOpenChange={(o) => !o && onClose()} title="Novo documento" description="Envie um arquivo ou cole o texto. O conteúdo fica em armazenamento privado e é indexado pelo worker local." wide
       footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button form="doc-form" type="submit" loading={busy}>{similar?.length ? "Criar mesmo assim" : "Salvar e enviar"}</Button></>}>
       <form id="doc-form" onSubmit={submit} className="flex flex-col gap-5">
         <MetadataFields f={f} set={set} catalog={catalog} />
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Arquivo *" hint={`PDF, DOCX, XLSX, CSV ou TXT — até ${MAX_MB} MB`}>
-            <Input type="file" accept={ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(",")} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-          </Field>
-          <Field label="Rótulo da versão (opcional)" hint="Ex.: Manual 2026 rev. 3"><Input value={f.version_label} onChange={(e) => set({ version_label: e.target.value })} /></Field>
-        </div>
+        <SourceInput title={f.title} onChange={(fl, p) => { setFile(fl); setSourceProblem(p); }} />
+        <Field label="Rótulo da versão (opcional)" hint="Ex.: Manual 2026 rev. 3" className="md:max-w-sm"><Input value={f.version_label} onChange={(e) => set({ version_label: e.target.value })} /></Field>
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={ocr} onChange={(e) => setOcr(e.target.checked)} className="mt-1" />
           <span>PDF digitalizado (imagem): tentar OCR local se o texto não puder ser extraído. <span className="text-ink-500">O resultado sempre passa por revisão humana.</span></span></label>
         {similar && similar.length > 0 && (
@@ -434,6 +477,7 @@ function DocumentDetailDialog({ id, catalog, onClose }: { id: string; catalog: {
 
 function NewVersionDialog({ doc, current, onClose }: { doc: DocumentRow; current: DocumentVersionRow | null; onClose: () => void }) {
   const [file, setFile] = useState<File | null>(null);
+  const [sourceProblem, setSourceProblem] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -441,7 +485,7 @@ function NewVersionDialog({ doc, current, onClose }: { doc: DocumentRow; current
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submit = async () => {
-    const problem = validateFile(file) ?? (label.trim() ? null : "Informe o rótulo da nova versão.") ?? (confirm ? null : "Confirme que esta é uma versão mais recente.");
+    const problem = sourceProblem ?? validateFile(file) ?? (label.trim() ? null : "Informe o rótulo da nova versão.") ?? (confirm ? null : "Confirme que esta é uma versão mais recente.");
     if (problem) return setError(problem);
     setBusy(true);
     try {
@@ -459,12 +503,12 @@ function NewVersionDialog({ doc, current, onClose }: { doc: DocumentRow; current
       footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit} loading={busy}>Enviar versão</Button></>}>
       <div className="flex flex-col gap-4">
         {current && <Alert tone="info" title="Versão vigente">v{current.version_number}{current.version_label ? ` · ${current.version_label}` : ""} — {current.file_name} (enviada em {formatDateTime(current.created_at)})</Alert>}
-        <Field label="Arquivo *"><Input type="file" accept={ACCEPTED_EXTENSIONS.map((e) => `.${e}`).join(",")} onChange={(e) => setFile(e.target.files?.[0] ?? null)} /></Field>
+        <SourceInput title={doc.title} onChange={(fl, p) => { setFile(fl); setSourceProblem(p); }} />
         <Field label="Rótulo da versão *" hint="Ex.: Comunicado 08/2026"><Input value={label} onChange={(e) => setLabel(e.target.value)} /></Field>
         <Field label="O que mudou?"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[60px]" /></Field>
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={ocr} onChange={(e) => setOcr(e.target.checked)} className="mt-1" /> PDF digitalizado: tentar OCR local</label>
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={confirm} onChange={(e) => setConfirm(e.target.checked)} className="mt-1" />
-          Confirmo que este arquivo é uma versão mais recente do mesmo documento e que a classificação (vigência, região, modalidade) continua correta.</label>
+          Confirmo que este conteúdo é uma versão mais recente do mesmo documento e que a classificação (vigência, região, modalidade) continua correta.</label>
         {error && <Alert tone="danger">{error}</Alert>}
       </div>
     </Dialog>

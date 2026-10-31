@@ -159,6 +159,31 @@ describe.skipIf(!enabled)("Interface ponta a ponta (navegador real + Supabase Au
     await page.close();
   });
 
+  it("editor cola um texto como documento; o worker indexa e ele fica ativo", async () => {
+    const page = await adminLogin("editor@corretora.test");
+    await page.getByRole("link", { name: "Documentos" }).click();
+    await page.getByRole("button", { name: "Novo documento" }).click();
+    await page.getByLabel("Título *").fill("Comunicado Carências Amil Novembro 2026");
+    await page.getByLabel("Operadora / seguradora").selectOption({ label: "Amil" });
+    await page.getByLabel("Categoria do documento").selectOption("carencias");
+    await page.getByRole("button", { name: "PME" }).click();
+    await page.getByLabel("Abrangência geográfica").selectOption("nacional");
+    await page.getByLabel("Válido até").fill("2027-12-31");
+    await page.getByRole("tab", { name: "Colar texto" }).click();
+    await page.getByRole("button", { name: "Salvar e enviar" }).click();
+    await page.getByText(/Cole ou digite o texto/).waitFor();
+    await page.getByLabel("Texto *").fill("COMUNICADO AMIL PME\nCarência de consultas eletivas: 30 dias para contratos PME a partir de 3 vidas.\nExames simples: 30 dias.");
+    await page.screenshot({ path: path.join(SHOTS, "painel-colar-texto.png") });
+    await page.getByRole("button", { name: "Salvar e enviar" }).click();
+    await page.getByText("Documento enviado").waitFor();
+    await expect.poll(async () => (await stack.pool.query("select status from especialista.knowledge_documents where title like 'Comunicado Carências Amil%'")).rows[0]?.status, { timeout: 60_000 }).toBe("ativo");
+    const v = await stack.pool.query(`select v.file_name, v.mime_type, v.chunk_count from especialista.document_versions v
+      join especialista.knowledge_documents d on d.id = v.document_id where d.title like 'Comunicado Carências Amil%'`);
+    expect(v.rows[0]).toMatchObject({ file_name: "Comunicado-Carencias-Amil-Novembro-2026.txt", mime_type: "text/plain" });
+    expect(v.rows[0].chunk_count).toBeGreaterThan(0);
+    await page.close();
+  });
+
   it("colaborador consulta pela extensão: resposta com fonte, favorito, feedback e histórico", async () => {
     const page = await ctx.newPage();
     await page.setViewportSize({ width: 400, height: 860 });

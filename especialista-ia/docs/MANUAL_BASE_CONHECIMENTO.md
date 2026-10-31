@@ -31,6 +31,18 @@ Formatos: PDF (com texto), DOCX, XLSX, CSV, TXT/MD — até 50 MB.
 Ao salvar, o painel calcula o hash do arquivo (impede enviar o mesmo arquivo duas vezes) e avisa se já existem
 documentos ativos da mesma operadora e categoria — nesse caso, se for uma atualização, use **Nova versão**.
 
+### Colar texto em vez de enviar arquivo
+Para comunicados por e-mail, mensagens oficiais da operadora ou trechos curtos, use a aba **Colar texto** (no lugar de
+**Enviar arquivo**) em *Novo documento* ou em *Nova versão*. O texto vira um arquivo `.txt` guardado no armazenamento
+privado e segue exatamente o mesmo caminho dos arquivos: indexação pelo worker, revisão quando necessário, vigência,
+versões e citação como fonte. Preencha a classificação (operadora, categoria, vigência, região) normalmente.
+
+- Cole apenas conteúdo **oficial** e identifique a origem no título (ex.: "Comunicado Amil 08/2026 — carências PME").
+- Não cole dados de clientes (nome, CPF, telefone).
+- Mínimo de 40 caracteres; o mesmo texto não pode ser enviado duas vezes.
+
+![Colar texto](img/painel-colar-texto.png)
+
 ## Indexação e revisão
 
 O worker local extrai o texto, avalia a qualidade, divide em trechos e gera os vetores. Status:
