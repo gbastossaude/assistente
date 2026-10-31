@@ -1,11 +1,12 @@
 import {
-  BookOpenCheck, ClipboardList, FileText, Gauge, Headset, LogOut, Menu, MessageSquareText, ScrollText, Settings, ShieldCheck, Users, X,
+  BookOpenCheck, ClipboardList, Download, FileText, Gauge, Headset, LogOut, Menu, MessageSquareText, ScrollText, Settings, ShieldCheck, Users, X,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { ROLE_LABELS, type Role } from "@especialista/shared";
 import { Badge, Button, cn } from "@especialista/ui";
 import { useAuth } from "../lib/auth.tsx";
+import { useInstallApp } from "../lib/install.ts";
 import type { Branding } from "../lib/branding.ts";
 
 export const NAV: Array<{ to: string; label: string; icon: typeof Gauge; roles: Role[] }> = [
@@ -24,6 +25,7 @@ export function AppLayout({ branding }: { branding: Branding }) {
   const { profile, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const items = NAV.filter((n) => profile && n.roles.includes(profile.role));
+  const app = useInstallApp();
   return (
     <div className="flex min-h-screen">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-2">Pular para o conteúdo</a>
@@ -45,6 +47,7 @@ export function AppLayout({ branding }: { branding: Branding }) {
           ))}
         </nav>
         <div className="border-t border-white/10 p-4">
+          <InstallApp app={app} />
           <p className="truncate text-sm font-medium">{profile?.full_name || profile?.email}</p>
           <div className="mt-1 flex items-center justify-between">
             <Badge tone="brand" className="bg-white/10 ring-white/20"><ShieldCheck className="h-3 w-3" />{profile ? ROLE_LABELS[profile.role] : ""}</Badge>
@@ -57,6 +60,9 @@ export function AppLayout({ branding }: { branding: Branding }) {
         <header className="flex items-center gap-3 border-b border-ink-200 bg-white px-4 py-3 lg:hidden">
           <button onClick={() => setOpen(true)} aria-label="Abrir menu" className="cursor-pointer"><Menu className="h-5 w-5" /></button>
           <span className="text-sm font-semibold">{branding.product_name}</span>
+          {app.canPrompt && (
+            <Button size="sm" variant="outline" className="ml-auto" onClick={app.install}><Download className="h-3.5 w-3.5" /> Instalar</Button>
+          )}
         </header>
         <main id="conteudo" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 lg:px-8">
           <Outlet />
@@ -64,6 +70,25 @@ export function AppLayout({ branding }: { branding: Branding }) {
       </div>
     </div>
   );
+}
+
+function InstallApp({ app }: { app: ReturnType<typeof useInstallApp> }) {
+  if (app.canPrompt) {
+    return (
+      <button onClick={app.install} className="mb-3 flex w-full cursor-pointer items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-left text-sm hover:bg-white/15">
+        <Download className="h-4 w-4" aria-hidden />
+        <span><span className="block font-medium">Instalar como aplicativo</span><span className="block text-[11px] text-white/60">Ícone na área de trabalho / celular</span></span>
+      </button>
+    );
+  }
+  if (app.iosHint) {
+    return (
+      <p className="mb-3 rounded-lg bg-white/10 px-3 py-2 text-[11px] text-white/80">
+        Para ter o ícone no iPhone: toque em <strong>Compartilhar</strong> e depois em <strong>Adicionar à Tela de Início</strong>.
+      </p>
+    );
+  }
+  return null;
 }
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
