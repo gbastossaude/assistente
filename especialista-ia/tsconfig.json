@@ -8,7 +8,16 @@
       "path": "packages/ai-core"
     },
     {
+      "path": "packages/ui"
+    },
+    {
       "path": "apps/local-worker"
+    },
+    {
+      "path": "apps/chrome-extension"
+    },
+    {
+      "path": "apps/admin"
     },
     {
       "path": "tests"

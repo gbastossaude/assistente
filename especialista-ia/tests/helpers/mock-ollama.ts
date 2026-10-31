@@ -36,7 +36,7 @@ export class MockOllama {
         this.chatCalls.push(body);
         let content: string;
         try {
-          content = this.chat(body);
+          content = this.chat(body as Parameters<ChatHandler>[0]);
         } catch (err) {
           return void res.writeHead(500).end(JSON.stringify({ error: (err as Error).message }));
         }

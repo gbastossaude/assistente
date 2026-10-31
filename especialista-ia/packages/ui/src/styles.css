@@ -1,0 +1,53 @@
+/*
+ * Tokens de design — azul-escuro corporativo, preto, branco e neutros.
+ * Personalize a marca alterando --brand/--accent (ou pelo painel: Configurações → Identidade visual).
+ */
+@theme {
+  --color-brand-950: #050d1a;
+  --color-brand-900: #0b1f3a;
+  --color-brand-800: #12305a;
+  --color-brand-700: #1a417a;
+  --color-brand-600: #22539b;
+  --color-accent-600: #2563eb;
+  --color-accent-500: #3b82f6;
+  --color-accent-50: #eff6ff;
+  --color-ink-950: #0a0a0b;
+  --color-ink-900: #18181b;
+  --color-ink-700: #3f3f46;
+  --color-ink-500: #71717a;
+  --color-ink-300: #d4d4d8;
+  --color-ink-200: #e4e4e7;
+  --color-ink-100: #f4f4f5;
+  --color-ink-50: #fafafa;
+  --color-success-600: #15803d;
+  --color-success-50: #f0fdf4;
+  --color-warning-600: #b45309;
+  --color-warning-50: #fffbeb;
+  --color-danger-600: #b91c1c;
+  --color-danger-50: #fef2f2;
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --radius-card: 0.875rem;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html,
+  body {
+    @apply bg-ink-50 text-ink-900 antialiased;
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent-500);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
