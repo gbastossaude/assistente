@@ -354,7 +354,7 @@ describe.skipIf(!available)("Banco de dados (migrations + RLS + RPC)", () => {
       const u = await pool.query("select sum(reserved)::int reserved, sum(blocked)::int blocked from public.whatsapp_usage where phone_number_id = 'PN2'");
       expect(u.rows[0]).toEqual({ reserved: 5, blocked: 7 });
       const alerts = await pool.query("select threshold from public.usage_alerts where phone_number_id = 'PN2' order by threshold");
-      expect(alerts.rows.map((a) => Number(a.threshold))).toEqual([0.5, 0.8, 0.95]);
+      expect(alerts.rows.map((a) => Number(a.threshold))).toEqual([0.5, 0.8, 0.95, 1]);
     });
 
     it("falha no envio devolve a reserva", async () => {

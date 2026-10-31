@@ -892,6 +892,15 @@ begin
   if v_month_count >= v_cap or v_day_count >= v_day_cap then
     insert into public.whatsapp_usage (phone_number_id, usage_date, blocked) values (p_phone_number_id, v_today, 1)
     on conflict (phone_number_id, usage_date) do update set blocked = whatsapp_usage.blocked + 1, updated_at = now();
+    -- Alertas: limiares já ultrapassados e "limite atingido" (1.0) quando o bloqueio é mensal.
+    for v_threshold in select jsonb_array_elements_text(coalesce(v_cfg -> 'alert_thresholds', '[0.5,0.8,0.95]'::jsonb))::numeric
+                       union select 1.0 where v_month_count >= v_cap loop
+      if v_month_count >= ceil(v_cap * v_threshold) then
+        insert into public.usage_alerts (phone_number_id, period_month, threshold, count_at_alert, cap)
+        values (p_phone_number_id, v_month, v_threshold, v_month_count, v_cap)
+        on conflict do nothing;
+      end if;
+    end loop;
     return jsonb_build_object('allowed', false,
       'reason', case when v_month_count >= v_cap then 'limite_mensal' else 'limite_diario' end,
       'month_count', v_month_count, 'day_count', v_day_count, 'cap', v_cap, 'daily_cap', v_day_cap);

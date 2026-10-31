@@ -1,0 +1,31 @@
+# Configuração para Supabase CLI (supabase link / db push / functions deploy).
+project_id = "especialista-ia"
+
+[api]
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["https://*.netlify.app"]
+# Cadastro público desligado: contas são criadas pelo administrador (admin-users).
+enable_signup = false
+jwt_expiry = 3600
+
+[auth.email]
+enable_signup = false
+enable_confirmations = false
+
+[storage]
+file_size_limit = "50MiB"
+
+[functions.whatsapp-webhook]
+# A Meta não envia JWT; a autenticidade é garantida pela assinatura X-Hub-Signature-256.
+verify_jwt = false
+
+[functions.whatsapp-send]
+verify_jwt = true
+
+[functions.admin-users]
+verify_jwt = true
